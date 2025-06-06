@@ -214,7 +214,7 @@ Before color correction:
 ![Before](Images/before.svg)
 
 Same images after color correction:
-![after](Images/after.svg)
+![After](Images/After.svg)
 
 ## References
 A detailed study that led to this package can be found at: [Awaiting Publication](https://www.yet_to_publish.com).
