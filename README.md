@@ -214,7 +214,7 @@ Before color correction:
 ![Before](Images/before.svg)
 
 Same images after color correction:
-![After](Images/after.svg)
+![after](Images/after.svg)
 
 ## References
 A detailed study that led to this package can be found at: [Awaiting Publication](https://www.yet_to_publish.com).
@@ -230,5 +230,4 @@ key packages used:
 - [Devin A. Rippner](https://github.com/daripp)
 
 ## Acknowledgements
-I am gratefully acknowledge [Devin A. Rippner](https://github.com/daripp), [ORISE](https://orise.orau.gov/index.html), and the [USDA-ARS](https://www.ars.usda.gov) for their invaluable assistance and funding support in the development of this Repo. This project would not have been possible without their guidance and opportunities provided.#   C o l o r C O r r e c t i o P i p e l i n e  
- 
+I would like to gratefully acknowledge [Devin A. Rippner](https://github.com/daripp), [ORISE](https://orise.orau.gov/index.html), and the [USDA-ARS](https://www.ars.usda.gov) for their invaluable assistance and funding support in the development of this Repo. This project would not have been possible without their guidance and opportunities provided.
