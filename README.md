@@ -53,7 +53,7 @@ The Dependencies (Automatically Installed, from `requirements.txt`) are:
 - `torch`
 - `opencv-python`
 - `colour-science`
-- `color-checker-detection`
+- `colour-checker-detection`
 - `ultralytics`
 - `scikit-image`
 - `plotly`

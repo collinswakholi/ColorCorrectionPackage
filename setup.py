@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as fh:
 
 setuptools.setup(
     name="ColorCorrectionPipeline",
-    version="1.1.3",
+    version="1.1.4",
     author="Collins Wakholi, Devin A. Rippner",
     author_email="wcoln@yahoo.com, devinrippner@gmail.com",
     description="A Stepwise color‐correction pipeline with flat‐field, gamma, white‐balance, and color‐correction stages.",
