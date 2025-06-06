@@ -7,15 +7,18 @@ name = "ColorCorrectionPipeline"
 version = "1.01.1"
 description = "A Stepwise color‐correction pipeline with flat‐field, gamma, white‐balance, and color‐correction stages."
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "LICENSE" }
 authors = [
   { name = "Collins Wakholi", email = "wcoln@yahoo.com" },
   { name = "Devin A. Rippner", email = "darippner@gmail.com" },
 ]
-homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
 keywords = ["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
+
+[project.urls]
+Homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
+"Bug Tracker" = "https://github.com/collinswakholi/ColorCorrectionPackage/issues"
