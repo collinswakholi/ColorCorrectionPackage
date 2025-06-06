@@ -1,7 +1,6 @@
 import cv2
-import pandas as pd
 import os
-from core import ColorCorrection, Config # from ColorCorrectionPipeline import ColorCorrection, Config, to_float64
+from ccp import ColorCorrection, Config # from ColorCorrectionPipeline import ColorCorrection, Config, to_float64
 from key_functions import to_float64
 
 IMG_PATH = 'Data/Images/Image_1.JPG' # image to compute color correction
@@ -97,7 +96,7 @@ metrics, corrected_imgs, errors = cc.run(
     name_=img_name,
     config=config
 )
-# convert metrics to pandas def
+
 print(metrics)
 
 test_imgs_corrected = cc.predict_image(test_img, show=True)

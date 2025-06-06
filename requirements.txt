@@ -1,4 +1,5 @@
 opencv-python
+opencv-contrib-python
 scikit-learn
 scipy
 numpy
@@ -8,7 +9,6 @@ scikit-image
 plotly
 matplotlib
 pandas
-glob2  # Assuming you meant the `glob2` library for enhanced glob functionality, otherwise `glob` is a built-in module.
 statsmodels
 seaborn
 pytest

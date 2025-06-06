@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ColorCorrectionPipeline.core import ColorCorrection, Config
+from ColorCorrectionPipeline.ccp import ColorCorrection, Config
 from ColorCorrectionPipeline.key_functions import to_uint8, to_float64
 
 # Utility to create a synthetic "color checker"‐like image (random patches)

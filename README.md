@@ -60,7 +60,6 @@ The Dependencies (Automatically Installed, from `requirements.txt`) are:
 - `matplotlib`
 - `pandas`
 - `difflib`
-- `glob2`
 - `statsmodels`
 - `seaborn` 
 - `pytest`
