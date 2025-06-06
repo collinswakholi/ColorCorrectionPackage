@@ -1,4 +1,4 @@
-n[build-system]
+[build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -21,4 +21,3 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
-"Bug Tracker" = "https://github.com/collinswakholi/ColorCorrectionPackage/issues"
