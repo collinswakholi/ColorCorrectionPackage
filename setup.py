@@ -26,7 +26,7 @@ setuptools.setup(
     keywords=["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"],
     package_dir={"": "src"},  # Tells setuptools your packages are under 'src/'
     packages=setuptools.find_packages(where="src"), # Automatically finds packages in 'src/'
-    python_requires=">=3.8", # You should define your minimum Python version here if not already
+    python_requires=">=3.8",
     install_requires=requirements,
     include_package_data=True
 )
