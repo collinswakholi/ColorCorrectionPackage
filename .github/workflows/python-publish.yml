@@ -12,22 +12,25 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: read
 
 jobs:
-  build-n-publish:
+  build-and-publish:
 
     runs-on: ubuntu-latest
+    environment: pypi # The environment name you set up on GitHub and PyPI
+    permissions:
+      id-token: write 
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
         
-    - name: Install dependencies
+    - name: Install build tools
       run: |
         python -m pip install --upgrade pip
         pip install build
@@ -39,7 +42,7 @@ jobs:
       run: python -m build --sdist --wheel --outdir dist/ .
       
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_CCP_TOKEN }}
