@@ -1,4 +1,4 @@
-[build-system]
+n[build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "LICENSE" }
 authors = [
   { name = "Collins Wakholi", email = "wcoln@yahoo.com" },
-  { name = "Devin A. Rippner", email = "darippner@gmail.com" },
+  { name = "Devin A. Rippner", email = "devinrippner@gmail.com" },
 ]
 keywords = ["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"]
 classifiers = [
