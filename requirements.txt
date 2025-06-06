@@ -1,0 +1,17 @@
+colour-science
+color-checker-detection
+opencv-python
+scikit-learn
+scipy
+numpy
+torch
+ultralytics
+scikit-image
+plotly
+matplotlib
+pandas
+difflib
+glob2  # Assuming you meant the `glob2` library for enhanced glob functionality, otherwise `glob` is a built-in module.
+statsmodels
+seaborn
+pytest
