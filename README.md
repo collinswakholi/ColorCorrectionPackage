@@ -75,7 +75,8 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from ColorCorrectionPipeline.core import ColorCorrection, Config
+from ColorCorrectionPipeline.ccp import ColorCorrection
+from ColorCorrectionPipeline.Configs.configs import Config
 from ColorCorrectionPipeline.key_functions import to_float64
 
 # ─────────────────────────────────────────────────────────────────────────────
