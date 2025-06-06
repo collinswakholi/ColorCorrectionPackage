@@ -24,8 +24,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     keywords=["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"],
-    package_dir={"": "src"},  # Tells setuptools your packages are under 'src/'
-    packages=setuptools.find_packages(where="src"), # Automatically finds packages in 'src/'
+    package_dir={"": "ColorCorrectionPipeline"},  # Tells setuptools your packages are under 'src/'
+    packages=setuptools.find_packages(), # Automatically finds packages in 'src/'
     python_requires=">=3.8",
     install_requires=requirements,
     include_package_data=True
