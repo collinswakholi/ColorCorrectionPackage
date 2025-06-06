@@ -34,7 +34,7 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from sklearn.base import BaseEstimator, RegressorMixin
 
 
-from .utils.logger_ import log_, match_keywords
+from utils.logger_ import log_, match_keywords
 import gc
 
 is_cuda = torch.cuda.is_available()

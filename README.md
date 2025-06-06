@@ -69,7 +69,7 @@ If you already have a `requirements.txt` file in your cloned repository, you can
 
 ---
 ## Usage
-Below is a simple example of how to use the package (found in `quick_run.py`):
+Below is a simple example of how to use the package (found in `src/quick_run.py`):
 ```python
 import os
 import cv2
@@ -82,10 +82,10 @@ from ColorCorrectionPipeline.key_functions import to_float64
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. File paths
 # ─────────────────────────────────────────────────────────────────────────────
-IMG_PATH         = "Data/Sample_1.JPG"        # Image containing color checker
-WHITE_PATH       = "Data/white.JPG"           # Optional White background image for FFC
-YOLO_MODEL_PATH  = "Data/plane_det_model_YOLO_512_n.pt"  # Optional YOLO .pt
-TEST_IMAGE_PATH  = "Data/Sample_2.JPG"        # Optional New image for prediction
+IMG_PATH         = "Data/Images/Sample_1.JPG"        # Image containing color checker
+WHITE_PATH       = "Data/Images/white.JPG"           # Optional White background image for FFC
+YOLO_MODEL_PATH  = "Data/Models/plane_det_model_YOLO_512_n.pt"  # Optional YOLO .pt
+TEST_IMAGE_PATH  = "Data/Images/Sample_2.JPG"        # Optional New image for prediction
 
 # Output directory (only used if config.save=True)
 SAVE_PATH = os.path.join(os.getcwd(), "results")
@@ -204,17 +204,17 @@ test_results = cc.predict_image(test_rgb, show=True)
 ```
 
 ### Assuming you have;
-1. A photograph with a color checker chart: `Data/Sample_1.JPG`, 
-2. An optional matching white-field image (for FFC): `Data/white.JPG`,
-3. A YOLO model for detecting the white plane (optional if you want automatic ROI): `Data/plane_det_model_YOLO_512_n.pt`
-4. Another optional image (no chart required) to test the learned corrections: `Data/Sample_2.JPG`
+1. A photograph with a color checker chart: `Data/Images/Sample_1.JPG`, 
+2. An optional matching white-field image (for FFC): `Data/Images/white.JPG`,
+3. A YOLO model for detecting the white plane (optional if you want automatic ROI): `Data/Models/plane_det_model_YOLO_512_n.pt`
+4. Another optional image (no chart required) to test the learned corrections: `Data/Images/Sample_2.JPG`
 
 ## Sample Reusults
 Before color correction:
-![Before](Images/before.svg)
+![Before](ReadMe_Images/before.svg)
 
 Same images after color correction:
-![After](Images/After.svg)
+![After](ReadMe_Images/After.svg)
 
 ## References
 A detailed study that led to this package can be found at: [Awaiting Publication](https://www.yet_to_publish.com).

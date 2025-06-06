@@ -1,14 +1,14 @@
 import cv2
 import pandas as pd
 import os
-from ColorCorrectionPipeline.core import ColorCorrection, Config
-from ColorCorrectionPipeline.key_functions import to_float64
+from core import ColorCorrection, Config # from ColorCorrectionPipeline.core import ColorCorrection, Config
+from key_functions import to_float64 # from ColorCorrectionPipeline.key_functions import to_float64
 
-IMG_PATH = 'Data/Sample_1.JPG' # image to compute color correction
-WHITE_IMAGE_PATH = 'Data/white.JPG' # for doing FFC
-TEST_IMAGE_PATH = 'Data/Sample_1.JPG' # image to test color correction, does not need to contain color card
+IMG_PATH = 'Data/Images/Image_1.JPG' # image to compute color correction
+WHITE_IMAGE_PATH = 'Data/Images/white.JPG' # for doing FFC
+TEST_IMAGE_PATH = 'Data/Images/Sample_1.JPG' # image to test color correction, does not need to contain color card
 
-MODEL_PATH = 'Data/plane_det_model_YOLO_512_n.pt' # path to yolo model for plane detection to do FFC
+MODEL_PATH = 'Data/Models/plane_det_model_YOLO_512_n.pt' # path to yolo model for plane detection to do FFC
 SAVE_PATH = os.path.join(os.getcwd(), 'results') # path to save results if config.save is True
 
 
@@ -52,14 +52,14 @@ cc_kwargs = {
     'mtd': 'nn', # if cc_method is 'ours', this is the method, linear, nn, pls, svm
 
     'degree': 2, # degree of polynomial to fit
-    'max_iterations': 5000, # max iterations for fitting
+    'max_iterations': 10000, # max iterations for fitting
     'random_state': 0, # random seed
     'tol': 1e-8, # tolerance for fitting
     'verbose': False, # whether to print verbose output
     'param_search': False, # whether to use parameter search
     'show': False, # whether to show plots
     'get_deltaE': True, # whether to compute deltaE
-    'n_samples': 25, # number of samples to use for parameter search
+    'n_samples': 50, # number of samples to use for parameter search
 
     # only if mtd == 'pls'
     'ncomp': 1, # number of components to use

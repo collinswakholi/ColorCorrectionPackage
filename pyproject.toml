@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "LICENSE" }
 authors = [
   { name = "Collins Wakholi", email = "wcoln@yahoo.com" },
-  { name = "Devin A. Rippner", email = "darippner@gmail.com" },
+  { name = "Devin A. Rippner", email = "devinrippner@gmail.com" },
 ]
 keywords = ["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"]
 classifiers = [
@@ -22,3 +22,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
 "Bug Tracker" = "https://github.com/collinswakholi/ColorCorrectionPackage/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}

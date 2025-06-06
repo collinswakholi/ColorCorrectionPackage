@@ -10,7 +10,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.preprocessing import PolynomialFeatures
 
-from ColorCorrectionPipeline.utils.logger_ import log_, ThrowDlg, match_keywords
+from utils.logger_ import log_, ThrowDlg, match_keywords
 from ultralytics import YOLO
 import torch
 
