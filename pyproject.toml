@@ -18,6 +18,24 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
+dependencies = [
+    "colour-science",
+    "color-checker-detection",
+    "opencv-python",
+    "scikit-learn",
+    "scipy",
+    "numpy",
+    "torch",
+    "ultralytics",
+    "scikit-image",
+    "plotly",
+    "matplotlib",
+    "pandas",
+    "difflib", # difflib is a built-in module, usually not needed here unless there's a package named 'difflib'
+    "glob2",   # If you meant the PyPI package glob2, otherwise the built-in 'glob' is not a dependency
+    "statsmodels",
+    "seaborn",
+]
 
 [project.urls]
 Homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
