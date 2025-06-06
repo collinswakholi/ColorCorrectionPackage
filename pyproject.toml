@@ -12,7 +12,7 @@ authors = [
   { name = "Collins Wakholi", email = "wcoln@yahoo.com" },
   { name = "Devin A. Rippner", email = "darippner@gmail.com" },
 ]
-homepage = "https://github.com/collinswakholi/ColorCorrectionPipeline"
+homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"
 keywords = ["color", "image-processing", "flat-field", "gamma-correction", "white-balance", "color-correction"]
 classifiers = [
   "Programming Language :: Python :: 3",
