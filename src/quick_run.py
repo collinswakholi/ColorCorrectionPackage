@@ -1,8 +1,8 @@
 import cv2
 import pandas as pd
 import os
-from core import ColorCorrection, Config # from ColorCorrectionPipeline.core import ColorCorrection, Config
-from key_functions import to_float64 # from ColorCorrectionPipeline.key_functions import to_float64
+from core import ColorCorrection, Config # from ColorCorrectionPipeline import ColorCorrection, Config, to_float64
+from key_functions import to_float64
 
 IMG_PATH = 'Data/Images/Image_1.JPG' # image to compute color correction
 WHITE_IMAGE_PATH = 'Data/Images/white.JPG' # for doing FFC
@@ -52,7 +52,7 @@ cc_kwargs = {
     'mtd': 'nn', # if cc_method is 'ours', this is the method, linear, nn, pls, svm
 
     'degree': 2, # degree of polynomial to fit
-    'max_iterations': 10000, # max iterations for fitting
+    'max_iterations': 5000, # max iterations for fitting
     'random_state': 0, # random seed
     'tol': 1e-8, # tolerance for fitting
     'verbose': False, # whether to print verbose output
