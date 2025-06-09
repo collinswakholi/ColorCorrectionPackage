@@ -40,8 +40,8 @@ pip install ColorCorrectionPipeline
 ### From GitHub
 
 ```bash
-git clone https://github.com/collinswakholi/ColorCorrectionPipeline.git
-cd ColorCorrectionPipeline
+git clone https://github.com/collinswakholi/ColorCorrectionPackage.git
+cd ColorCorrectionPackage
 pip install -e .
 ```
 
@@ -52,6 +52,7 @@ The Dependencies (Automatically Installed, from `requirements.txt`) are:
 - `scikit-learn`
 - `torch`
 - `opencv-python`
+- `opencv-contrib-python`
 - `colour-science`
 - `colour-checker-detection`
 - `ultralytics`
