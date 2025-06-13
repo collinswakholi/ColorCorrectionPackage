@@ -69,7 +69,7 @@ If you already have a `requirements.txt` file in your cloned repository, you can
 
 ---
 ## Usage
-Below is a simple example of how to use the package (found in `src/quick_run.py`):
+Below is a simple example of how to use the package (found in `ColorCorrectionPipeline/quick_run.py`):
 ```python
 import os
 import cv2
