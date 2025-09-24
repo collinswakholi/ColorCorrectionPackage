@@ -1,5 +1,9 @@
 import sys
 from pkg_resources import get_distribution, DistributionNotFound
+import warnings
+
+# Suppress known PyTorch pynvml deprecation warning
+warnings.filterwarnings('ignore', category=FutureWarning, module='torch')
 
 # Try multiple import strategies for better compatibility
 try:

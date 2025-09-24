@@ -537,8 +537,6 @@ class ColorCorrection:
             img_wb = img_gc
 
         # 5. Color Correction
-        # LOGGER.info("5. Color Correction")
-        # log_(f"CC method: {get_attr(cc_kwargs, 'cc_method', 'None')}", 'green', 'normal', 'info') ###########################
 
         log_("5. Color Correction", 'cyan', 'normal', 'info')
         t0 = time.time()
@@ -561,7 +559,6 @@ class ColorCorrection:
             # 1) Save models
             self.models.save(save_path, name_)
             # LOGGER.info(f"Saved models to {save_path}/{name_}.pkl")
-            log_(f"Saved models to {save_path}/{name_}.pkl", 'light_green', 'italic', 'info')
 
             # 2) Concatenate metrics into DataFrames
             if ALL_METRICS:
