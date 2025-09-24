@@ -19,9 +19,9 @@ import torch
 import colour
 from typing import Any, Dict, Optional, Tuple, Union
 
-from models import MyModels
-from utils.logger_ import log_
-from key_functions import (
+from .models import MyModels
+from .utils.logger_ import log_
+from .key_functions import (
     to_uint8,
     to_float64,
     extrapolate_if_sat_image,
@@ -37,8 +37,8 @@ from key_functions import (
     get_attr,
     adapt_chart,
 )
-from FFC.FF_correction import FlatFieldCorrection
-from Configs.configs import Config
+from .FFC.FF_correction import FlatFieldCorrection
+from .Configs.configs import Config
 
 __all__ = ['ColorCorrection', 'Config']
 

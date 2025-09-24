@@ -1,7 +1,7 @@
 import cv2
 import os
-from ccp import ColorCorrection, Config # from ColorCorrectionPipeline import ColorCorrection, Config, to_float64
-from key_functions import to_float64
+from .ccp import ColorCorrection, Config # from ColorCorrectionPipeline import ColorCorrection, Config, to_float64
+from .key_functions import to_float64
 
 IMG_PATH = 'Data/Images/Image_1.JPG' # image to compute color correction
 WHITE_IMAGE_PATH = 'Data/Images/white.JPG' # for doing FFC
