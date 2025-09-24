@@ -451,6 +451,8 @@ class ColorCorrection:
         save_results = get_attr(config, "save", False)
         save_path = get_attr(config, "save_path", None)
 
+        # log_(f"CC_kwargs: {cc_kwargs}", 'green', 'normal', 'info') ###########################
+
         # Step 0: references
         self.get_reference_values(get_attr(config, "REF_ILLUMINANT", None))
 
@@ -536,12 +538,14 @@ class ColorCorrection:
 
         # 5. Color Correction
         # LOGGER.info("5. Color Correction")
+        # log_(f"CC method: {get_attr(cc_kwargs, 'cc_method', 'None')}", 'green', 'normal', 'info') ###########################
+
         log_("5. Color Correction", 'cyan', 'normal', 'info')
         t0 = time.time()
         img_cc, metrics_cc, err_cc = self.do_color_correction(
             Image=img_wb,
             do_cc=do_cc,
-            cc_method=get_attr(config, "cc_method", "ours"),
+            cc_method=get_attr(cc_kwargs, "cc_method", "ours"),
             cc_kwargs=cc_kwargs
         )
         t1 = time.time()
