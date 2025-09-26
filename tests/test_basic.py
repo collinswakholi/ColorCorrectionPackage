@@ -29,10 +29,11 @@ def test_package_version():
 def test_basic_functionality():
     """Test basic functionality if imports work."""
     try:
-        from ColorCorrectionPipeline import CCP
+        from ColorCorrectionPipeline import ColorCorrection
+
         # Basic instantiation test
-        ccp = CCP()
-        assert ccp is not None
+        pipeline = ColorCorrection()
+        assert pipeline is not None
     except ImportError as e:
         pytest.skip(f"Required dependencies not available: {e}")
     except AttributeError as e:

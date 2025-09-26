@@ -330,7 +330,7 @@ If you use this package in your research, please cite:
   author = {Wakholi, Collins and Rippner, Devin A.},
   title = {ColorCorrectionPipeline: A stepwise color‐correction pipeline},
   url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-  version = {1.2.0},
+  version = {1.2.01},
   year = {2025}
 }
 ```
@@ -362,7 +362,7 @@ This project would not have been possible without their support and collaboratio
 
 ## Release History
 
-- **v1.2.0** - Enhanced packaging, automatic YOLO model inclusion, improved documentation
+- **v1.2.01** - Enhanced packaging, automatic YOLO model inclusion, improved documentation
 - **v1.1.x** - Bug fixes and performance improvements  
 - **v1.0.x** - Initial release with core color correction pipeline
 
