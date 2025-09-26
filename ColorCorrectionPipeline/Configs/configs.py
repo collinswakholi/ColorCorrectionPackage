@@ -1,15 +1,16 @@
+from typing import Any, Optional
 
 import numpy as np
-from typing import Optional, Any
 
+__all__ = ["Config"]
 
-__all__ = ['Config']
 
 class Config:
     """
     Simple configuration container for the pipeline steps.
     Any attribute not set will default to None (or be read via get_attr).
     """
+
     def __init__(
         self,
         do_ffc: bool = True,
@@ -17,7 +18,7 @@ class Config:
         do_wb: bool = True,
         do_cc: bool = True,
         save: bool = False,
-        check_saturation : bool = True,
+        check_saturation: bool = True,
         save_path: Optional[str] = None,
         REF_ILLUMINANT: Optional[np.ndarray] = None,
         FFC_kwargs: Optional[Any] = None,
@@ -37,4 +38,3 @@ class Config:
         self.WB_kwargs = WB_kwargs
         self.CC_kwargs = CC_kwargs
         self.check_saturation = check_saturation
-

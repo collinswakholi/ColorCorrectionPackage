@@ -1,11 +1,13 @@
 import os
+
 import cv2
 import numpy as np
 import pandas as pd
 import pytest
 
 from ColorCorrectionPipeline.ccp import ColorCorrection, Config
-from ColorCorrectionPipeline.key_functions import to_uint8, to_float64
+from ColorCorrectionPipeline.key_functions import to_float64, to_uint8
+
 
 # Utility to create a synthetic "color checker"‐like image (random patches)
 def synthetic_patch_image(width=320, height=240, patch_rows=4, patch_cols=6):
@@ -27,12 +29,14 @@ def synthetic_patch_image(width=320, height=240, patch_rows=4, patch_cols=6):
             img[y0 : y0 + patch_h, x0 : x0 + patch_w, :] = color
     return np.clip(img, 0.0, 1.0)
 
+
 def synthetic_white_image(rgb_img):
     """
     Given an RGB float64 [0,1] image, return a matching uint8 BGR white image.
     """
     h, w, _ = rgb_img.shape
     return np.ones((h, w, 3), dtype=np.uint8) * 255
+
 
 def test_full_pipeline_no_errors(tmp_path):
     """
@@ -45,8 +49,8 @@ def test_full_pipeline_no_errors(tmp_path):
 
     # Minimal kwargs (all defaults); no actual fitting will fail because patch values are arbitrary
     ffc_kwargs = {
-        "model_path": "",       # force manual crop → user would be prompted, but override to skip
-        "manual_crop": True,    # skip YOLO and use entire image
+        "model_path": "",  # force manual crop → user would be prompted, but override to skip
+        "manual_crop": True,  # skip YOLO and use entire image
         "show": False,
         "bins": 10,
         "smooth_window": 3,
@@ -106,12 +110,18 @@ def test_full_pipeline_no_errors(tmp_path):
     assert errors is False, "Pipeline encountered an unexpected error."
 
     # Check that each stage image exists and has correct dtype and shape
-    for step in ["synthetic_test_FFC", "synthetic_test_GC", "synthetic_test_WB", "synthetic_test_CC"]:
+    for step in [
+        "synthetic_test_FFC",
+        "synthetic_test_GC",
+        "synthetic_test_WB",
+        "synthetic_test_CC",
+    ]:
         assert step in images, f"Missing output for step: {step}"
         out_img = images[step]
         assert isinstance(out_img, np.ndarray)
         assert out_img.dtype == np.float64
         assert out_img.shape == img_rgb.shape
+
 
 def test_predict_chain(monkeypatch):
     """
@@ -122,7 +132,9 @@ def test_predict_chain(monkeypatch):
 
     # Assign dummy models:
     # - FFC: identity multiplier (all ones)
-    cc.models.model_ffc = np.ones((10, 10))  # shape doesn't match, but our monkeypatch bypasses resize prompt
+    cc.models.model_ffc = np.ones(
+        (10, 10)
+    )  # shape doesn't match, but our monkeypatch bypasses resize prompt
     # - GC: None (skip)
     cc.models.model_gc = None
     # - WB: identity diagonal matrix
@@ -140,9 +152,7 @@ def test_predict_chain(monkeypatch):
             # Return the passed img as-is (uint8)
             return img
 
-    monkeypatch.setattr(
-        "color_correction_pipeline.core.FlatFieldCorrection", DummyFFC
-    )
+    monkeypatch.setattr("color_correction_pipeline.core.FlatFieldCorrection", DummyFFC)
 
     # Also monkeypatch to_uint8 and to_float64 to ensure compatibility
     # (But in this test, the original to_uint8/to_float64 would work fine.)

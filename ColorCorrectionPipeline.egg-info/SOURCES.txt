@@ -7,6 +7,7 @@ README.md
 pyproject.toml
 requirements.txt
 setup.py
+test_model_path.py
 ColorCorrectionPipeline/__init__.py
 ColorCorrectionPipeline/ccp.py
 ColorCorrectionPipeline/constants.py

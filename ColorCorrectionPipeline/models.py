@@ -14,9 +14,9 @@ from typing import Any, Optional
 class MyModels:
     def __init__(self) -> None:
         self.model_ffc: Optional[Any] = None  # Flat-Field Correction multiplier
-        self.model_cc: Optional[Any] = None   # Color correction model/matrix
-        self.model_wb: Optional[Any] = None   # White-balance diagonal matrix
-        self.model_gc: Optional[Any] = None   # Gamma correction coefficients
+        self.model_cc: Optional[Any] = None  # Color correction model/matrix
+        self.model_wb: Optional[Any] = None  # White-balance diagonal matrix
+        self.model_gc: Optional[Any] = None  # Gamma correction coefficients
 
     def save(self, directory: str, name: str = "models") -> None:
         """

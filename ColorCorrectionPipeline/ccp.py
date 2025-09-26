@@ -9,40 +9,42 @@ Core color-correction pipeline class. Performs (optionally):
 You can train (run) on a pair of (Image, White_Image) and then use the saved models to predict on new images.
 """
 
+import gc
 import os
 import time
-import gc
+from typing import Any, Dict, Optional, Tuple, Union
+
+import colour
 import cv2
 import numpy as np
 import pandas as pd
 import torch
-import colour
-from typing import Any, Dict, Optional, Tuple, Union
 
-from .models import MyModels
-from .utils.logger_ import log_
-from .key_functions import (
-    to_uint8,
-    to_float64,
-    extrapolate_if_sat_image,
-    extract_neutral_patches,
-    get_metrics,
-    arrange_metrics,
-    estimate_gamma_profile,
-    wb_correction,
-    color_correction,
-    color_correction_1,
-    predict_image,
-    predict_,
-    get_attr,
-    adapt_chart,
-)
-from .FFC.FF_correction import FlatFieldCorrection
 from .Configs.configs import Config
+
 # get MODEL_PATH from constants to avoid circular imports
 from .constants import MODEL_PATH
+from .FFC.FF_correction import FlatFieldCorrection
+from .key_functions import (
+    adapt_chart,
+    arrange_metrics,
+    color_correction,
+    color_correction_1,
+    estimate_gamma_profile,
+    extract_neutral_patches,
+    extrapolate_if_sat_image,
+    get_attr,
+    get_metrics,
+    predict_,
+    predict_image,
+    to_float64,
+    to_uint8,
+    wb_correction,
+)
+from .models import MyModels
+from .utils.logger_ import log_
 
-__all__ = ['ColorCorrection', 'Config', 'MODEL_PATH']
+__all__ = ["ColorCorrection", "Config", "MODEL_PATH"]
 
 gc.enable()
 
@@ -70,8 +72,7 @@ class ColorCorrection:
         self.REFERENCE_NEUTRAL_PATCHES_PD: Optional[pd.DataFrame] = None
 
     def get_reference_values(
-        self,
-        REF_ILLUMINANT: Optional[np.ndarray] = None
+        self, REF_ILLUMINANT: Optional[np.ndarray] = None
     ) -> pd.DataFrame:
         """
         Precompute reference patch RGB under a given illuminant.
@@ -86,7 +87,8 @@ class ColorCorrection:
         if REF_ILLUMINANT is None:
             # default to D65 if not provided
             REF_ILLUMINANT = colour.CCS_ILLUMINANTS[
-                "CIE 1931 2 Degree Standard Observer"]["D65"]
+                "CIE 1931 2 Degree Standard Observer"
+            ]["D65"]
         self.REF_ILLUMINANT = REF_ILLUMINANT
 
         # Load the standard ColorChecker 24 chart data
@@ -110,9 +112,7 @@ class ColorCorrection:
         )
         # last six are neutrals
         REFERENCE_NEUTRAL_PATCHES_PD = pd.DataFrame(
-            REFERENCE_RGB_PD.iloc[-6:].values,
-            columns=["R", "G", "B"],
-            index=names[-6:]
+            REFERENCE_RGB_PD.iloc[-6:].values, columns=["R", "G", "B"], index=names[-6:]
         )
 
         self.REFERENCE_CHART = REFERENCE_CHART
@@ -122,10 +122,7 @@ class ColorCorrection:
         return REFERENCE_RGB_PD
 
     def do_flat_field_correction(
-        self,
-        Image: np.ndarray,
-        do_ffc: bool = True,
-        ffc_kwargs: Optional[Any] = None
+        self, Image: np.ndarray, do_ffc: bool = True, ffc_kwargs: Optional[Any] = None
     ) -> Tuple[np.ndarray, Optional[Dict[str, Any]], bool]:
         """
         Perform flat-field correction using `FlatFieldCorrection` class.
@@ -136,14 +133,20 @@ class ColorCorrection:
         """
         if not do_ffc or self.White_Image is None:
             # LOGGER.warning("Skipping flat field correction (disabled or no White_Image).")
-            log_(f"Skipping flat field correction (disabled or no White_Image).", 'yellow', 'italic', 'warn')
+            log_(
+                f"Skipping flat field correction (disabled or no White_Image).",
+                "yellow",
+                "italic",
+                "warn",
+            )
             return Image, None, False
 
         try:
             # Convert our working image to uint8 BGR for FFC
             img_bgr8 = to_uint8(Image[:, :, ::-1])
-            assert self.White_Image.shape == img_bgr8.shape, \
-                "Image and white image must have same shape."
+            assert (
+                self.White_Image.shape == img_bgr8.shape
+            ), "Image and white image must have same shape."
 
             # Extract keyword arguments
             get_deltaE = get_attr(ffc_kwargs, "get_deltaE", True)
@@ -152,7 +155,7 @@ class ColorCorrection:
                 "manual_crop": get_attr(
                     ffc_kwargs,
                     "manual_crop",
-                    True if get_attr(ffc_kwargs, "model_path", "") == "" else False
+                    True if get_attr(ffc_kwargs, "model_path", "") == "" else False,
                 ),
                 "show": get_attr(ffc_kwargs, "show", False),
                 "bins": get_attr(ffc_kwargs, "bins", 50),
@@ -187,12 +190,8 @@ class ColorCorrection:
                 _, cps_before = extract_neutral_patches(img_bgr8, return_one=True)
                 _, cps_after = extract_neutral_patches(c_bgr, return_one=True)
 
-                metrics_before = get_metrics(
-                    ref_vals, cps_before.values, illum, "srgb"
-                )
-                metrics_after = get_metrics(
-                    ref_vals, cps_after.values, illum, "srgb"
-                )
+                metrics_before = get_metrics(ref_vals, cps_before.values, illum, "srgb")
+                metrics_after = get_metrics(ref_vals, cps_after.values, illum, "srgb")
                 metrics = arrange_metrics(metrics_before, metrics_after, name="FFC")
 
             self.models.model_ffc = multiplier
@@ -200,13 +199,11 @@ class ColorCorrection:
 
         except Exception as e:
             # LOGGER.error(f"FlatFieldCorrection error: {e}", exc_info=True)
-            log_(f"FlatFieldCorrection error: {e}", 'red', 'italic', 'error')
+            log_(f"FlatFieldCorrection error: {e}", "red", "italic", "error")
             return Image, None, True
 
     def _check_saturation(
-        self,
-        Image: np.ndarray,
-        do_check: bool = True
+        self, Image: np.ndarray, do_check: bool = True
     ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Detect and extrapolate saturated patches if needed.
@@ -215,7 +212,7 @@ class ColorCorrection:
         """
         if not do_check:
             # LOGGER.warning("Skipping saturation check")
-            log_(f"Skipping saturation check", 'yellow', 'italic', 'warn')
+            log_(f"Skipping saturation check", "yellow", "italic", "warn")
             return Image, None, None
 
         try:
@@ -225,14 +222,11 @@ class ColorCorrection:
             return img_out, values, ids
         except Exception as e:
             # LOGGER.error(f"Saturation check error: {e}", exc_info=True)
-            log_(f"Saturation check error: {e}", 'red', 'italic', 'error')
+            log_(f"Saturation check error: {e}", "red", "italic", "error")
             return Image, None, None
 
     def do_gamma_correction(
-        self,
-        Image: np.ndarray,
-        do_gc: bool = True,
-        gc_kwargs: Optional[Any] = None
+        self, Image: np.ndarray, do_gc: bool = True, gc_kwargs: Optional[Any] = None
     ) -> Tuple[np.ndarray, Optional[Dict[str, Any]], bool]:
         """
         Estimate gamma correction profile and apply it.
@@ -241,7 +235,7 @@ class ColorCorrection:
         """
         if not do_gc:
             # LOGGER.warning("Skipping gamma correction")
-            log_(f"Skipping gamma correction", 'yellow', 'italic', 'warn')
+            log_(f"Skipping gamma correction", "yellow", "italic", "warn")
             return Image, None, False
 
         try:
@@ -260,14 +254,11 @@ class ColorCorrection:
             return np.clip(img_gc, 0.0, 1.0), metrics_gc, False
         except Exception as e:
             # LOGGER.error(f"Gamma correction error: {e}", exc_info=True)
-            log_(f"Gamma correction error: {e}", 'red', 'italic', 'error')
+            log_(f"Gamma correction error: {e}", "red", "italic", "error")
             return Image, None, True
 
     def do_white_balance(
-        self,
-        Image: np.ndarray,
-        do_wb: bool = True,
-        wb_kwargs: Optional[Any] = None
+        self, Image: np.ndarray, do_wb: bool = True, wb_kwargs: Optional[Any] = None
     ) -> Tuple[np.ndarray, Optional[Dict[str, Any]], bool]:
         """
         Perform diagonal white-balance correction.
@@ -276,7 +267,7 @@ class ColorCorrection:
         """
         if not do_wb:
             # LOGGER.warning("Skipping white balance")
-            log_(f"Skipping white balance", 'yellow', 'italic', 'warn')
+            log_(f"Skipping white balance", "yellow", "italic", "warn")
             return Image, None, False
 
         try:
@@ -294,7 +285,7 @@ class ColorCorrection:
             return np.clip(img_wb, 0.0, 1.0), metrics_wb, False
         except Exception as e:
             # LOGGER.error(f"White balance error: {e}", exc_info=True)
-            log_(f"White balance error: {e}", 'red', 'italic', 'error')
+            log_(f"White balance error: {e}", "red", "italic", "error")
             return Image, None, True
 
     def do_color_correction(
@@ -302,7 +293,7 @@ class ColorCorrection:
         Image: np.ndarray,
         do_cc: bool = True,
         cc_method: str = "ours",
-        cc_kwargs: Optional[Any] = None
+        cc_kwargs: Optional[Any] = None,
     ) -> Tuple[np.ndarray, Optional[Dict[str, Any]], bool]:
         """
         Perform color correction. Supports two methods:
@@ -313,7 +304,7 @@ class ColorCorrection:
         """
         if not do_cc:
             # LOGGER.warning("Skipping color correction")
-            log_(f"Skipping color correction", 'yellow', 'italic', 'warn')
+            log_(f"Skipping color correction", "yellow", "italic", "warn")
             return Image, None, False
 
         try:
@@ -321,11 +312,16 @@ class ColorCorrection:
                 params = {
                     "method": get_attr(cc_kwargs, "method", "Finlayson 2015"),
                     "degree": get_attr(cc_kwargs, "degree", 3),
-                    "root_polynomial_expansion":  None,
+                    "root_polynomial_expansion": None,
                     "terms": get_attr(cc_kwargs, "terms", None),
                 }
                 # LOGGER.info(f"Using conventional CC method: {params['method']}")
-                log_(f"Using conventional CC method: {params['method']}", 'yellow', 'italic', 'info')
+                log_(
+                    f"Using conventional CC method: {params['method']}",
+                    "yellow",
+                    "italic",
+                    "info",
+                )
                 ccm, img_cc, corrected_card, metrics_cc = color_correction_1(
                     img_rgb=Image,
                     ref_rgb=self.REFERENCE_RGB_PD.values,
@@ -335,9 +331,9 @@ class ColorCorrection:
                     cc_kwargs=params,
                 )
                 if get_attr(cc_kwargs, "show", False):
-                    colour.plotting.plot_multi_colour_checkers([
-                        self.REFERENCE_CHART, corrected_card
-                    ])
+                    colour.plotting.plot_multi_colour_checkers(
+                        [self.REFERENCE_CHART, corrected_card]
+                    )
                 self.models.model_cc = (ccm, params, "conv")
                 return np.clip(img_cc, 0.0, 1.0), metrics_cc, False
 
@@ -361,7 +357,12 @@ class ColorCorrection:
                     "optim_type": get_attr(cc_kwargs, "optim_type", "Adam"),
                 }
                 # LOGGER.info(f"Using custom CC method: {params['mtd']}")
-                log_(f"Using custom CC method: {params['mtd']}", 'yellow', 'italic', 'info')
+                log_(
+                    f"Using custom CC method: {params['mtd']}",
+                    "yellow",
+                    "italic",
+                    "info",
+                )
                 model, img_cc, corrected_card, metrics_cc = color_correction(
                     img_rgb=Image,
                     ref_rgb=self.REFERENCE_RGB_PD.values,
@@ -372,21 +373,21 @@ class ColorCorrection:
                     n_samples=get_attr(cc_kwargs, "n_samples", 50),
                 )
                 if get_attr(cc_kwargs, "show", False):
-                    colour.plotting.plot_multi_colour_checkers([
-                        self.REFERENCE_CHART, corrected_card
-                    ])
+                    colour.plotting.plot_multi_colour_checkers(
+                        [self.REFERENCE_CHART, corrected_card]
+                    )
                 self.models.model_cc = (model, params, "ours")
                 return np.clip(img_cc, 0.0, 1.0), metrics_cc, False
 
             else:
                 msg = f"Invalid color‐correction method: {cc_method}. Use 'conv' or 'ours'."
                 # LOGGER.error(msg)
-                log_(msg, 'red', 'italic', 'error')
+                log_(msg, "red", "italic", "error")
                 return Image, None, False
 
         except Exception as e:
             # LOGGER.error(f"Color correction error: {e}", exc_info=True)
-            log_(f"Color correction error: {e}", 'red', 'italic', 'error')
+            log_(f"Color correction error: {e}", "red", "italic", "error")
             return Image, None, True
 
     def run(
@@ -395,7 +396,7 @@ class ColorCorrection:
         # White_Image: Union[str, np.ndarray], # make it optional
         White_Image: Optional[Union[str, np.ndarray]] = None,
         name_: str = "",
-        config: Optional[Config] = None
+        config: Optional[Config] = None,
     ) -> Tuple[Dict[str, Any], Dict[str, np.ndarray], bool]:
         """
         Execute the full pipeline on a single (Image, White_Image) pair.
@@ -409,7 +410,7 @@ class ColorCorrection:
         """
 
         # LOGGER.info("Initializing ColorCorrection pipeline")
-        log_("Initializing ColorCorrection pipeline", 'light_blue', 'italic', 'info')
+        log_("Initializing ColorCorrection pipeline", "light_blue", "italic", "info")
         # Load image data
         if isinstance(Image, str):
             img_bgr = cv2.imread(Image)
@@ -424,16 +425,31 @@ class ColorCorrection:
         if isinstance(White_Image, str):
             w_bgr = cv2.imread(White_Image)
             if w_bgr is None:
-                log_(f"Cannot read White_Image from '{White_Image}'", 'red', 'italic', 'error')
-                log_(f"Skipping flat field correction (disabled or no White_Image).", 'yellow', 'italic', 'warn')
+                log_(
+                    f"Cannot read White_Image from '{White_Image}'",
+                    "red",
+                    "italic",
+                    "error",
+                )
+                log_(
+                    f"Skipping flat field correction (disabled or no White_Image).",
+                    "yellow",
+                    "italic",
+                    "warn",
+                )
                 self.White_Image = None
                 config.do_ffc = False
             self.White_Image = w_bgr
         elif isinstance(White_Image, np.ndarray):
             self.White_Image = White_Image
         else:
-            log_(f"White_Image is defined by user", 'yellow', 'italic', 'info')
-            log_(f"Skipping flat field correction (disabled or no White_Image).", 'yellow', 'italic', 'warn')
+            log_(f"White_Image is defined by user", "yellow", "italic", "info")
+            log_(
+                f"Skipping flat field correction (disabled or no White_Image).",
+                "yellow",
+                "italic",
+                "warn",
+            )
             self.White_Image = None
             config.do_ffc = False
 
@@ -462,7 +478,7 @@ class ColorCorrection:
         IMAGES: Dict[str, np.ndarray] = {}
 
         # 1. Flat Field Correction
-        log_("1. Flat Field Correction", 'cyan', 'normal', 'info')
+        log_("1. Flat Field Correction", "cyan", "normal", "info")
         t0 = time.time()
         img_ffc, metrics_ffc, err_ffc = self.do_flat_field_correction(
             Image=self.Image, do_ffc=do_ffc, ffc_kwargs=ffc_kwargs
@@ -470,7 +486,7 @@ class ColorCorrection:
         t1 = time.time()
         if do_ffc:
             # LOGGER.info(f"Flat Field done in {(t1 - t0):.2f}s")
-            log_(f"Flat Field done in {(t1 - t0):.2f}s", 'cyan', 'italic', 'info')
+            log_(f"Flat Field done in {(t1 - t0):.2f}s", "cyan", "italic", "info")
             ALL_METRICS[f"{name_}_FFC"] = metrics_ffc
             IMAGES[f"{name_}_FFC"] = img_ffc
         else:
@@ -478,7 +494,7 @@ class ColorCorrection:
 
         # 2. Saturation check/extrapolation
         # LOGGER.info("2. Saturation Check")
-        log_("2. Saturation Check", 'cyan', 'normal', 'info')
+        log_("2. Saturation Check", "cyan", "normal", "info")
         t0 = time.time()
         if check_sat:
             img_sat, values_sat, ids_sat = self._check_saturation(
@@ -486,29 +502,31 @@ class ColorCorrection:
             )
             if ids_sat is not None and save_results and save_path is not None:
                 # Save saturation data
-                sat_df = pd.DataFrame({
-                    "Image": [name_] * len(ids_sat),
-                    "ID": ids_sat,
-                    "Value_R": values_sat[:, 0],
-                    "Value_G": values_sat[:, 1],
-                    "Value_B": values_sat[:, 2],
-                })
+                sat_df = pd.DataFrame(
+                    {
+                        "Image": [name_] * len(ids_sat),
+                        "ID": ids_sat,
+                        "Value_R": values_sat[:, 0],
+                        "Value_G": values_sat[:, 1],
+                        "Value_B": values_sat[:, 2],
+                    }
+                )
                 os.makedirs(save_path, exist_ok=True)
                 sat_df.to_csv(
                     os.path.join(save_path, f"{name_}_Sat_data.csv"),
                     float_format="%.9f",
-                    encoding="utf-8-sig"
+                    encoding="utf-8-sig",
                 )
         else:
             img_sat = img_ffc
         t1 = time.time()
         if check_sat:
             # LOGGER.info(f"Saturation check done in {(t1 - t0):.2f}s")
-            log_(f"Saturation check done in {(t1 - t0):.2f}s", 'cyan', 'italic', 'info')
+            log_(f"Saturation check done in {(t1 - t0):.2f}s", "cyan", "italic", "info")
 
         # 3. Gamma Correction
         # LOGGER.info("3. Gamma Correction")
-        log_("3. Gamma Correction", 'cyan', 'normal', 'info')
+        log_("3. Gamma Correction", "cyan", "normal", "info")
         t0 = time.time()
         img_gc, metrics_gc, err_gc = self.do_gamma_correction(
             Image=img_sat, do_gc=do_gc, gc_kwargs=gc_kwargs
@@ -516,7 +534,7 @@ class ColorCorrection:
         t1 = time.time()
         if do_gc:
             # LOGGER.info(f"Gamma correction done in {(t1 - t0):.2f}s")
-            log_(f"Gamma correction done in {(t1 - t0):.2f}s", 'cyan', 'italic', 'info')
+            log_(f"Gamma correction done in {(t1 - t0):.2f}s", "cyan", "italic", "info")
             ALL_METRICS[f"{name_}_GC"] = metrics_gc
             IMAGES[f"{name_}_GC"] = img_gc
         else:
@@ -524,7 +542,7 @@ class ColorCorrection:
 
         # 4. White Balance
         # LOGGER.info("4. White Balance")
-        log_("4. White Balance", 'cyan', 'normal', 'info')
+        log_("4. White Balance", "cyan", "normal", "info")
         t0 = time.time()
         img_wb, metrics_wb, err_wb = self.do_white_balance(
             Image=img_gc, do_wb=do_wb, wb_kwargs=wb_kwargs
@@ -532,7 +550,7 @@ class ColorCorrection:
         t1 = time.time()
         if do_wb:
             # LOGGER.info(f"White balance done in {(t1 - t0):.2f}s")
-            log_(f"White balance done in {(t1 - t0):.2f}s", 'cyan', 'italic', 'info')
+            log_(f"White balance done in {(t1 - t0):.2f}s", "cyan", "italic", "info")
             ALL_METRICS[f"{name_}_WB"] = metrics_wb
             IMAGES[f"{name_}_WB"] = img_wb
         else:
@@ -540,18 +558,18 @@ class ColorCorrection:
 
         # 5. Color Correction
 
-        log_("5. Color Correction", 'cyan', 'normal', 'info')
+        log_("5. Color Correction", "cyan", "normal", "info")
         t0 = time.time()
         img_cc, metrics_cc, err_cc = self.do_color_correction(
             Image=img_wb,
             do_cc=do_cc,
             cc_method=get_attr(cc_kwargs, "cc_method", "ours"),
-            cc_kwargs=cc_kwargs
+            cc_kwargs=cc_kwargs,
         )
         t1 = time.time()
         if do_cc:
             # LOGGER.info(f"Color correction done in {(t1 - t0):.2f}s")
-            log_(f"Color correction done in {(t1 - t0):.2f}s", 'cyan', 'italic', 'info')
+            log_(f"Color correction done in {(t1 - t0):.2f}s", "cyan", "italic", "info")
             ALL_METRICS[f"{name_}_CC"] = metrics_cc
             IMAGES[f"{name_}_CC"] = img_cc
 
@@ -587,7 +605,12 @@ class ColorCorrection:
                         encoding="utf-8",
                     )
                 # LOGGER.info(f"Saved metrics CSVs to {save_path}")
-                log_(f"Saved metrics CSVs to {save_path}", 'light_green', 'italic', 'info')
+                log_(
+                    f"Saved metrics CSVs to {save_path}",
+                    "light_green",
+                    "italic",
+                    "info",
+                )
 
         # Free CUDA memory if used
         torch.cuda.empty_cache()
@@ -597,9 +620,7 @@ class ColorCorrection:
         return ALL_METRICS, IMAGES, Error
 
     def predict_image(
-        self,
-        Image: Union[str, np.ndarray],
-        show: bool = False
+        self, Image: Union[str, np.ndarray], show: bool = False
     ) -> Dict[str, np.ndarray]:
         """
         Given a new image (path or ndarray), apply saved models (ffc, gc, wb, cc)
@@ -623,9 +644,7 @@ class ColorCorrection:
         if self.models.model_ffc is not None:
             ffc_obj = FlatFieldCorrection()
             bgr8 = to_uint8(img[:, :, ::-1])
-            ffc_out_bgr = ffc_obj.apply_ffc(
-                img=bgr8, multiplier=self.models.model_ffc
-            )
+            ffc_out_bgr = ffc_obj.apply_ffc(img=bgr8, multiplier=self.models.model_ffc)
             img_ffc = to_float64(ffc_out_bgr[:, :, ::-1])
         else:
             img_ffc = img
@@ -634,8 +653,9 @@ class ColorCorrection:
         # 2) Gamma correction
         if self.models.model_gc is not None:
             gc_out = predict_image(
-                img=img_ffc, coeffs=self.models.model_gc,
-                ref_illuminant=self.REF_ILLUMINANT
+                img=img_ffc,
+                coeffs=self.models.model_gc,
+                ref_illuminant=self.REF_ILLUMINANT,
             )
             img_gc = np.clip(gc_out, 0.0, 1.0)
         else:
@@ -669,7 +689,9 @@ class ColorCorrection:
 
         end = time.time()
         # LOGGER.info(f"Prediction elapsed: {(end - start):.2f}s")
-        log_(f"Prediction elapsed: {(end - start):.2f}s", 'light_green', 'italic', 'info')
+        log_(
+            f"Prediction elapsed: {(end - start):.2f}s", "light_green", "italic", "info"
+        )
 
         if show:
             for name, im in out_images.items():

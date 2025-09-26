@@ -1,14 +1,17 @@
 import logging
-from tkinter import messagebox, simpledialog
 import threading
 import tkinter as tk
 from difflib import get_close_matches
+from tkinter import messagebox, simpledialog
 
 thread_lock = threading.Lock()
 
-__all__ = ['log_', 'ThrowDlg', 'match_keywords']
+__all__ = ["log_", "ThrowDlg", "match_keywords"]
 
-logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s\n', level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s\n", level=logging.INFO
+)
+
 
 class Color:
     def __init__(self, name, normal, bold, italic):
@@ -19,40 +22,43 @@ class Color:
 
     def __str__(self):
         return self.normal
-    
+
+
 class Colors:
     def __init__(self):
         colors = {
-            'BLUE': ('\033[34m', '\033[1;34m', '\033[3;34m'),
-            'GREEN': ('\033[32m', '\033[1;32m', '\033[3;32m'),
-            'RED': ('\033[31m', '\033[1;31m', '\033[3;31m'),
-            'YELLOW': ('\033[33m', '\033[1;33m', '\033[3;33m'),
-            'PURPLE': ('\033[35m', '\033[1;35m', '\033[3;35m'),
-            'CYAN': ('\033[36m', '\033[1;36m', '\033[3;36m'),
-            'MAGENTA': ('\033[35m', '\033[1;35m', '\033[3;35m'),
-            'WHITE': ('\033[37m', '\033[1;37m', '\033[3;37m'),
-            'BLACK': ('\033[30m', '\033[1;30m', '\033[3;30m'),
-            'DARK_GREY': ('\033[90m', '\033[1;90m', '\033[3;90m'),
-            'LIGHT_GREY': ('\033[37m', '\033[1;37m', '\033[3;37m'),
-            'LIGHT_RED': ('\033[91m', '\033[1;91m', '\033[3;91m'),
-            'LIGHT_GREEN': ('\033[92m', '\033[1;92m', '\033[3;92m'),
-            'LIGHT_YELLOW': ('\033[93m', '\033[1;93m', '\033[3;93m'),
-            'LIGHT_BLUE': ('\033[94m', '\033[1;94m', '\033[3;94m'),
-            'LIGHT_PURPLE': ('\033[95m', '\033[1;95m', '\033[3;95m'),
-            'LIGHT_CYAN': ('\033[96m', '\033[1;96m', '\033[3;96m'),
-            'LIGHT_MAGENTA': ('\033[95m', '\033[1;95m', '\033[3;95m'),
-            'DEFAULT': ('\033[0m', '\033[1;0m', '\033[3;0m'),
+            "BLUE": ("\033[34m", "\033[1;34m", "\033[3;34m"),
+            "GREEN": ("\033[32m", "\033[1;32m", "\033[3;32m"),
+            "RED": ("\033[31m", "\033[1;31m", "\033[3;31m"),
+            "YELLOW": ("\033[33m", "\033[1;33m", "\033[3;33m"),
+            "PURPLE": ("\033[35m", "\033[1;35m", "\033[3;35m"),
+            "CYAN": ("\033[36m", "\033[1;36m", "\033[3;36m"),
+            "MAGENTA": ("\033[35m", "\033[1;35m", "\033[3;35m"),
+            "WHITE": ("\033[37m", "\033[1;37m", "\033[3;37m"),
+            "BLACK": ("\033[30m", "\033[1;30m", "\033[3;30m"),
+            "DARK_GREY": ("\033[90m", "\033[1;90m", "\033[3;90m"),
+            "LIGHT_GREY": ("\033[37m", "\033[1;37m", "\033[3;37m"),
+            "LIGHT_RED": ("\033[91m", "\033[1;91m", "\033[3;91m"),
+            "LIGHT_GREEN": ("\033[92m", "\033[1;92m", "\033[3;92m"),
+            "LIGHT_YELLOW": ("\033[93m", "\033[1;93m", "\033[3;93m"),
+            "LIGHT_BLUE": ("\033[94m", "\033[1;94m", "\033[3;94m"),
+            "LIGHT_PURPLE": ("\033[95m", "\033[1;95m", "\033[3;95m"),
+            "LIGHT_CYAN": ("\033[96m", "\033[1;96m", "\033[3;96m"),
+            "LIGHT_MAGENTA": ("\033[95m", "\033[1;95m", "\033[3;95m"),
+            "DEFAULT": ("\033[0m", "\033[1;0m", "\033[3;0m"),
         }
-        
+
         for color_name, (normal, bold, italic) in colors.items():
             setattr(self, color_name.lower(), Color(color_name, normal, bold, italic))
-            
-        self.reset = '\033[0m'
-        
+
+        self.reset = "\033[0m"
+
     def __str__(self):
         return self.reset
 
+
 colors = Colors()
+
 
 def match_keywords(word: str, keywords: list, threshold: float = 0.8) -> str:
     """
@@ -100,14 +106,24 @@ def match_keywords(word: str, keywords: list, threshold: float = 0.8) -> str:
     matches = get_close_matches(word, keywords, n=1, cutoff=threshold)
     if matches:
         closest_match = matches[0]
-        log_(f'"{word}" ~= "{closest_match}", score >= {threshold}', color='green', level='info', font_style='italic')
+        log_(
+            f'"{word}" ~= "{closest_match}", score >= {threshold}',
+            color="green",
+            level="info",
+            font_style="italic",
+        )
         return closest_match
     else:
         # log_(f'No close match for "{word}" found. Returning original.', color='red', level='warning')
         return word
 
-    
-def log_(message: str, color: str='default', font_style: str='normal', level: str='info'):
+
+def log_(
+    message: str,
+    color: str = "default",
+    font_style: str = "normal",
+    level: str = "info",
+):
     """
     Log a message with customizable color, font style, and severity level.
 
@@ -129,8 +145,8 @@ def log_(message: str, color: str='default', font_style: str='normal', level: st
 
     Description
     -----------
-    This function allows logging messages with different color schemes and font styles. 
-    It validates the color, font style, and logging level inputs using the `match_keywords` function 
+    This function allows logging messages with different color schemes and font styles.
+    It validates the color, font style, and logging level inputs using the `match_keywords` function
     to find the closest match from predefined options.
 
     Example
@@ -139,13 +155,30 @@ def log_(message: str, color: str='default', font_style: str='normal', level: st
     log_("Sample message", color="blue", font_style="bold", level="info")
     ```
     """
-    global colors
-    color_must_be = ['blue', 'green', 'red', 'yellow', 'purple', 'cyan', 'magenta', 'white', 'black', 'default'
-                     'dark_grey', 'light_grey', 'light_red', 'light_green', 'light_yellow', 'light_blue',
-                     'light_purple', 'light_cyan', 'light_magenta', 'reset']
-    
-    font_must_be = ['normal', 'bold', 'italic']
-    level_must_be = ['info', 'warning', 'error', 'critical']
+    color_must_be = [
+        "blue",
+        "green",
+        "red",
+        "yellow",
+        "purple",
+        "cyan",
+        "magenta",
+        "white",
+        "black",
+        "default" "dark_grey",
+        "light_grey",
+        "light_red",
+        "light_green",
+        "light_yellow",
+        "light_blue",
+        "light_purple",
+        "light_cyan",
+        "light_magenta",
+        "reset",
+    ]
+
+    font_must_be = ["normal", "bold", "italic"]
+    level_must_be = ["info", "warning", "error", "critical"]
 
     with thread_lock:
         if color.lower() not in color_must_be:
@@ -160,13 +193,12 @@ def log_(message: str, color: str='default', font_style: str='normal', level: st
         color_attr = getattr(colors, color.lower(), colors.default)
         font_style_attr = getattr(color_attr, font_style.lower(), color_attr.normal)
         log_func = getattr(logging, level.lower(), logging.info)
-        
-        msg = f'{font_style_attr}{message}{colors.reset}'
+
+        msg = f"{font_style_attr}{message}{colors.reset}"
         log_func(msg)
 
 
 class ThrowDlg:
-
     """
     A utility class for displaying various dialog boxes (warnings, errors, info, and prompts) using Tkinter.
 
@@ -174,19 +206,19 @@ class ThrowDlg:
     -------
     warn(msg: str) -> str
         Displays a warning message box with the specified message and returns the user's response.
-        
+
     error(msg: str) -> str
         Displays an error message box with the specified message and returns the user's response.
-        
+
     info(msg: str) -> str
         Displays an information message box with the specified message and returns the user's response.
-        
+
     yesno(msg: str) -> str
         Displays a Yes/No question dialog box with the specified message and returns "yes" or "no" based on the user's choice.
-        
+
     okcancel(msg: str) -> str
         Displays an OK/Cancel question dialog box with the specified message and returns "ok" or "cancel" based on the user's choice.
-        
+
     input(msg: str) -> str
         Displays an input prompt dialog box asking for a string response from the user.
 
@@ -216,43 +248,43 @@ class ThrowDlg:
         return root
 
     @classmethod
-    def warn(cls, msg:str)->str:
+    def warn(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = messagebox.showwarning('Warning', msg)
+        reponse = messagebox.showwarning("Warning", msg)
         root.destroy()
         return reponse
 
     @classmethod
-    def error(cls, msg:str)->str:
+    def error(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = messagebox.showerror('Error', msg)
+        reponse = messagebox.showerror("Error", msg)
         root.destroy()
         return reponse
-    
+
     @classmethod
-    def info(cls, msg:str)->str:
+    def info(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = messagebox.showinfo('Info', msg)
+        reponse = messagebox.showinfo("Info", msg)
         root.destroy()
         return reponse
-    
+
     @classmethod
-    def yesno(cls, msg:str)->str:
+    def yesno(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = messagebox.askyesno('Question', msg)
+        reponse = messagebox.askyesno("Question", msg)
         root.destroy()
         return "yes" if reponse else "no"
-    
+
     @classmethod
-    def okcancel(cls, msg:str)->str:
+    def okcancel(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = messagebox.askokcancel('Question', msg)
+        reponse = messagebox.askokcancel("Question", msg)
         root.destroy()
         return "ok" if reponse else "cancel"
-    
+
     @classmethod
-    def input(cls, msg:str)->str:
+    def input(cls, msg: str) -> str:
         root = cls._init_root()
-        reponse = simpledialog.askstring('Question', msg)
+        reponse = simpledialog.askstring("Question", msg)
         root.destroy()
         return reponse
