@@ -5,7 +5,7 @@ import json
 import os
 import re
 import threading
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import colour
 import colour.plotting
@@ -810,7 +810,7 @@ def extract_color_chart_ex(
     npts: int = 50,  # number of points to extract from each color patch
     show: bool = False,  # show image with marked color patches
     randomize: bool = True,  # randomize the order of color patches
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
 
     img_blur = cv2.medianBlur(img, 5)
     # detect chart
@@ -2077,7 +2077,7 @@ def color_correction(
 
 def scatter_RGB(
     reference: np.ndarray,  # reference values of RGB (24x3)
-    mats: dict[str, np.ndarray],  # dictionary of named matrices, each matrix is 24x3
+    mats: Dict[str, np.ndarray],  # dictionary of named matrices, each matrix is 24x3
     point_lw: float = 1.5,
     maker_size: float = 100,
     best_fit: bool = True,
