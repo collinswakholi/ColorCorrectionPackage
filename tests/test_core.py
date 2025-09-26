@@ -152,7 +152,7 @@ def test_predict_chain(monkeypatch):
             # Return the passed img as-is (uint8)
             return img
 
-    monkeypatch.setattr("color_correction_pipeline.core.FlatFieldCorrection", DummyFFC)
+    monkeypatch.setattr("ColorCorrectionPipeline.FFC.FF_correction.FlatFieldCorrection", DummyFFC)
 
     # Also monkeypatch to_uint8 and to_float64 to ensure compatibility
     # (But in this test, the original to_uint8/to_float64 would work fine.)

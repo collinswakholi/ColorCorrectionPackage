@@ -152,11 +152,11 @@ def adapt_chart(CHART, ILLUMINANT):
         )
 
         CHART = colour.characterisation.ColourChecker(
-            CHART.name + "_Adapted",
-            dict(zip(CHART.data.keys(), colour.XYZ_to_xyY(data_xyz_adapted))),
-            ILLUMINANT,
-            CHART.rows,
-            CHART.columns,
+            name=CHART.name + "_Adapted",
+            data=dict(zip(CHART.data.keys(), colour.XYZ_to_xyY(data_xyz_adapted))),
+            illuminant=ILLUMINANT,
+            rows=CHART.rows,
+            columns=CHART.columns,
         )
         return CHART
 
