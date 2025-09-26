@@ -15,19 +15,28 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.8, 3.9, '3.10', 3.11, 3.12]
+      fail-fast: false
+    timeout-minutes: 60
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
     
     - name: Install dependencies
+      timeout-minutes: 30
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        pip install --upgrade wheel setuptools
+        # Install PyTorch CPU-only version to reduce download size
+        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        # Install other dependencies without PyTorch (already installed above)
+        pip install -e ".[dev]" --no-deps
+        pip install opencv-python opencv-contrib-python scikit-learn scipy numpy ultralytics scikit-image plotly matplotlib pandas statsmodels seaborn colour-science colour-checker-detection pytest pytest-cov black flake8 isort mypy pre-commit
     
     - name: Lint with flake8
       run: |
@@ -35,8 +44,9 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
     
     - name: Test with pytest
+      timeout-minutes: 15
       run: |
-        pytest --cov=ColorCorrectionPipeline --cov-report=xml
+        pytest --cov=ColorCorrectionPipeline --cov-report=xml --maxfail=5 -x
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -49,14 +59,16 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
+    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.11
+        cache: 'pip'
     
     - name: Install build dependencies
       run: |
