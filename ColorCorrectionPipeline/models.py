@@ -39,3 +39,4 @@ class MyModels:
         self.model_cc = loaded.model_cc
         self.model_wb = loaded.model_wb
         self.model_gc = loaded.model_gc
+        
