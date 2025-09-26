@@ -1,0 +1,38 @@
+# Include essential project files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include requirements.txt
+include pyproject.toml
+
+# Include package files
+recursive-include ColorCorrectionPipeline *.py
+
+# Include the YOLO model file
+recursive-include ColorCorrectionPipeline/FFC/Models *.pt
+
+# Include configuration files
+recursive-include ColorCorrectionPipeline/Configs *.py
+
+# Include utility files
+recursive-include ColorCorrectionPipeline/utils *.py
+
+# Include documentation images
+recursive-include ReadMe_Images *.svg *.png *.jpg *.jpeg
+
+# Exclude development and build files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.so
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude tests *
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude .git *
+recursive-exclude .github *

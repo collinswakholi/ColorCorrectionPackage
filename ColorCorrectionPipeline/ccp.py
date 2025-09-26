@@ -39,8 +39,10 @@ from .key_functions import (
 )
 from .FFC.FF_correction import FlatFieldCorrection
 from .Configs.configs import Config
+# get MODEL_PATH from constants to avoid circular imports
+from .constants import MODEL_PATH
 
-__all__ = ['ColorCorrection', 'Config']
+__all__ = ['ColorCorrection', 'Config', 'MODEL_PATH']
 
 gc.enable()
 
@@ -146,7 +148,7 @@ class ColorCorrection:
             # Extract keyword arguments
             get_deltaE = get_attr(ffc_kwargs, "get_deltaE", True)
             ffc_params = {
-                "model_path": get_attr(ffc_kwargs, "model_path", ""),
+                "model_path": get_attr(ffc_kwargs, "model_path", MODEL_PATH),
                 "manual_crop": get_attr(
                     ffc_kwargs,
                     "manual_crop",

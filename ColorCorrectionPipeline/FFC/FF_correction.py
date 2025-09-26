@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import sys
+import os
 
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
@@ -65,10 +66,18 @@ class FlatFieldCorrection():
 
     """
     def __init__(self, img=None, **kwargs):
+        # Import MODEL_PATH from constants to avoid circular imports
+        import os  # Ensure os is available in this scope
+        try:
+            from ..constants import MODEL_PATH
+        except ImportError:
+            # Fallback if import fails - compute relative to this file
+            MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'FFC', 'Models', 'plane_det_model_YOLO_512_n.pt')
+        
         self.img = img
-        self.model_path = kwargs.get('model_path', '')
+        self.model_path = kwargs.get('model_path', MODEL_PATH)  # Use global MODEL_PATH as default
         self.manual_crop = kwargs.get('manual_crop', False)
-        if self.model_path == '':
+        if self.model_path == '' or not os.path.exists(self.model_path):
             self.manual_crop = True
         self.show = kwargs.get('show', False)
         self.bins = kwargs.get('bins', 50)
@@ -213,6 +222,7 @@ class FlatFieldCorrection():
                 conf=0.7,
                 iou=0.6
             )
+            print(1)
             boxes = []
             probs = []
             for result in results:
@@ -274,7 +284,10 @@ class FlatFieldCorrection():
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        del results, boxes, probs
+        try:
+            del results, boxes, probs
+        except:
+            pass
         gc.collect()
 
     def get_L(self, img, smooth=False):

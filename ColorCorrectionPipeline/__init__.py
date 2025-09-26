@@ -1,9 +1,19 @@
 import sys
-from pkg_resources import get_distribution, DistributionNotFound
+import os
 import warnings
 
 # Suppress known PyTorch pynvml deprecation warning
 warnings.filterwarnings('ignore', category=FutureWarning, module='torch')
+
+# Modern way to get package version
+try:
+    from importlib.metadata import version, PackageNotFoundError
+except ImportError:
+    # Python < 3.8 fallback
+    from importlib_metadata import version, PackageNotFoundError
+
+# Import constants first to avoid circular imports
+from .constants import MODEL_PATH
 
 # Try multiple import strategies for better compatibility
 try:
@@ -32,10 +42,13 @@ except ImportError:
         FlatFieldCorrection = FFC.FF_correction.FlatFieldCorrection
 
 try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
+    __version__ = version(__name__)
+except PackageNotFoundError:
     # package is not installed
     __version__ = 'unknown'
+
+# Global MODEL_PATH constant for YOLO model imported from constants
+# This avoids circular import issues
 
 # get all key functions in key_functions.py, append to __all__
 __all__ = [
@@ -43,6 +56,7 @@ __all__ = [
     "Config",
     "MyModels",
     "FlatFieldCorrection",
+    "MODEL_PATH",
 ]
 
 if "pdoc" in sys.modules:

@@ -14,3 +14,16 @@ seaborn
 pytest
 colour-science
 colour-checker-detection
+
+[dev]
+pytest>=6.0
+pytest-cov
+black
+flake8
+mypy
+pre-commit
+
+[docs]
+sphinx
+sphinx-rtd-theme
+myst-parser
