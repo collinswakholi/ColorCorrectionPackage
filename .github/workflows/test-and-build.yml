@@ -32,11 +32,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install --upgrade wheel setuptools
+        # Install NumPy version compatible with Python 3.9
+        if [[ "${{ matrix.python-version }}" == "3.9" ]]; then
+          pip install "numpy<2.0"
+        else
+          pip install numpy
+        fi
         # Install PyTorch CPU-only version to reduce download size
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
         # Install other dependencies without PyTorch (already installed above)
         pip install -e ".[dev]" --no-deps
-        pip install opencv-python opencv-contrib-python scikit-learn scipy numpy ultralytics scikit-image plotly matplotlib pandas statsmodels seaborn colour-science colour-checker-detection pytest pytest-cov black flake8 isort mypy pre-commit
+        pip install opencv-python opencv-contrib-python scikit-learn scipy ultralytics scikit-image plotly matplotlib pandas statsmodels seaborn colour-science colour-checker-detection pytest pytest-cov black flake8 isort mypy pre-commit
     
     - name: Lint with flake8
       run: |

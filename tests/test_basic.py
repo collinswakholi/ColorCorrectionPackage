@@ -26,22 +26,23 @@ def test_package_version():
     assert hasattr(ColorCorrectionPipeline, "__version__")
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skip on Windows due to dependency issues"
-)
 def test_basic_functionality():
     """Test basic functionality if imports work."""
     try:
         from ColorCorrectionPipeline import CCP
-
         # Basic instantiation test
         ccp = CCP()
         assert ccp is not None
-    except ImportError:
-        pytest.skip("Required dependencies not available")
+    except ImportError as e:
+        pytest.skip(f"Required dependencies not available: {e}")
+    except AttributeError as e:
+        if "np.float_" in str(e):
+            pytest.skip(f"NumPy compatibility issue with colour-science: {e}")
+        else:
+            raise
     except Exception as e:
         # If there are other errors, just warn but don't fail
-        print(f"Warning: Basic functionality test failed with: {e}")
+        pytest.skip(f"Basic functionality test failed with: {e}")
 
 
 if __name__ == "__main__":
