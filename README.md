@@ -1,5 +1,4 @@
-# ColorCor- **Flat-Field Correction (FFC)**  
-  Automatically detect or manually crops "white" background image. Fits an n-degree 2D surface to describe the light distribution in the FOV, extrapolates to full image. Includes pre-trained YOLO model for automatic white plane detection.ctionPipeline
+# ColorCorrectionPipeline
 
 A step-wise, end-to-end color‐correction pipeline for digital images.  
 This package combines flat-field correction (**FFC**), gamma correction (**GC**), white-balance (**WB**), and color-correction (**CC**) into a single, easy-to-use workflow. Once you “train” on an image containing a color-checker (and a white-field for FFC), you can apply the learned corrections to any new image (no chart required, as long as it was captured with the same camera, and in the same lighting conditions).
