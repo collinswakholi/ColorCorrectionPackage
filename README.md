@@ -26,7 +26,8 @@ This package builds upon a previous package [ML_ColorCorrection_tool](https://gi
   - **Custom (“ours”)**: uses ML with linear regression, pls regression, or neural networks, produces a model that can be applied to the entire image.
 
 - **Predict on New Images**  
-  Once models are saved, apply FFC → GC → WB → CC in sequence to any new photograph, no chart needed.
+  Once models are saved, apply FFC → GC → WB → CC in sequence to any new photograph, no chart needed.  
+  📖 **[Detailed predict_image documentation](docs/predict_image_summary.md)** - See comprehensive guide on inputs, outputs, and examples.
 
 ---
 ## Package Structure
@@ -48,10 +49,15 @@ ColorCorrectionPipeline/
 │   └── Models/               # Pre-trained models (included in package)
 │       ├── __init__.py
 │       └── plane_det_model_YOLO_512_n.pt  # YOLO model for automatic white plane detection
-└── utils/                    # Utility modules
-    ├── __init__.py
-    ├── logger_.py
-    └── metrics_.py
+├── utils/                    # Utility modules
+│   ├── __init__.py
+│   ├── logger_.py
+│   └── metrics_.py
+└── docs/                     # Documentation
+    ├── README.md                        # Documentation index
+    ├── predict_image_summary.md         # predict_image method guide
+    ├── predict_image_analysis.md        # Detailed technical analysis
+    └── predict_image_quick_reference.md # Quick reference card
 ```
 
 **Note**: The YOLO model (`plane_det_model_YOLO_512_n.pt`) is automatically included when you install the package, so you don't need to download or specify the model path separately.
@@ -117,6 +123,43 @@ Verify your installation:
 import ColorCorrectionPipeline
 from ColorCorrectionPipeline.ccp import ColorCorrection
 ```
+
+---
+## Documentation
+
+### API Documentation
+
+**predict_image Method** - Apply trained models to new images
+
+The `predict_image` method is the inference/prediction function that applies trained color correction models to new images without requiring a color checker chart.
+
+📚 **Available Guides:**
+- **[Quick Summary](docs/predict_image_summary.md)** - Complete guide with examples (START HERE)
+- **[Technical Analysis](docs/predict_image_analysis.md)** - Detailed specifications
+- **[Quick Reference](docs/predict_image_quick_reference.md)** - Fast lookup card
+- **[Visual Diagrams](docs/predict_image_diagram.txt)** - ASCII flow diagrams
+
+**Quick Overview:**
+
+**Inputs:**
+- `Image`: File path (str) OR numpy array (RGB, float64, [0-1])
+- `show`: Boolean to display plots (default: False)
+
+**Outputs:**
+- Returns `Dict[str, np.ndarray]` with keys:
+  - `'FFC'`: Flat-field corrected image
+  - `'GC'`: Gamma corrected image
+  - `'WB'`: White balanced image
+  - `'CC'`: Final color corrected image (or None)
+
+**Example:**
+```python
+# After training models
+results = cc.predict_image(Image="test.jpg")
+final_image = results['CC']  # Get final corrected image
+```
+
+See [docs/predict_image_summary.md](docs/predict_image_summary.md) for complete documentation.
 
 ---
 ## Usage
@@ -251,6 +294,15 @@ print("Per-patch and summary metrics for each stage:\n", metrics_df.head())
 # 5. Predict on a New Image (no color-checker required)
 # ─────────────────────────────────────────────────────────────────────────────
 test_results = cc.predict_image(test_rgb, show=True)
+
+# The predict_image method returns a dictionary with correction stages:
+# - 'FFC': Flat-field corrected image
+# - 'GC': Gamma corrected image
+# - 'WB': White balanced image
+# - 'CC': Final color corrected image (or None if no model)
+
+# For detailed documentation on predict_image inputs and outputs, see:
+# docs/predict_image_summary.md
 ```
 
 ### Assuming you have;
