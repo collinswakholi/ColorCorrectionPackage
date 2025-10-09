@@ -2,8 +2,6 @@ opencv-python
 opencv-contrib-python
 scikit-learn
 scipy
-numpy
-torch
 ultralytics
 scikit-image
 plotly
@@ -11,15 +9,27 @@ matplotlib
 pandas
 statsmodels
 seaborn
-pytest
 colour-science
 colour-checker-detection
+
+[:python_version != "3.9"]
+numpy
+
+[:python_version == "3.9"]
+numpy<2.0
+
+[:sys_platform != "darwin"]
+torch
+
+[:sys_platform == "darwin"]
+torch
 
 [dev]
 pytest>=6.0
 pytest-cov
 black
 flake8
+isort
 mypy
 pre-commit
 

@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: ColorCorrectionPipeline
-Version: 1.2.01
+Version: 1.2.1
 Summary: A stepwise color‐correction pipeline with flat‐field, gamma, white‐balance, and color‐correction stages.
 Home-page: https://github.com/collinswakholi/ColorCorrectionPackage
 Author: Collins Wakholi, Devin A. Rippner
@@ -54,8 +54,10 @@ Requires-Dist: opencv-python
 Requires-Dist: opencv-contrib-python
 Requires-Dist: scikit-learn
 Requires-Dist: scipy
-Requires-Dist: numpy
-Requires-Dist: torch
+Requires-Dist: numpy<2.0; python_version == "3.9"
+Requires-Dist: numpy; python_version != "3.9"
+Requires-Dist: torch; sys_platform != "darwin"
+Requires-Dist: torch; sys_platform == "darwin"
 Requires-Dist: ultralytics
 Requires-Dist: scikit-image
 Requires-Dist: plotly
@@ -63,7 +65,6 @@ Requires-Dist: matplotlib
 Requires-Dist: pandas
 Requires-Dist: statsmodels
 Requires-Dist: seaborn
-Requires-Dist: pytest
 Requires-Dist: colour-science
 Requires-Dist: colour-checker-detection
 Provides-Extra: dev
@@ -71,6 +72,7 @@ Requires-Dist: pytest>=6.0; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"
 Requires-Dist: black; extra == "dev"
 Requires-Dist: flake8; extra == "dev"
+Requires-Dist: isort; extra == "dev"
 Requires-Dist: mypy; extra == "dev"
 Requires-Dist: pre-commit; extra == "dev"
 Provides-Extra: docs
@@ -82,8 +84,7 @@ Dynamic: home-page
 Dynamic: license-file
 Dynamic: requires-python
 
-# ColorCor- **Flat-Field Correction (FFC)**  
-  Automatically detect or manually crops "white" background image. Fits an n-degree 2D surface to describe the light distribution in the FOV, extrapolates to full image. Includes pre-trained YOLO model for automatic white plane detection.ctionPipeline
+# ColorCorrectionPipeline
 
 A step-wise, end-to-end color‐correction pipeline for digital images.  
 This package combines flat-field correction (**FFC**), gamma correction (**GC**), white-balance (**WB**), and color-correction (**CC**) into a single, easy-to-use workflow. Once you “train” on an image containing a color-checker (and a white-field for FFC), you can apply the learned corrections to any new image (no chart required, as long as it was captured with the same camera, and in the same lighting conditions).
