@@ -1,0 +1,256 @@
+================================================================================
+                     predict_image Method - Visual Overview
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              INPUT PARAMETERS                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Parameter 1: Image (REQUIRED)
+─────────────────────────────────────────────────────────────────────────────
+┌──────────────────────────────────┐  OR  ┌──────────────────────────────────┐
+│    Option A: File Path (str)    │      │  Option B: NumPy Array           │
+├──────────────────────────────────┤      ├──────────────────────────────────┤
+│  "path/to/image.jpg"             │      │  Shape: (H, W, 3)                │
+│  "/absolute/path/image.png"      │      │  dtype: float64                  │
+│  "relative/path/image.tiff"      │      │  Range: [0, 1]                   │
+│                                  │      │  Color: RGB                      │
+│  → Auto-loaded by OpenCV         │      │  → Direct array input            │
+│  → Converted BGR → RGB           │      │  → No conversion needed          │
+│  → Scaled to [0,1] float64       │      │                                  │
+└──────────────────────────────────┘      └──────────────────────────────────┘
+
+Parameter 2: show (OPTIONAL, default=False)
+─────────────────────────────────────────────────────────────────────────────
+┌──────────────────────┐        ┌──────────────────────┐
+│  show = False        │   OR   │  show = True         │
+├──────────────────────┤        ├──────────────────────┤
+│  Silent processing   │        │  Display plots       │
+│  No visualization    │        │  Show each stage     │
+│  (Production mode)   │        │  (Debug/analysis)    │
+└──────────────────────┘        └──────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           PROCESSING PIPELINE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                          ┌────────────────────┐
+                          │   Input Image      │
+                          │  (RGB, [0,1])      │
+                          └─────────┬──────────┘
+                                    │
+                                    ▼
+                    ╔═══════════════════════════════╗
+                    ║  STAGE 1: Flat-Field (FFC)   ║
+                    ╠═══════════════════════════════╣
+                    ║ Model: self.models.model_ffc  ║
+                    ║ Action: Correct illumination  ║
+                    ║ Method: Multiply by surface   ║
+                    ╚═══════════════╤═══════════════╝
+                                    │
+                        ┌───────────┴───────────┐
+                        │  results['FFC']       │ ◄─── Always np.ndarray
+                        │  Shape: (H, W, 3)     │      dtype: float64
+                        │  Range: [0, 1]        │      Color: RGB
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                    ╔═══════════════════════════════╗
+                    ║   STAGE 2: Gamma (GC)        ║
+                    ╠═══════════════════════════════╣
+                    ║ Model: self.models.model_gc   ║
+                    ║ Action: Correct luminance     ║
+                    ║ Method: Polynomial mapping    ║
+                    ╚═══════════════╤═══════════════╝
+                                    │
+                        ┌───────────┴───────────┐
+                        │  results['GC']        │ ◄─── Always np.ndarray
+                        │  Shape: (H, W, 3)     │      dtype: float64
+                        │  Range: [0, 1]        │      Color: RGB
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                    ╔═══════════════════════════════╗
+                    ║ STAGE 3: White Balance (WB)  ║
+                    ╠═══════════════════════════════╣
+                    ║ Model: self.models.model_wb   ║
+                    ║ Action: Color temperature     ║
+                    ║ Method: Diagonal matrix       ║
+                    ╚═══════════════╤═══════════════╝
+                                    │
+                        ┌───────────┴───────────┐
+                        │  results['WB']        │ ◄─── Always np.ndarray
+                        │  Shape: (H, W, 3)     │      dtype: float64
+                        │  Range: [0, 1]        │      Color: RGB
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                    ╔═══════════════════════════════╗
+                    ║   STAGE 4: Color Corr (CC)   ║
+                    ╠═══════════════════════════════╣
+                    ║ Model: self.models.model_cc   ║
+                    ║ Action: Final color mapping   ║
+                    ║ Method: Matrix or ML model    ║
+                    ╚═══════════════╤═══════════════╝
+                                    │
+                        ┌───────────┴───────────┐
+                        │  results['CC']        │ ◄─── np.ndarray OR None
+                        │  Shape: (H, W, 3)     │      dtype: float64
+                        │  Range: [0, 1]        │      Color: RGB
+                        └───────────────────────┘      (if model exists)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            OUTPUT STRUCTURE                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Return Type: Dict[str, np.ndarray]
+
+{
+    'FFC': ┌────────────────────────────────────┐
+           │  Flat-Field Corrected Image        │
+           │  • Type: np.ndarray                │
+           │  • Shape: (H, W, 3)                │
+           │  • dtype: float64                  │
+           │  • Range: [0, 1]                   │
+           │  • Color: RGB                      │
+           │  • Status: ALWAYS present          │
+           │  • Purpose: Corrects uneven        │
+           │    illumination pattern            │
+           └────────────────────────────────────┘
+
+    'GC':  ┌────────────────────────────────────┐
+           │  Gamma Corrected Image             │
+           │  • Type: np.ndarray                │
+           │  • Shape: (H, W, 3)                │
+           │  • dtype: float64                  │
+           │  • Range: [0, 1]                   │
+           │  • Color: RGB                      │
+           │  • Status: ALWAYS present          │
+           │  • Purpose: Corrects brightness    │
+           │    and contrast via polynomial     │
+           └────────────────────────────────────┘
+
+    'WB':  ┌────────────────────────────────────┐
+           │  White Balanced Image              │
+           │  • Type: np.ndarray                │
+           │  • Shape: (H, W, 3)                │
+           │  • dtype: float64                  │
+           │  • Range: [0, 1]                   │
+           │  • Color: RGB                      │
+           │  • Status: ALWAYS present          │
+           │  • Purpose: Corrects color         │
+           │    temperature using diagonal      │
+           │    transformation                  │
+           └────────────────────────────────────┘
+
+    'CC':  ┌────────────────────────────────────┐
+           │  Color Corrected Image (FINAL)     │
+           │  • Type: np.ndarray OR None        │
+           │  • Shape: (H, W, 3) when not None  │
+           │  • dtype: float64                  │
+           │  • Range: [0, 1]                   │
+           │  • Color: RGB                      │
+           │  • Status: Present (may be None)   │
+           │  • Purpose: Final color mapping    │
+           │    using trained model             │
+           │  • None if: No CC model trained    │
+           └────────────────────────────────────┘
+}
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           EXAMPLE USAGE FLOW                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Train Models
+────────────────────────────────────────────────────────────────────────────
+    from ColorCorrectionPipeline.ccp import ColorCorrection
+    from ColorCorrectionPipeline.Configs.configs import Config
+    
+    cc = ColorCorrection()
+    config = Config(do_ffc=True, do_gc=True, do_wb=True, do_cc=True)
+    
+    cc.run(
+        Image="training_with_colorchecker.jpg",
+        White_Image="white_background.jpg",
+        config=config
+    )
+
+Step 2: Apply to New Image (File Path)
+────────────────────────────────────────────────────────────────────────────
+    results = cc.predict_image(Image="test_image.jpg", show=False)
+    
+    # Extract stages
+    ffc_image = results['FFC']   # After flat-field correction
+    gc_image  = results['GC']    # After gamma correction
+    wb_image  = results['WB']    # After white balance
+    cc_image  = results['CC']    # Final result (or None)
+
+Step 3: Apply to New Image (NumPy Array)
+────────────────────────────────────────────────────────────────────────────
+    import cv2
+    from ColorCorrectionPipeline.key_functions import to_float64
+    
+    img_bgr = cv2.imread("test_image.jpg")
+    img_rgb = to_float64(img_bgr[:, :, ::-1])  # BGR→RGB, [0,255]→[0,1]
+    
+    results = cc.predict_image(Image=img_rgb, show=False)
+    
+    # Access final result
+    final_image = results['CC']
+
+Step 4: Save Output
+────────────────────────────────────────────────────────────────────────────
+    if results['CC'] is not None:
+        # Convert RGB float64 [0,1] → BGR uint8 [0,255]
+        output_bgr = (results['CC'][:, :, ::-1] * 255).astype('uint8')
+        cv2.imwrite("corrected_output.jpg", output_bgr)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       DATA FORMAT CONVERSIONS                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+When to Convert:
+────────────────────────────────────────────────────────────────────────────
+Input (from OpenCV)  →  predict_image  →  Output (for OpenCV)
+────────────────────     ──────────────     ─────────────────────
+cv2.imread()             RGB, float64,      cv2.imwrite()
+ ↓                      [0,1] range          ↑
+BGR, uint8, [0,255]      ←──────────       BGR, uint8, [0,255]
+
+Conversion Functions:
+────────────────────────────────────────────────────────────────────────────
+    # Load for predict_image:
+    img_bgr = cv2.imread("file.jpg")
+    img_rgb = to_float64(img_bgr[:, :, ::-1])
+    
+    # Save from predict_image results:
+    output_bgr = (results['CC'][:, :, ::-1] * 255).astype('uint8')
+    cv2.imwrite("output.jpg", output_bgr)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          KEY CHARACTERISTICS                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+✓ Sequential Processing    Each stage builds on the previous
+✓ Model-Based             Applies pre-trained correction models
+✓ No Chart Required       Works on any image (after training)
+✓ Intermediate Access     Returns results from each stage
+✓ Automatic Clipping      Ensures valid [0,1] range
+✓ Flexible Input          File path OR numpy array
+✓ Type Safety             Strong type annotations
+✓ GPU Accelerated         Uses CUDA if available (for GC)
+✓ Logging Enabled         Reports timing information
+✓ Error Tolerant          Continues if visualization fails
+
+⚠ Prerequisites:
+  • Models must be trained first (using run() method)
+  • Reference illuminant must be set
+  • Input must be RGB format (not BGR)
+  • Input values must be in [0,1] range (if array)
+
+================================================================================
