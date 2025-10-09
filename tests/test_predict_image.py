@@ -7,6 +7,31 @@ This test suite thoroughly tests the predict_image method with various scenarios
 - Edge cases and error handling
 - Different color correction methods
 - Output validation and performance tracking
+
+Usage:
+    Run all tests with pytest:
+        $ pytest tests/test_predict_image.py -v
+    
+    Run tests directly:
+        $ python3 tests/test_predict_image.py
+    
+    Run specific test class:
+        $ pytest tests/test_predict_image.py::TestPredictImageBasicFunctionality -v
+    
+    Run specific test:
+        $ pytest tests/test_predict_image.py::TestPredictImageBasicFunctionality::test_predict_with_file_path_jpg -v
+
+Test Coverage:
+    - 23 test cases across 7 test classes
+    - Tests basic functionality, model combinations, edge cases, validation, performance, and visual output
+    - All tests are independent and can run in any order
+    - Tests use synthetic images and mock models for reproducibility
+    - Integration tests use real data from Data/Images/ when available
+
+Requirements:
+    - ColorCorrectionPipeline package installed
+    - pytest (for running with pytest)
+    - numpy, opencv-python, colour-science
 """
 
 import logging
