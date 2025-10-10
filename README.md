@@ -296,7 +296,7 @@ We welcome contributions! Please see our contributing guidelines below:
 1. **Fork and Clone**
 
 ```bash
-git clone https://github.com/your-username/ColorCorrectionPackage.git
+git clone https://github.com/collinswakholi/ColorCorrectionPackage.git
 cd ColorCorrectionPackage
 ```
 
