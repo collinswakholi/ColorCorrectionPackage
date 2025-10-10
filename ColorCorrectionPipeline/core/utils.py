@@ -41,10 +41,26 @@ except ImportError:
         return np.clip(img * 255, 0, 255).astype(np.uint8)
     
     def to_float64(img: np.ndarray) -> np.ndarray:
-        """Convert uint8 image to float64."""
+        """Convert image to float64 [0, 1] range."""
         if img.dtype == np.float64:
-            return img
-        return img.astype(np.float64) / 255.0
+            # Already float64, check if needs scaling
+            if img.max() <= 1.0:
+                return img
+            # Assume 0-255 range float
+            return img / 255.0
+        elif img.dtype == np.float32 or img.dtype == np.float16:
+            # Float types - check range
+            if img.max() <= 1.0:
+                return img.astype(np.float64)
+            return img.astype(np.float64) / 255.0
+        elif img.dtype == np.uint8:
+            return img.astype(np.float64) / 255.0
+        elif img.dtype == np.uint16:
+            return img.astype(np.float64) / 65535.0
+        else:
+            # Default: assume needs scaling from max value
+            max_val = np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else 255.0
+            return img.astype(np.float64) / max_val
     
     def get_attr(obj, attr: str, default=None):
         """Get attribute from object with default."""

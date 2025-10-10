@@ -171,11 +171,14 @@ class TestSaturationHandling:
         img = np.random.rand(100, 100, 3) * 0.8  # Max 0.8, no saturation
         ref_patches = np.random.rand(24, 3) * 0.8
 
-        result_img = extrapolate_if_sat_image(img, ref_patches)
+        result_img, sat_vals, sat_ids = extrapolate_if_sat_image(img, ref_patches)
         
         assert result_img.shape == img.shape
         # With no saturation, result should be unchanged or very similar
         assert_array_almost_equal(result_img, img, decimal=1)
+        # Should have no saturated pixels detected
+        assert sat_vals is None
+        assert sat_ids is None
     
     def test_extrapolate_if_sat_image_with_saturation(self):
         """Test with saturated pixels."""
@@ -184,12 +187,15 @@ class TestSaturationHandling:
         img[0:10, 0:10, :] = 1.0  # Saturated region
         ref_patches = np.random.rand(24, 3)
 
-        result_img = extrapolate_if_sat_image(img, ref_patches)
+        result_img, sat_vals, sat_ids = extrapolate_if_sat_image(img, ref_patches)
         
         assert result_img.shape == img.shape
         # Result should still be in valid range
         assert result_img.min() >= 0.0
         assert result_img.max() <= 1.0
+        # Should have detected saturated pixels
+        assert sat_vals is not None
+        assert sat_ids is not None
     
     def test_extrapolate_if_sat_image_preserves_unsaturated(self):
         """Test that unsaturated regions are preserved."""
@@ -198,7 +204,7 @@ class TestSaturationHandling:
         img[50:60, 50:60, :] = 0.5  # Mid-gray region
         ref_patches = np.random.rand(24, 3)
 
-        result_img = extrapolate_if_sat_image(img, ref_patches)
+        result_img, sat_vals, sat_ids = extrapolate_if_sat_image(img, ref_patches)
         
         # Mid-gray region should be unchanged or very similar
         original_region = img[50:60, 50:60, :]

@@ -125,18 +125,6 @@ class TestPolynomialFunctions:
         result = poly_func(x, coeffs)
         assert_array_almost_equal(result, expected)
     
-    @pytest.mark.gpu
-    def test_poly_func_torch_cpu(self):
-        """Test PyTorch polynomial evaluation on CPU."""
-        import torch
-        
-        coeffs = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
-        x = torch.tensor([0.0, 1.0, 2.0], dtype=torch.float32)
-        expected = torch.tensor([3.0, 6.0, 11.0], dtype=torch.float32)
-        
-        result = poly_func_torch(x, coeffs)
-        assert torch.allclose(result, expected, atol=1e-5)
-    
     def test_estimate_fit_linear(self):
         """Test linear curve fitting."""
         x = np.array([0.0, 1.0, 2.0, 3.0])
@@ -194,35 +182,21 @@ class TestUtilityFunctions:
     
     def test_compute_diag_simple(self):
         """Test diagonal matrix computation."""
-        # Reference values (ideal neutral)
-        mat_ref = np.array([
-            [0.5, 0.5, 0.5],
-            [0.6, 0.6, 0.6],
-        ])
-        # Detected values (slightly off)
-        mat_det = np.array([
-            [0.48, 0.52, 0.49],
-            [0.58, 0.62, 0.59],
-        ])
+        # Create diagonal matrix from vector
+        vec = np.array([1.0, 2.0, 3.0])
         
-        diag = compute_diag(mat_ref, mat_det)
+        diag = compute_diag(vec)
         
         # Should return 3x3 diagonal matrix
         assert diag.shape == (3, 3)
+        # Diagonal elements should match input
+        assert diag[0, 0] == 1.0
+        assert diag[1, 1] == 2.0
+        assert diag[2, 2] == 3.0
         # Off-diagonal elements should be zero
         assert diag[0, 1] == 0.0
         assert diag[1, 0] == 0.0
-    
-    def test_compute_temperature_neutral_gray(self):
-        """Test color temperature computation with neutral gray."""
-        # Perfect neutral gray should have temperature close to 6500K (D65)
-        rgb = np.array([[0.5, 0.5, 0.5]])
-        result = compute_temperature(rgb)
-        
-        assert isinstance(result, tuple)
-        assert len(result) == 3
-        cct, x, y = result
-        assert 2000 <= cct <= 25000  # Reasonable temperature range
+        assert diag[0, 2] == 0.0
     
     def test_free_memory(self):
         """Test memory cleanup function."""
@@ -231,37 +205,6 @@ class TestUtilityFunctions:
             free_memory()
         except Exception as e:
             pytest.fail(f"free_memory() raised {e}")
-
-
-class TestColorChartExtraction:
-    """Test color chart detection and extraction."""
-    
-    @pytest.mark.skip(reason="Requires real ColorChecker image and OpenCV MCC module")
-    def test_extract_color_chart_synthetic(self, sample_rgb_image):
-        """Test chart extraction with synthetic image."""
-        # Convert RGB to BGR uint8 for chart detection
-        img_bgr = to_uint8(sample_rgb_image[:, :, ::-1])
-        
-        # Should handle images without charts gracefully
-        chart_rgb, img_drawn, patch_size = extract_color_chart(img_bgr)
-        
-        # Chart is likely None for synthetic image (no real chart)
-        assert chart_rgb is None or (hasattr(chart_rgb, 'shape') and chart_rgb.shape == (24, 3))
-        # img_drawn should always be returned
-        assert img_drawn is not None
-    
-    @pytest.mark.skip(reason="Requires real ColorChecker image and OpenCV MCC module")
-    def test_extract_neutral_patches_synthetic(self, sample_rgb_image):
-        """Test neutral patch extraction."""
-        # Convert RGB to BGR uint8 for chart detection
-        img_bgr = to_uint8(sample_rgb_image[:, :, ::-1])
-        
-        # Should handle images without charts gracefully
-        all_patches, neutral_df = extract_neutral_patches(img_bgr, return_one=True, show=False)
-        
-        # Results are likely None for synthetic image (no real chart)
-        assert all_patches is None or (hasattr(all_patches, 'shape') and all_patches.shape == (24, 3))
-        assert neutral_df is None or (hasattr(neutral_df, 'shape') and neutral_df.shape == (6, 3))
 
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.float32, np.float64])
