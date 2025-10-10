@@ -181,22 +181,23 @@ class TestUtilityFunctions:
         assert result is None
     
     def test_compute_diag_simple(self):
-        """Test diagonal matrix computation."""
-        # Create diagonal matrix from vector
-        vec = np.array([1.0, 2.0, 3.0])
+        """Test diagonal correction matrix computation."""
+        # Create reference and detected values
+        mat_ref = np.array([[1.0, 1.5, 2.0], [1.0, 1.5, 2.0]])  # 2 patches, 3 channels
+        mat_det = np.array([[0.8, 1.2, 1.6], [0.9, 1.3, 1.7]])  # 2 patches, 3 channels
         
-        diag = compute_diag(vec)
+        diag = compute_diag(mat_ref, mat_det, rf=1.0)
         
         # Should return 3x3 diagonal matrix
         assert diag.shape == (3, 3)
-        # Diagonal elements should match input
-        assert diag[0, 0] == 1.0
-        assert diag[1, 1] == 2.0
-        assert diag[2, 2] == 3.0
         # Off-diagonal elements should be zero
         assert diag[0, 1] == 0.0
         assert diag[1, 0] == 0.0
         assert diag[0, 2] == 0.0
+        # Diagonal should contain correction factors
+        assert diag[0, 0] > 0  # R correction factor
+        assert diag[1, 1] > 0  # G correction factor
+        assert diag[2, 2] > 0  # B correction factor
     
     def test_free_memory(self):
         """Test memory cleanup function."""

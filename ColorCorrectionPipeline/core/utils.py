@@ -24,12 +24,34 @@ import colour
 # ============================================================================
 
 def to_uint8(img: np.ndarray) -> np.ndarray:
-    """Convert float image to uint8 (from v1_2_01)."""
-    return (img * 255).astype(np.uint8)
+    """Convert image to uint8 [0, 255] range."""
+    if img.dtype == np.uint8:
+        # Already uint8, return as is
+        return img
+    else:
+        # Assume float in [0, 1] range, clip and convert
+        return np.clip(img * 255.0, 0, 255).astype(np.uint8)
 
 def to_float64(img: np.ndarray) -> np.ndarray:
-    """Convert uint8 image to float64 [0, 1] range (from v1_2_01)."""
-    return img.astype(np.float64) / 255.0
+    """Convert image to float64 [0, 1] range."""
+    if img.dtype == np.uint8:
+        # uint8: divide by 255
+        return img.astype(np.float64) / 255.0
+    elif img.dtype == np.uint16:
+        # uint16: divide by 65535
+        return img.astype(np.float64) / 65535.0
+    elif img.dtype in [np.float32, np.float64]:
+        # Already float, check if in [0, 1] range
+        if img.max() <= 1.0:
+            # Already in [0, 1] range
+            return img.astype(np.float64)
+        else:
+            # Assume in [0, 255] range
+            return img.astype(np.float64) / 255.0
+    else:
+        # Unknown type, try to normalize by max value
+        max_val = np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else img.max()
+        return img.astype(np.float64) / max_val
 
 def get_attr(obj, attr: str, default=None):
     """Get attribute from object with default."""
