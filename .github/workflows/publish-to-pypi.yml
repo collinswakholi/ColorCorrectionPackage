@@ -7,7 +7,7 @@ on:
       - 'ColorCorrectionPipeline/__version__.py'
     branches:
       - main
-      - 'release/**'  # Supports release branches like release/v1.3.0
+      - 'release/**'
   pull_request:
     branches:
       - main
@@ -32,78 +32,99 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'
+        python-version: '3.12'
     
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build twine hatchling
     
-    - name: Extract version from pyproject.toml
+    - name: Extract version
       id: get_version
       run: |
-        VERSION=$(grep -oP '(?<=version = ")[^"]+' pyproject.toml)
+        VERSION=$(python -c "exec(open('ColorCorrectionPipeline/__version__.py').read()); print(__version__)")
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Package version: $VERSION"
+        echo "📦 Package version: $VERSION"
     
     - name: Check if version exists on PyPI
       id: check_pypi
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
+        echo "Checking if version $VERSION exists on PyPI..."
         if pip index versions ColorCorrectionPipeline 2>/dev/null | grep -q "$VERSION"; then
           echo "VERSION_EXISTS=true" >> $GITHUB_OUTPUT
-          echo "Version $VERSION already exists on PyPI"
+          echo "⚠️  Version $VERSION already exists on PyPI"
         else
           echo "VERSION_EXISTS=false" >> $GITHUB_OUTPUT
-          echo "Version $VERSION does not exist on PyPI, proceeding with upload"
+          echo "✅ Version $VERSION is new, proceeding with build"
         fi
       continue-on-error: true
     
     - name: Build package
-      if: steps.check_pypi.outputs.VERSION_EXISTS != 'true'
       run: |
+        echo "🔨 Building package..."
         python -m build
+        echo "📦 Build artifacts:"
         ls -lh dist/
     
-    - name: Check distribution
-      if: steps.check_pypi.outputs.VERSION_EXISTS != 'true'
+    - name: Validate distribution
       run: |
+        echo "✅ Validating distribution with twine..."
         twine check dist/*
     
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-packages-${{ steps.get_version.outputs.VERSION }}
+        path: dist/
+        retention-days: 30
+    
     - name: Publish to PyPI
-      if: steps.check_pypi.outputs.VERSION_EXISTS != 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'release')
+      if: |
+        steps.check_pypi.outputs.VERSION_EXISTS != 'true' && 
+        github.ref == 'refs/heads/main' && 
+        github.event_name == 'push'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
+        echo "🚀 Publishing to PyPI..."
         twine upload dist/*
+        echo "✅ Successfully published version ${{ steps.get_version.outputs.VERSION }} to PyPI"
     
-    - name: Create GitHub Release Tag
-      if: steps.check_pypi.outputs.VERSION_EXISTS != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'release'
+    - name: Create and push git tag
+      if: |
+        steps.check_pypi.outputs.VERSION_EXISTS != 'true' && 
+        github.ref == 'refs/heads/main' && 
+        github.event_name == 'push'
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
+        echo "🏷️  Creating git tag v$VERSION..."
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         git tag -a "v$VERSION" -m "Release version $VERSION"
         git push origin "v$VERSION"
+        echo "✅ Tag v$VERSION created and pushed"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Build only (feature branch)
+    - name: Build summary (feature branch)
       if: github.ref != 'refs/heads/main' && github.event_name == 'push'
       run: |
-        echo "✓ Build successful on feature branch: ${{ github.ref_name }}"
-        echo "Note: PyPI publishing only happens on main branch"
+        echo "✅ Build successful on branch: ${{ github.ref_name }}"
+        echo "📦 Version: ${{ steps.get_version.outputs.VERSION }}"
+        echo "ℹ️  PyPI publishing only happens on main branch"
     
-    - name: Pull Request Check
+    - name: PR validation summary
       if: github.event_name == 'pull_request'
       run: |
-        VERSION=${{ steps.get_version.outputs.VERSION }}
-        echo "✓ Build and validation successful for PR"
-        echo "Version: $VERSION"
-        echo "This will be published when merged to main"
+        echo "✅ Build and validation successful for PR"
+        echo "📦 Version: ${{ steps.get_version.outputs.VERSION }}"
+        echo "🚀 Will be published when merged to main"
     
-    - name: Skip publishing
+    - name: Version already exists
       if: steps.check_pypi.outputs.VERSION_EXISTS == 'true'
       run: |
-        echo "Version ${{ steps.get_version.outputs.VERSION }} already exists on PyPI. Skipping publication."
+        echo "ℹ️  Version ${{ steps.get_version.outputs.VERSION }} already exists on PyPI"
+        echo "📦 Build completed successfully but skipping upload"
+        echo "💡 Bump version in pyproject.toml and __version__.py to publish a new release"
