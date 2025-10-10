@@ -7,24 +7,24 @@ This package builds upon a previous package [ML_ColorCorrection_tool](https://gi
 ## Features
 
 • **Flat-Field Correction (FFC)**  
-    Automatically detect or manually crop "white" background image. Fits an n-degree 2D surface to describe the light distribution in the FOV, extrapolates to full image.
+  Automatically detect or manually crop "white" background image. Fits an n-degree 2D surface to describe the light distribution in the FOV, extrapolates to full image.
 
 • **Saturation Check / Extrapolation**  
-    Identify and fix saturated patches on the chart before proceeding, ensuring accurate downstream corrections.
+  Identify and fix saturated patches on the chart before proceeding, ensuring accurate downstream corrections.
 
 • **Gamma Correction (GC)**  
-    Fits an optimum polynomial (up to configurable degree) mapping between measured neutral patch intensities and reference values, and applies it to the entire image.
+  Fits an optimum polynomial (up to configurable degree) mapping between measured neutral patch intensities and reference values, and applies it to the entire image.
 
 • **White Balance (WB)**  
-    Diagonal white-balance correction using the neutral patches of the color checker. Gets diagonal matrix and applies it to the entire image.
+  Diagonal white-balance correction using the neutral patches of the color checker. Gets diagonal matrix and applies it to the entire image.
 
 • **Color Correction (CC)**  
-    Two methods:
-    - Conventional ("conv"): configurable polynomial expansion with the Finlayson 2015 method, produces a 3xn matrix that can be applied to the entire image.
-    - Custom ("ours"): uses ML with linear regression, pls regression, or neural networks, produces a model that can be applied to the entire image.
+  Two methods:
+  - Conventional ("conv"): configurable polynomial expansion with the Finlayson 2015 method, produces a 3xn matrix that can be applied to the entire image.
+  - Custom ("ours"): uses ML with linear regression, pls regression, or neural networks, produces a model that can be applied to the entire image.
 
 • **Predict on New Images**  
-    Once models are saved, apply FFC → GC → WB → CC in sequence to any new photograph, no chart needed.
+  Once models are saved, apply FFC → GC → WB → CC in sequence to any new photograph, no chart needed.
 
 ## Package Structure
 
@@ -57,7 +57,7 @@ ColorCorrectionPipeline/
     └── writers.py            # Image writers
 ```
 
-**Note**: The YOLO model (`plane_det_model_YOLO_512_n.pt`) is automatically included when you install the package, so you don't need to download or specify the model path separately.
+Note: The YOLO model (`plane_det_model_YOLO_512_n.pt`) is automatically included when you install the package, so you don't need to download or specify the model path separately.
 
 ## Installation
 
@@ -87,38 +87,38 @@ pip install -e ".[dev]"
 • Python: 3.8 or higher  
 • Operating System: Windows, macOS, Linux  
 • Memory: Minimum 4GB RAM (8GB recommended for large images)  
-• GPU: Optional (CUDA-compatible GPU for accelerated processing)  
+• GPU: Optional (CUDA-compatible GPU for accelerated processing)
 
 ### Dependencies
 
 The package automatically installs the following dependencies:
 
 **Core Dependencies:**
-- `numpy` - Numerical computing
-- `scipy` - Scientific computing
-- `scikit-learn` - Machine learning algorithms
-- `opencv-python`, `opencv-contrib-python` - Computer vision
-- `torch` - Deep learning framework
-- `ultralytics` - YOLO object detection
+• `numpy` - Numerical computing  
+• `scipy` - Scientific computing  
+• `scikit-learn` - Machine learning algorithms  
+• `opencv-python`, `opencv-contrib-python` - Computer vision  
+• `torch` - Deep learning framework  
+• `ultralytics` - YOLO object detection
 
 **Image Processing:**
-- `scikit-image` - Image processing algorithms
-- `colour-science` - Color science computations
-- `colour-checker-detection` - Color checker detection
+• `scikit-image` - Image processing algorithms  
+• `colour-science` - Color science computations  
+• `colour-checker-detection` - Color checker detection
 
 **Visualization & Analysis:**
-- `matplotlib`, `plotly`, `seaborn` - Plotting and visualization
-- `pandas` - Data manipulation
-- `statsmodels` - Statistical modeling
+• `matplotlib`, `plotly`, `seaborn` - Plotting and visualization  
+• `pandas` - Data manipulation  
+• `statsmodels` - Statistical modeling
 
 **Development & Testing:**
-- `pytest` - Testing framework
+• `pytest` - Testing framework
 
 ### Verify Installation
 
 Verify your installation:
 
-```python 
+```python
 import ColorCorrectionPipeline
 from ColorCorrectionPipeline import ColorCorrection
 ```
@@ -280,41 +280,45 @@ Same images after applying the complete FFC → GC → WB → CC pipeline, showi
 ![After Color Correction](ReadMe_Images/After.svg)
 
 **Key Improvements:**
-- ✅ Eliminated vignetting and illumination non-uniformities (FFC)
-- ✅ Corrected gamma response for accurate neutral tones (GC)
-- ✅ Achieved neutral white balance under the reference illuminant (WB)
-- ✅ Accurate color reproduction matching reference standards (CC)
-- ✅ Consistent results across multiple images captured under the same conditions
 
+• ✅ Eliminated vignetting and illumination non-uniformities (FFC)  
+• ✅ Corrected gamma response for accurate neutral tones (GC)  
+• ✅ Achieved neutral white balance under the reference illuminant (WB)  
+• ✅ Accurate color reproduction matching reference standards (CC)  
+• ✅ Consistent results across multiple images captured under the same conditions
 
-Typical results after full pipeline correction achieve **ΔE < 2.0** for most images, with many achieving **ΔE < 1.2**.
+Typical results after full pipeline correction achieve ΔE < 2.0 for most images, with many achieving ΔE < 1.2.
 
 ## Contributing
 
 We welcome contributions! Please see our contributing guidelines below:
 
 1. **Fork and Clone**
-     ```bash
-     git clone https://github.com/your-username/ColorCorrectionPackage.git
-     cd ColorCorrectionPackage
-     ```
+
+```bash
+git clone https://github.com/your-username/ColorCorrectionPackage.git
+cd ColorCorrectionPackage
+```
 
 2. **Create Development Environment**
-     ```bash
-     python -m venv venv
-     source venv/bin/activate  # On Windows: venv\Scripts\activate
-     pip install -e ".[dev]"
-     ```
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e ".[dev]"
+```
 
 3. **Run Tests**
-     ```bash
-     pytest tests/
-     ```
+
+```bash
+pytest tests/
+```
 
 4. **Code Style**
-     ```bash
-     black .
-     ```
+
+```bash
+black .
+```
 
 5. **Submit a Pull Request**
 
@@ -340,10 +344,10 @@ If you use this package in your research, please cite:
 
 We would like to gratefully acknowledge:
 
-- **[Devin A. Rippner](https://github.com/daripp)** for invaluable technical guidance
-- **[ORISE](https://orise.orau.gov/index.html)** for fellowship support
-- **[USDA-ARS](https://www.ars.usda.gov/)** for funding and research opportunities
+• [Devin A. Rippner](https://github.com/daripp) for invaluable technical guidance  
+• [ORISE](https://orise.orau.gov/index.html) for fellowship support  
+• [USDA-ARS](https://www.ars.usda.gov/) for funding and research opportunities
 
-**Made with ❤️ by Collins Wakholi**
+Made with ❤️ by Collins Wakholi
 
-*For bug reports and feature requests, please open an issue on [GitHub](https://github.com/collinswakholi/ColorCorrectionPackage/issues).*
+For bug reports and feature requests, please open an issue on [GitHub](https://github.com/collinswakholi/ColorCorrectionPackage/issues).
