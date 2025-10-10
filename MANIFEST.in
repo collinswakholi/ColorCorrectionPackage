@@ -1,0 +1,47 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+
+# Include configuration files
+include pyproject.toml
+include .gitignore
+
+# Include examples
+recursive-include examples *.toml
+recursive-include examples *.txt
+
+# Include documentation
+recursive-include docs *.txt
+recursive-include docs *.md
+
+# Include YOLO model
+include color_correc_optim/flat_field/models/plane_det_model_YOLO_512_n.pt
+
+# Exclude unwanted files
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.so
+recursive-exclude * *.dylib
+recursive-exclude * .DS_Store
+recursive-exclude * Thumbs.db
+
+# Exclude test outputs
+exclude temp_*.pkl
+exclude temp_*.jpg
+exclude temp_*.png
+recursive-exclude benchmark_outputs *
+recursive-exclude test_equivalence_outputs *
+recursive-exclude roi_test_outputs *
+
+# Exclude development files
+exclude .coverage
+exclude .pytest_cache
+recursive-exclude tests __pycache__
+
+# Include scripts
+recursive-include scripts *.py
+
+# Include tests
+recursive-include tests *.py
