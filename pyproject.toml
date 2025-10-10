@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ColorCorrectionPipeline"
-version = "1.3.2"
+version = "1.3.3"
 description = "A step-wise, color correction pipeline for digital images combining flat-field correction, gamma correction, white-balance, and color-correction"
 readme = "README.md"
 requires-python = ">=3.8"
