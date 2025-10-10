@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ColorCorrectionPipeline"
-version = "1.3.1"
+version = "1.3.2"
 description = "A step-wise, color correction pipeline for digital images combining flat-field correction, gamma correction, white-balance, and color-correction"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -40,6 +40,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.21.0",
     "opencv-python>=4.5.0",
+    "opencv-contrib-python>=4.5.0",
     "colour-science>=0.4.0",
     "pandas>=1.3.0",
     "scikit-learn>=1.0.0",
