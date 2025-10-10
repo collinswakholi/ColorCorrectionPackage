@@ -160,15 +160,7 @@ CLEANUP_SUMMARY.md
 !color_correc_optim/flat_field/models/*.pt
 !ColorCorrectionPipeline/flat_field/models/*.pt
 
-# GitHub Actions
-.github/
-!.github/workflows/
-
-# Build artifacts
-*.whl
-*.tar.gz
-
-# GitHub Actions
+# GitHub Actions - only exclude logs
 .github/workflows/*.log
 
 # Build artifacts
