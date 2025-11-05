@@ -2,7 +2,9 @@
 
 A comprehensive, step-by-step color correction pipeline for digital images. This package integrates flat-field correction (FFC), gamma correction (GC), white balance (WB), and color correction (CC) into a unified, user-friendly workflow. After training on a reference image with a color checker chart (and optionally a white-field image for FFC), the learned corrections can be applied to any new image captured under the same conditions—no color chart required for subsequent images.
 
-This package builds upon a previous package [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
+**This package builds upon a previous package _[ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool)_.**
+
+**A UI version of this package can be found at _[ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI)_.**
 
 ## Features
 
