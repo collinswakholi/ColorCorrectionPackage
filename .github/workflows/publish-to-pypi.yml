@@ -98,14 +98,22 @@ jobs:
       if: steps.check_pypi.outputs.VERSION_EXISTS != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'release'
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
-        echo "🏷️  Creating git tag v${VERSION}..."
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a "v${VERSION}" -m "Release version ${VERSION}"
-        git push origin "v${VERSION}"
-        echo "✅ Tag v${VERSION} created successfully"
+        echo "🏷️  Checking if tag v${VERSION} exists..."
+        
+        # Check if tag already exists
+        if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
+          echo "ℹ️  Tag v${VERSION} already exists, skipping creation"
+        else
+          echo "🏷️  Creating git tag v${VERSION}..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+          git push origin "v${VERSION}"
+          echo "✅ Tag v${VERSION} created successfully"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
     
     - name: Build only (feature branch)
       if: github.ref != 'refs/heads/main' && github.event_name == 'push'
