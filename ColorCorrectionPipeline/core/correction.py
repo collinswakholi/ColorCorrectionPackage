@@ -16,7 +16,9 @@ import gc
 import os
 from typing import Any, Dict, Optional, Tuple
 
+import cv2
 import colour
+from colour_checker_detection import detect_colour_checkers_segmentation
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -925,77 +927,218 @@ def extract_color_chart_ex(
     """
     Extract extended color chart samples with random sampling from each patch.
     
+    PRODUCTION VERSION - Combines bug fixes and optimizations:
+    - Fixed negative dimension bug (adaptive sampling)
+    - Fixed broadcasting bug (explicit array operations)
+    - Pre-allocated arrays for performance
+    - Vectorized statistics computation
+    - Comprehensive error handling
+    
     Args:
-        img: BGR image (uint8)
-        ref: Reference RGB values (24, 3), float64, 0-1 range
-        npts: Number of points to sample per patch
-        show: Whether to display detected chart
-        randomize: Whether to randomize patch order
+        img: Input BGR image (uint8)
+        ref: Reference RGB values (24, 3), float64, range [0, 1]
+        npts: Number of points to sample per patch (minimum 1)
+        show: Whether to display detected chart visualization
+        randomize: Whether to randomize patch order in output
         
     Returns:
-        tuple: (chart_samples, ref_samples)
-            - chart_samples: Sampled RGB values (24*npts, 3)
-            - ref_samples: Repeated reference values (24*npts, 3)
-            
-    Note:
-        Uses colour_checker_detection for segmentation-based detection.
+        tuple: (chart_samples, ref_samples) or (None, None) on failure
+            - chart_samples: Extracted RGB values (24*npts, 3), float32
+            - ref_samples: Repeated reference values (24*npts, 3), float64
     """
     import logging
     import warnings
     logger = logging.getLogger(__name__)
     
+    # Input validation
+    if npts < 1:
+        logger.warning(f"npts must be >= 1, got {npts}. Using npts=1")
+        npts = 1
+    
+    if img is None or img.size == 0:
+        logger.error("Invalid input image")
+        return None, None
+    
+    if ref is None or ref.shape != (24, 3):
+        logger.error(f"Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}")
+        return None, None
+    
     logger.debug(f"extract_color_chart_ex called: img.shape={img.shape}, img.dtype={img.dtype}, npts={npts}")
     
-    # Suppress noisy warnings from ColorCorrectionPipeline during chart detection
+    # Suppress noisy warnings during chart detection
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         old_log_level = logging.getLogger('root').level
         logging.getLogger('root').setLevel(logging.ERROR)
         
         try:
-            from colour_checker_detection import detect_colour_checkers_segmentation
-        except ImportError:
-            # Fallback to basic extraction
-            try:
-                chart, _, _ = extract_color_chart(img)
-                if chart is None:
-                    logger.warning("Could not detect color chart")
-                    return None, None
-                
-                # Repeat chart and ref to match expected size
-                # CRITICAL FIX: Ensure chart is in float64 [0,1] range
-                if chart.max() > 1.5:  # Likely uint8 [0-255] range
-                    chart = chart.astype(np.float64) / 255.0
-                chart_ex = np.repeat(chart, npts, axis=0)
-                ref_ex = np.repeat(ref, npts, axis=0)
-                logger.debug(f"Extended chart samples: {chart_ex.shape}")
-                return chart_ex, ref_ex
-            finally:
-                logging.getLogger('root').setLevel(old_log_level)
-        
-        # Crop to chart region (simplified)
-        try:
-            chart, _, _ = extract_color_chart(img)
-            if chart is None:
-                logger.warning("Could not detect color chart")
+            # Pre-processing
+            img_blur = cv2.medianBlur(img, 5)
+            
+            # Chart detection
+            detector = cv2.mcc.CCheckerDetector_create()
+            detector.process(img_blur, cv2.mcc.MCC24)
+            checkers = detector.getListColorChecker()
+            
+            if len(checkers) == 0:
+                logger.warning("No color chart found in image")
                 return None, None
             
-            # CRITICAL FIX: Ensure chart is in float64 [0,1] range
-            if chart.max() > 1.5:  # Likely uint8 [0-255] range
-                chart = chart.astype(np.float64) / 255.0
+            best_checker = checkers[0]
             
-            # For now, return repeated values
-            # Full implementation would use segmentation detection
-            chart_ex = np.repeat(chart, npts, axis=0)
-            ref_ex = np.repeat(ref, npts, axis=0)
+            # Visualization (optional)
+            if show:
+                img_draw = img.copy()
+                cdraw = cv2.mcc.CCheckerDraw_create(best_checker)
+                cdraw.draw(img_draw)
+                colour.plotting.plot_image(to_float64(img_draw[:, :, ::-1]))
             
+            # Extract bounding box
+            box_pts = best_checker.getBox()
+            x1, x2 = int(box_pts[:, 0].min()), int(box_pts[:, 0].max())
+            y1, y2 = int(box_pts[:, 1].min()), int(box_pts[:, 1].max())
+            
+            # Crop to chart region
+            img_crop = img[y1:y2, x1:x2, :]
+            img_crop_rgb = to_float64(img_crop[:, :, ::-1])
+            
+            # Segmentation-based detection
+            requested_samples = max(10, int(1.2 * npts))
+            data = detect_colour_checkers_segmentation(
+                img_crop_rgb, samples=requested_samples, additional_data=True
+            )
+            
+            if len(data) < 1:
+                # Fallback to basic extraction
+                try:
+                    logger.warning('Segmentation failed, using basic extraction')
+                    chart, _, _ = extract_color_chart(img)
+                    if chart is None:
+                        return None, None
+                    
+                    # Ensure proper range
+                    if chart.max() > 1.5:
+                        chart = chart.astype(np.float64) / 255.0
+                    
+                    chart_ex = np.repeat(chart, npts, axis=0)
+                    ref_ex = np.repeat(ref, npts, axis=0)
+                    logger.debug(f"Extended chart samples: {chart_ex.shape}")
+                    return chart_ex, ref_ex
+                except Exception as e:
+                    logger.error(f"Fallback extraction failed: {e}")
+                    return None, None
+            
+            # Extract patch masks
+            _, masks, image_, _ = data[0].values
+            mask_list = list(masks)
+            n_patches = len(mask_list)
+            
+            if n_patches != 24:
+                logger.warning(f"Expected 24 patches, got {n_patches}")
+            
+            # Pre-allocate output arrays (optimization)
+            expected_samples = n_patches * npts
+            chart_result = np.empty((expected_samples, 3), dtype=np.float32)
+            ref_result = np.empty((expected_samples, 3), dtype=np.float64)
+            
+            valid_patches = 0
+            current_idx = 0
+            n_stats = 3  # mean, max, min
+            
+            # Process each patch
+            for patch_id, (mask, ref_color) in enumerate(zip(mask_list, ref)):
+                try:
+                    # Extract patch pixels
+                    x_min, x_max, y_min, y_max = mask
+                    patch_pixels = image_[x_min:x_max, y_min:y_max, :].reshape(-1, 3)
+                    
+                    if patch_pixels.shape[0] == 0:
+                        logger.warning(f"Empty patch {patch_id}, skipping")
+                        continue
+                    
+                    # Compute statistics (vectorized)
+                    mean_val = patch_pixels.mean(axis=0)
+                    max_val = patch_pixels.max(axis=0)
+                    min_val = patch_pixels.min(axis=0)
+                    
+                    # Adaptive sampling strategy (FIXED: no negative dimensions)
+                    n_samples_needed = max(0, npts - n_stats)
+                    
+                    if n_samples_needed > 0:
+                        # Need additional random samples
+                        n_available = patch_pixels.shape[0]
+                        n_to_sample = min(n_samples_needed, n_available)
+                        
+                        if n_to_sample > 0:
+                            indices = np.random.choice(n_available, n_to_sample, replace=(n_to_sample > n_available))
+                            sampled = patch_pixels[indices]
+                        else:
+                            sampled = np.empty((0, 3), dtype=np.float32)
+                        
+                        # Combine: random samples + statistics
+                        stats_data = np.vstack([mean_val, max_val, min_val])
+                        all_data = np.vstack([sampled, stats_data])
+                    else:
+                        # npts <= 3: Use only statistics
+                        if npts == 1:
+                            all_data = mean_val.reshape(1, 3)
+                        elif npts == 2:
+                            all_data = np.vstack([mean_val, max_val])
+                        else:  # npts == 3
+                            all_data = np.vstack([mean_val, max_val, min_val])
+                    
+                    # Ensure exact size
+                    if all_data.shape[0] < npts:
+                        n_to_add = npts - all_data.shape[0]
+                        padding = np.tile(mean_val, (n_to_add, 1))
+                        all_data = np.vstack([all_data, padding])
+                    elif all_data.shape[0] > npts:
+                        all_data = all_data[:npts, :]
+                    
+                    # Direct array assignment (FIXED: explicit repetition)
+                    end_idx = current_idx + npts
+                    chart_result[current_idx:end_idx, :] = all_data
+                    ref_result[current_idx:end_idx, :] = ref_color
+                    
+                    current_idx = end_idx
+                    valid_patches += 1
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing patch {patch_id}: {e}")
+                    continue
+            
+            # Validate results
+            if valid_patches == 0:
+                logger.error("No valid patches extracted")
+                return None, None
+            
+            # Trim arrays if some patches failed
+            actual_samples = valid_patches * npts
+            if actual_samples < expected_samples:
+                chart_result = chart_result[:actual_samples, :]
+                ref_result = ref_result[:actual_samples, :]
+            
+            # Randomization (optional)
             if randomize:
-                idx = np.random.permutation(len(chart_ex))
-                chart_ex = chart_ex[idx]
-                ref_ex = ref_ex[idx]
+                # Vectorized patch-level shuffling
+                patch_indices = np.arange(valid_patches)
+                np.random.shuffle(patch_indices)
+                
+                # Reshape, shuffle, reshape back
+                chart_patches = chart_result.reshape(valid_patches, npts, 3)
+                ref_patches = ref_result.reshape(valid_patches, npts, 3)
+                
+                chart_result = chart_patches[patch_indices].reshape(-1, 3)
+                ref_result = ref_patches[patch_indices].reshape(-1, 3)
             
-            logger.debug(f"Extended chart samples: {chart_ex.shape}")
-            return chart_ex, ref_ex
+            logger.debug(f"Extended chart samples: {chart_result.shape}")
+            return chart_result, ref_result
+            
+        except Exception as e:
+            logger.error(f"Error in extract_color_chart_ex: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, None
         finally:
             logging.getLogger('root').setLevel(old_log_level)
 
