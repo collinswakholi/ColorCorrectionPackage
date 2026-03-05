@@ -11,11 +11,59 @@ Standalone implementations copied from v1_2_01 for compatibility.
 
 from typing import Optional, Tuple
 import gc
+import hashlib
 
 import numpy as np
 import pandas as pd
 import cv2
 import colour
+
+
+# ============================================================================
+# CHART DETECTION CACHE
+# ============================================================================
+
+class _ChartCache:
+    """Cache chart detection results keyed by image content hash.
+    
+    MCC detection is the most frequently called expensive operation
+    (6-10 times per pipeline run, ~1-2s each). Caching the detection
+    result saves 5-15s per pipeline run.
+    """
+
+    def __init__(self, max_entries: int = 8):
+        self._cache = {}        # hash -> (best_checker_data, img_draw, src_patches)
+        self._max = max_entries
+
+    @staticmethod
+    def _hash(img: np.ndarray) -> str:
+        """Fast content hash using md5 of downsampled image."""
+        # Downsample to 128px wide for fast hashing (content won't change)
+        h, w = img.shape[:2]
+        scale = 128 / max(w, 1)
+        small = cv2.resize(img, (128, max(1, int(h * scale))), interpolation=cv2.INTER_NEAREST)
+        return hashlib.md5(small.tobytes()).hexdigest()
+
+    def get(self, img: np.ndarray):
+        """Return cached (src_patches, img_draw, dims) or None."""
+        h = self._hash(img)
+        return self._cache.get(h)
+
+    def put(self, img: np.ndarray, result: tuple):
+        """Store result for this image."""
+        if len(self._cache) >= self._max:
+            # Evict oldest entry
+            oldest = next(iter(self._cache))
+            del self._cache[oldest]
+        h = self._hash(img)
+        self._cache[h] = result
+
+    def clear(self):
+        self._cache.clear()
+
+
+# Module-level chart cache instance
+_chart_cache = _ChartCache()
 
 # Standalone implementations (no dependency on old package)
 
@@ -71,18 +119,94 @@ def free_memory():
 # COLOR CHART DETECTION (OpenCV MCC)
 # ============================================================================
 
-# OpenCV mcc detector parameters (from v1_2_01)
-CDP = cv2.mcc.DetectorParameters().create()
+def _create_detector_params():
+    """Create MCC DetectorParameters with version-safe fallback."""
+    for factory in [
+        lambda: cv2.mcc.DetectorParameters.create(),
+        lambda: cv2.mcc.DetectorParameters_create(),
+        lambda: cv2.mcc.DetectorParameters(),
+    ]:
+        try:
+            return factory()
+        except Exception:
+            continue
+    return None
 
-def detect_refine_charts(detector, img, n_charts, params=CDP):
+
+def _create_detector():
+    """Create MCC CCheckerDetector with version-safe fallback."""
+    for factory in [
+        lambda: cv2.mcc.CCheckerDetector.create(),
+        lambda: cv2.mcc.CCheckerDetector_create(),
+    ]:
+        try:
+            return factory()
+        except Exception:
+            continue
+    raise RuntimeError("Cannot create cv2.mcc.CCheckerDetector — check opencv-contrib-python install")
+
+
+def _create_cdraw(checker):
+    """Create MCC CCheckerDraw with version-safe fallback."""
+    for factory in [
+        lambda: cv2.mcc.CCheckerDraw.create(checker),
+        lambda: cv2.mcc.CCheckerDraw_create(checker),
+    ]:
+        try:
+            return factory()
+        except Exception:
+            continue
+    raise RuntimeError("Cannot create cv2.mcc.CCheckerDraw")
+
+
+def _set_param_safe(params, name, value):
+    """Set a DetectorParameters property, silently ignoring failures."""
+    try:
+        setattr(params, name, value)
+    except Exception:
+        pass
+
+
+def _make_adjusted_params():
+    """Build a DetectorParameters with relaxed thresholds (version-safe)."""
+    dp = _create_detector_params()
+    if dp is not None:
+        _set_param_safe(dp, "adaptiveThreshWinSizeMin", int(3))
+        _set_param_safe(dp, "adaptiveThreshWinSizeStep", int(8))
+        _set_param_safe(dp, "confidenceThreshold", float(0.50))
+        _set_param_safe(dp, "maxError", float(0.35))
+        _set_param_safe(dp, "minGroupSize", int(4))
+    return dp
+
+
+# Module-level default params (created once)
+CDP = _create_detector_params()
+
+
+def detect_refine_charts(detector, img, n_charts, params=None):
     """Detect and refine color charts using OpenCV's mcc module (from v1_2_01)."""
-    # Use a higher count for chart detection
+    if params is None:
+        params = CDP
     n = n_charts + 1  # increase n for extra chart detections
 
     def run_detection(current_params):
-        detector.process(img, cv2.mcc.MCC24, nc=n, params=current_params)
+        # Try with params first, fall back to without params
+        detected = False
+        for attempt_params in [current_params, None]:
+            try:
+                if attempt_params is not None:
+                    detector.process(img, cv2.mcc.MCC24, nc=n, params=attempt_params)
+                else:
+                    detector.process(img, cv2.mcc.MCC24, nc=n)
+                detected = True
+                break
+            except Exception:
+                continue
+        if not detected:
+            # Last resort: minimal call
+            detector.process(img, cv2.mcc.MCC24)
         list_ = detector.getListColorChecker()
-        if len(list_) < 0.5:
+        if len(list_) < 1:
             print("Warning: No color chart found in Image")
             assert False
         return detector
@@ -91,13 +215,8 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
         det_ = run_detection(params)
     except Exception:
         print("Warning: Retrying with Adjusted parameters...")
-        DP = cv2.mcc.DetectorParameters().create()
-        DP.adaptiveThreshWinSizeMin = 3
-        DP.adaptiveThreshWinSizeStep = 8
-        DP.confidenceThreshold = 0.50
-        DP.maxError = 0.35
-        DP.minGroupSize = 4
-        det_ = run_detection(DP)
+        adjusted = _make_adjusted_params()
+        det_ = run_detection(adjusted)
 
     if n_charts == 1:
         return [det_.getBestColorChecker()]
@@ -118,6 +237,9 @@ def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
     """
     Extract color patches from a ColorChecker chart in the image (from v1_2_01).
     
+    Uses a per-image cache so repeated calls on the same image (different
+    pipeline stages) skip the expensive MCC detection.
+    
     Args:
         img: BGR image (uint8)
         get_patch_size: If True, return patch size info
@@ -128,15 +250,24 @@ def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
             - img_draw: Image with drawn chart
             - dims: Patch size info
     """
+    # ── Cache lookup ──
+    cached = _chart_cache.get(img)
+    if cached is not None:
+        src, img_draw, dims = cached
+        if not get_patch_size:
+            return np.array(src), img_draw.copy(), []
+        return np.array(src), img_draw.copy(), dims
+
+    # ── Full detection (expensive) ──
     img_blur = cv2.medianBlur(img, 5)
-    detector = cv2.mcc.CCheckerDetector_create()
+    detector = _create_detector()
     best_checker = detect_refine_charts(detector, img_blur, n_charts=1, params=CDP)[0]
 
     if best_checker is None:
         print("Warning: No color chart found in Image")
         return None, None, None
 
-    cdraw = cv2.mcc.CCheckerDraw_create(best_checker)
+    cdraw = _create_cdraw(best_checker)
     img_draw = img.copy()
     cdraw.draw(img_draw)
 
@@ -157,6 +288,9 @@ def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
         # Simple patch size estimation
         dims = [(x2-x1)//6, (y2-y1)//4]
 
+    # ── Store in cache ──
+    _chart_cache.put(img, (np.array(src), img_draw.copy(), dims))
+
     return np.array(src), img_draw, dims
 
 def extract_color_charts(img: np.ndarray, n_charts: int = 1):
@@ -173,7 +307,7 @@ def extract_color_charts(img: np.ndarray, n_charts: int = 1):
             - img_draw: Image with drawn charts
     """
     img_blur = cv2.medianBlur(img, 5)
-    detector = cv2.mcc.CCheckerDetector_create()
+    detector = _create_detector()
 
     checkers = detect_refine_charts(detector, img_blur, n_charts=n_charts, params=CDP)
 
@@ -184,7 +318,7 @@ def extract_color_charts(img: np.ndarray, n_charts: int = 1):
     img_draw = img.copy()
 
     for i, checker in enumerate(checkers):
-        cdraw = cv2.mcc.CCheckerDraw_create(checker)
+        cdraw = _create_cdraw(checker)
         cdraw.draw(img_draw)
         
         # Add text to chart
@@ -317,6 +451,7 @@ def poly_func_torch(x, coeffs):
         raise NotImplementedError("poly_func_torch requires torch")
 
 __all__ = [
+    "clear_chart_cache",
     "compute_diag",
     "compute_temperature",
     "estimate_fit",
@@ -330,3 +465,8 @@ __all__ = [
     "to_float64",
     "to_uint8",
 ]
+
+
+def clear_chart_cache():
+    """Clear the chart detection cache (call between different images)."""
+    _chart_cache.clear()

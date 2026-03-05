@@ -45,7 +45,8 @@ Example:
 import gc
 import os
 import time
-from typing import Any, Dict, Optional, Tuple, Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import colour
 import cv2
@@ -69,6 +70,8 @@ from .core import (
     to_uint8,
     wb_correction,
 )
+from .core.utils import clear_chart_cache
+from .core.accel import apply_ffc_float
 from .flat_field import FlatFieldCorrection
 from .models import MyModels
 
@@ -548,6 +551,9 @@ class ColorCorrection:
         """
         print("Info: Initializing ColorCorrection pipeline")
         
+        # Clear chart detection cache for new image
+        clear_chart_cache()
+        
         # Load image data
         if isinstance(Image, str):
             img_bgr = cv2.imread(Image)
@@ -766,12 +772,9 @@ class ColorCorrection:
         start = time.time()
         out_images: Dict[str, np.ndarray] = {}
         
-        # 1) Flat Field
+        # 1) Flat Field (float path — no uint8 round-trip)
         if self.models.model_ffc is not None:
-            ffc_obj = FlatFieldCorrection()
-            bgr8 = to_uint8(img[:, :, ::-1])
-            ffc_out_bgr = ffc_obj.apply_ffc(img=bgr8, multiplier=self.models.model_ffc)
-            img_ffc = to_float64(ffc_out_bgr[:, :, ::-1])
+            img_ffc = apply_ffc_float(img, self.models.model_ffc)
         else:
             img_ffc = img
         out_images["FFC"] = img_ffc
@@ -820,3 +823,88 @@ class ColorCorrection:
         gc.collect()
         
         return out_images
+
+    # ── Batch / parallel prediction ──────────────────────────────────────
+
+    def predict_images(
+        self,
+        images: List[Union[str, np.ndarray]],
+        on_progress: Optional[Callable[[int, int, str], None]] = None,
+        max_workers: Optional[int] = None,
+    ) -> List[Dict[str, np.ndarray]]:
+        """
+        Apply saved models to multiple images in parallel.
+
+        Uses a thread pool so that Numba-compiled kernels (which release
+        the GIL) and I/O (cv2.imread) can overlap.
+
+        Parameters
+        ----------
+        images : list of str | np.ndarray
+            Paths or RGB float64 arrays to correct.
+        on_progress : callable, optional
+            ``on_progress(completed, total, image_name)`` called from the
+            main thread after each image finishes.
+        max_workers : int, optional
+            Number of threads.  Defaults to ``min(os.cpu_count(), 4)``.
+
+        Returns
+        -------
+        results : list of dict
+            Same order as *images*.  Each dict has keys
+            ``'FFC', 'GC', 'WB', 'CC'`` → float64 RGB arrays.
+
+        Example
+        -------
+        >>> cc = ColorCorrection()
+        >>> metrics, imgs, err = cc.run(Image=chart, White_Image=white,
+        ...                             name_="cal", config=cfg)
+        >>> results = cc.predict_images(
+        ...     ["img1.jpg", "img2.jpg", "img3.jpg"],
+        ...     on_progress=lambda cur, tot, name: print(f"{cur}/{tot} {name}"),
+        ... )
+        """
+        n = len(images)
+        if n == 0:
+            return []
+
+        if max_workers is None:
+            max_workers = min(os.cpu_count() or 4, 4)
+        max_workers = max(1, min(max_workers, n))
+
+        results: List[Optional[Dict[str, np.ndarray]]] = [None] * n
+
+        def _name(img, idx):
+            if isinstance(img, str):
+                return os.path.basename(img)
+            return f"image_{idx}"
+
+        def _worker(idx):
+            return idx, self.predict_image(images[idx], show=False)
+
+        completed = 0
+        t0 = time.time()
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(_worker, i): i for i in range(n)}
+
+            for future in as_completed(futures):
+                idx, result = future.result()
+                results[idx] = result
+                completed += 1
+                name = _name(images[idx], idx)
+                if on_progress is not None:
+                    on_progress(completed, n, name)
+
+                # Periodic GC instead of per-image
+                if completed % max(1, max_workers) == 0:
+                    gc.collect()
+
+        elapsed = time.time() - t0
+        print(
+            f"Info: Batch prediction done — {n} images in {elapsed:.2f}s "
+            f"({elapsed / max(n, 1):.2f}s/img, {max_workers} workers)"
+        )
+        gc.collect()
+
+        return results

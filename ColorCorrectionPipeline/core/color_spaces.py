@@ -474,26 +474,16 @@ def extrapolate_if_sat_image(
     if not is_saturated:
         return img, None, None
     
-    # Extrapolate using reference
-    # For image, we use a simpler approach: scale saturated pixels
-    # based on median scaling from reference
+    # Vectorised extrapolation: scale all saturated pixels at once
     img_flat_corrected = img_flat.copy()
     
-    # Estimate scaling from reference (assume reference represents expected values)
-    # Use median reference value as target
-    ref_median = np.median(mat_ref, axis=0)
-    
-    # For saturated pixels, scale them down to reasonable range
     saturated_indices = np.where(saturated_mask)[0]
     saturated_values = img_flat[saturated_indices].copy()
     
-    for idx in saturated_indices:
-        # Scale down by median reference value
-        img_flat_corrected[idx] = np.clip(
-            img_flat[idx] * 0.95,  # Reduce by 5%
-            0,
-            1
-        )
+    # Scale down saturated pixels by 5% (vectorised, no Python loop)
+    img_flat_corrected[saturated_mask] = np.clip(
+        img_flat[saturated_mask] * 0.95, 0, 1
+    )
     
     # Reshape back
     result = img_flat_corrected.reshape(orig_shape)

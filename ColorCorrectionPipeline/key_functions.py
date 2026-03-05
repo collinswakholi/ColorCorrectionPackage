@@ -121,7 +121,7 @@ n_proc = os.cpu_count()
 
 
 # checker detection parameters
-CDP = cv2.mcc.DetectorParameters().create()
+CDP = cv2.mcc.DetectorParameters()
 CDP.adaptiveThreshWinSizeMin = 5
 CDP.adaptiveThreshWinSizeStep = 8
 CDP.confidenceThreshold = 0.50
@@ -674,7 +674,7 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
         det_ = run_detection(params)
     except Exception:
         log_("Retrying with Adjusted parameters...", "light_yellow", "italic", "warn")
-        DP = cv2.mcc.DetectorParameters().create()
+        DP = cv2.mcc.DetectorParameters()
         DP.adaptiveThreshWinSizeMin = 3
         DP.adaptiveThreshWinSizeStep = 8
         DP.confidenceThreshold = 0.50

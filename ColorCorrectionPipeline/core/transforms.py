@@ -112,37 +112,48 @@ def generate_powers_with_combinations_torch(
     """
     n_samples, n_features = features.shape
     
-    # Start with constant term (all ones)
-    poly_features = [torch.ones((n_samples, 1), dtype=features.dtype, device=features.device)]
-    poly_names = ["1"]
+    # Pre-compute all exponent combinations as an index matrix
+    # This avoids the inner Python loop over combinations
+    from itertools import combinations_with_replacement
     
-    # Degree 1: original features
-    poly_features.append(features)
-    poly_names.extend(names)
+    all_combos = []       # list of tuples of feature indices
+    all_names = ["1"]     # starts with bias term
     
+    # Degree 1
+    for i in range(n_features):
+        all_combos.append((i,))
+        all_names.append(names[i])
+    
+    # Degree 2+
     if degree >= 2:
-        # Generate higher degree terms
-        from itertools import combinations_with_replacement
-        
         for d in range(2, degree + 1):
-            # Generate all combinations with replacement for degree d
             for combo in combinations_with_replacement(range(n_features), d):
-                # Compute product of features for this combination
-                result = torch.ones((n_samples,), dtype=features.dtype, device=features.device)
-                name_parts = []
-                
-                for idx in combo:
-                    result = result * features[:, idx]
-                    name_parts.append(names[idx])
-                
-                # Add to list
-                poly_features.append(result.unsqueeze(1))
-                poly_names.append("".join(name_parts))
+                all_combos.append(combo)
+                all_names.append("".join(names[idx] for idx in combo))
     
-    # Concatenate all features
-    poly_tensor = torch.cat(poly_features, dim=1)
+    # Build exponent matrix: (n_terms, n_features) where entry = count of that feature
+    n_terms = len(all_combos)
+    exponent_matrix = torch.zeros((n_terms, n_features), dtype=torch.int32, device=features.device)
+    for t, combo in enumerate(all_combos):
+        for idx in combo:
+            exponent_matrix[t, idx] += 1
     
-    return poly_tensor, poly_names
+    # Vectorised computation: features^exponents then product across features
+    # features: (N, F), exponent_matrix: (T, F) → result: (N, T)
+    # log-space for numerical stability: sum(exp * log(feat)) then exp
+    # But for small degrees, direct power + prod is fine and exact
+    
+    # Expand: (N, 1, F) ** (1, T, F) → (N, T, F) → prod along F → (N, T)
+    feat_expanded = features.unsqueeze(1)                    # (N, 1, F)
+    exp_expanded = exponent_matrix.unsqueeze(0).float()      # (1, T, F)
+    powered = feat_expanded ** exp_expanded                  # (N, T, F)
+    term_values = powered.prod(dim=2)                        # (N, T)
+    
+    # Prepend bias column (all ones)
+    bias = torch.ones((n_samples, 1), dtype=features.dtype, device=features.device)
+    poly_tensor = torch.cat([bias, term_values], dim=1)
+    
+    return poly_tensor, all_names
 
 
 def process_in_chunks(

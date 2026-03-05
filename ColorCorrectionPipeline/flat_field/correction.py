@@ -240,24 +240,20 @@ class FlatFieldCorrection:
             X, Y = np.meshgrid(x, y)
             h_win = int((self.smooth_window - 1) / 2)
             
-            Z_ = np.zeros_like(X)
-            Z_flat_ = np.zeros_like(X)
-            
-            for i, x_ in enumerate(x):
-                for j, y_ in enumerate(y):
-                    x_, y_ = int(x_), int(y_)
-                    x_bounds = max(0, x_ - h_win), min(w, x_ + h_win)
-                    y_bounds = max(0, y_ - h_win), min(h, y_ + h_win)
-                    
-                    Z_[i, j] = np.mean(
-                        Z[x_bounds[0]:x_bounds[1], y_bounds[0]:y_bounds[1]]
-                    )
-                    Z_flat_[i, j] = np.mean(
-                        Z_flat[x_bounds[0]:x_bounds[1], y_bounds[0]:y_bounds[1]]
-                    )
-            
-            Z_ = np.array(Z_)
-            Z_flat_ = np.array(Z_flat_)
+            # Vectorised: blur + subsample instead of Python double loop
+            kernel = max(1, 2 * h_win + 1)
+            Z_blurred = cv2.blur(Z.astype(np.float64) if Z.ndim == 2
+                                 else cv2.cvtColor(Z.astype(np.float64), cv2.COLOR_BGR2GRAY)
+                                 if Z.ndim == 3 else Z.astype(np.float64),
+                                 (kernel, kernel))
+            Zf_blurred = cv2.blur(Z_flat.astype(np.float64) if Z_flat.ndim == 2
+                                  else cv2.cvtColor(Z_flat.astype(np.float64), cv2.COLOR_BGR2GRAY)
+                                  if Z_flat.ndim == 3 else Z_flat.astype(np.float64),
+                                  (kernel, kernel))
+            rows_idx = np.linspace(0, w - 1, bins).astype(int)
+            cols_idx = np.linspace(0, h - 1, bins).astype(int)
+            Z_ = Z_blurred[np.ix_(rows_idx, cols_idx)]
+            Z_flat_ = Zf_blurred[np.ix_(rows_idx, cols_idx)]
         else:
             Z_ = Z
             Z_flat_ = Z_flat
@@ -592,21 +588,15 @@ class FlatFieldCorrection:
         
         h_win = int((self.smooth_window - 1) / 2)
         
-        Z_m = np.ones_like(X_c)
-        for i, x_ in enumerate(x_c):
-            for j, y_ in enumerate(y_c):
-                x_, y_ = int(x_), int(y_)
-                x_l, x_h = [
-                    max(0, x_ - h_win),
-                    min(L_cropped.shape[0] - 1, x_ + h_win),
-                ]
-                y_l, y_h = [
-                    max(0, y_ - h_win),
-                    min(L_cropped.shape[1] - 1, y_ + h_win),
-                ]
-                Z_m[i, j] = np.mean(self.cropped_multiplier[x_l:x_h, y_l:y_h])
-        
-        Z_m = np.array(Z_m)
+        # Vectorised sampling: cv2.blur + subsample instead of Python double loop
+        kernel_size = max(1, 2 * h_win + 1)
+        blurred_mult = cv2.blur(
+            self.cropped_multiplier.astype(np.float64),
+            (kernel_size, kernel_size),
+        )
+        rows_idx = np.linspace(0, L_cropped.shape[0] - 1, self.bins).astype(int)
+        cols_idx = np.linspace(0, L_cropped.shape[1] - 1, self.bins).astype(int)
+        Z_m = blurred_mult[np.ix_(rows_idx, cols_idx)]
         
         # Flatten coordinates and values
         x_flat, y_flat = X.flatten(), Y.flatten()
@@ -714,8 +704,8 @@ class FlatFieldCorrection:
         # Extract L channel
         L, img_LAB = self.get_L(img, smooth=False)
         
-        # Multiply L channel by final_multiplier
-        L_ = (L.astype(FLOAT) * self.final_multiplier).astype(UINT8)
+        # Multiply L channel by final_multiplier (clip to avoid uint8 wrap-around)
+        L_ = np.clip(L.astype(FLOAT) * self.final_multiplier, 0, 255).astype(UINT8)
         
         # Reconstruct image
         if self.check_color(img):
