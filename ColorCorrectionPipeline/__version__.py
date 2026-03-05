@@ -1,10 +1,14 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.1: numba promoted to default (core) dependency
+# - numba>=0.55.0 moved from optional [accel] extra to core dependencies
+# - Hardware acceleration now active out-of-the-box on all supported platforms
+#
 # Release 1.4.0: Numba/CUDA acceleration + batch prediction API
 # - core/accel.py: hardware-aware kernels (Numba CPU parallel / CUDA)
 # - Fast sRGB<->Lab via pre-computed LUTs + Numba parallel (22-54x faster)
