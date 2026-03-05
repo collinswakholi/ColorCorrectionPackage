@@ -19,6 +19,15 @@ import cv2
 import colour
 
 
+# ── MCC module availability (follows accel.py HAS_NUMBA pattern) ───────────
+HAS_MCC = False
+try:
+    _mcc = cv2.mcc
+    HAS_MCC = hasattr(_mcc, 'CCheckerDetector') or hasattr(_mcc, 'CCheckerDetector_create')
+except AttributeError:
+    pass
+
+
 # ============================================================================
 # CHART DETECTION CACHE
 # ============================================================================

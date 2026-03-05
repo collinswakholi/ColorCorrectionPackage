@@ -36,6 +36,8 @@ from .color_spaces import convert_to_lab
 from .metrics import arrange_metrics, get_metrics
 from .transforms import get_poly_features
 from .utils import (
+    _create_detector,
+    _create_cdraw,
     compute_diag,
     estimate_fit,
     extract_color_chart,
@@ -997,8 +999,8 @@ def extract_color_chart_ex(
             # Pre-processing
             img_blur = cv2.medianBlur(img, 5)
             
-            # Chart detection
-            detector = cv2.mcc.CCheckerDetector_create()
+            # Chart detection (use version-safe factories from utils)
+            detector = _create_detector()
             detector.process(img_blur, cv2.mcc.MCC24)
             checkers = detector.getListColorChecker()
             
@@ -1011,7 +1013,7 @@ def extract_color_chart_ex(
             # Visualization (optional)
             if show:
                 img_draw = img.copy()
-                cdraw = cv2.mcc.CCheckerDraw_create(best_checker)
+                cdraw = _create_cdraw(best_checker)
                 cdraw.draw(img_draw)
                 colour.plotting.plot_image(to_float64(img_draw[:, :, ::-1]))
             

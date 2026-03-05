@@ -96,6 +96,7 @@ jobs:
     
     - name: Create GitHub Release Tag
       if: steps.check_pypi.outputs.VERSION_EXISTS != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'release'
+      id: create_tag
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
         echo "🏷️  Checking if tag v${VERSION} exists..."
@@ -103,6 +104,7 @@ jobs:
         # Check if tag already exists
         if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
           echo "ℹ️  Tag v${VERSION} already exists, skipping creation"
+          echo "TAG_CREATED=false" >> $GITHUB_OUTPUT
         else
           echo "🏷️  Creating git tag v${VERSION}..."
           git config user.name "github-actions[bot]"
@@ -110,10 +112,30 @@ jobs:
           git tag -a "v${VERSION}" -m "Release version ${VERSION}"
           git push origin "v${VERSION}"
           echo "✅ Tag v${VERSION} created successfully"
+          echo "TAG_CREATED=true" >> $GITHUB_OUTPUT
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
+
+    - name: Create GitHub Release
+      if: steps.create_tag.outputs.TAG_CREATED == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        name: v${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## ColorCorrectionPipeline v${{ steps.get_version.outputs.VERSION }}
+
+          Published to [PyPI](https://pypi.org/project/ColorCorrectionPipeline/${{ steps.get_version.outputs.VERSION }}/).
+
+          Install: `pip install ColorCorrectionPipeline==${{ steps.get_version.outputs.VERSION }}`
+
+          See commit history for full changelog.
+        files: dist/*
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build only (feature branch)
       if: github.ref != 'refs/heads/main' && github.event_name == 'push'

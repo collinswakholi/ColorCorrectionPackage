@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Pre-publication verification script for ColorCorrectionPackage v1.3.0
-Checks all critical files and configurations before GitHub push.
+Pre-publication verification script for ColorCorrectionPackage v1.4.2
+Checks all critical files, configurations, and runtime dependencies before GitHub push.
 """
 
 import os
@@ -53,13 +53,17 @@ def check_version_consistency():
     if Path(changelog_path).exists():
         with open(changelog_path, 'r', encoding='utf-8') as f:
             for line in f:
-                if line.strip().startswith('## [1.3.0]'):
-                    versions['CHANGELOG.md'] = '1.3.0'
+                if line.strip().startswith('## [1.4'):
+                    # Extract version from header like '## [1.4.2]'
+                    ver = line.strip().split('[')[1].split(']')[0]
+                    versions['CHANGELOG.md'] = ver
                     break
     
     # Verify all versions match
-    if len(set(versions.values())) == 1 and '1.3.0' in versions.values():
-        print(f"{GREEN}✓{RESET} All versions consistent: 1.3.0")
+    unique = set(versions.values())
+    if len(unique) == 1:
+        ver = unique.pop()
+        print(f"{GREEN}\u2713{RESET} All versions consistent: {ver}")
         return True
     else:
         print(f"{RED}✗{RESET} Version mismatch:")
@@ -134,7 +138,6 @@ def check_pyproject_toml():
     
     checks = {
         'packages = ["ColorCorrectionPipeline"]': "Correct package name",
-        'version = "1.3.0"': "Version 1.3.0",
         'ColorCorrectionPipeline/flat_field/models': "YOLO model inclusion",
         'requires-python = ">=3.8"': "Python version requirement",
     }
@@ -211,6 +214,58 @@ def check_github_workflow():
     
     return all_ok
 
+def check_critical_modules():
+    """Verify that critical runtime modules are available."""
+    print(f"\n{BLUE}Checking critical runtime modules...{RESET}")
+
+    all_ok = True
+
+    # cv2 + cv2.mcc
+    try:
+        import cv2
+        print(f"{GREEN}✓{RESET} cv2 {cv2.__version__}")
+        if hasattr(cv2, "mcc"):
+            print(f"{GREEN}✓{RESET} cv2.mcc module present")
+        else:
+            print(f"{RED}✗{RESET} cv2.mcc module MISSING — install opencv-contrib-python")
+            all_ok = False
+    except ImportError:
+        print(f"{RED}✗{RESET} cv2 not importable")
+        all_ok = False
+
+    # numba
+    try:
+        import numba
+        print(f"{GREEN}✓{RESET} numba {numba.__version__}")
+    except ImportError:
+        print(f"{RED}✗{RESET} numba not importable")
+        all_ok = False
+
+    # ColorCorrectionPipeline self-import
+    try:
+        from ColorCorrectionPipeline import __version__
+        from ColorCorrectionPipeline.core import HAS_MCC
+        print(f"{GREEN}✓{RESET} ColorCorrectionPipeline {__version__}")
+        if HAS_MCC:
+            print(f"{GREEN}✓{RESET} HAS_MCC = True")
+        else:
+            print(f"{RED}✗{RESET} HAS_MCC = False — color correction will fail")
+            all_ok = False
+    except ImportError as e:
+        print(f"{RED}✗{RESET} ColorCorrectionPipeline import failed: {e}")
+        all_ok = False
+
+    # numpy, pandas, scipy, sklearn
+    for mod_name in ["numpy", "pandas", "scipy", "sklearn"]:
+        try:
+            __import__(mod_name)
+            print(f"{GREEN}✓{RESET} {mod_name}")
+        except ImportError:
+            print(f"{RED}✗{RESET} {mod_name} not importable")
+            all_ok = False
+
+    return all_ok
+
 def main():
     """Run all verification checks"""
     print(f"\n{BLUE}{'='*60}{RESET}")
@@ -226,6 +281,7 @@ def main():
     results.append(("pyproject.toml", check_pyproject_toml()))
     results.append(("README.md", check_readme()))
     results.append(("GitHub Workflow", check_github_workflow()))
+    results.append(("Critical Modules", check_critical_modules()))
     
     # Summary
     print(f"\n{BLUE}{'='*60}{RESET}")
@@ -244,7 +300,7 @@ def main():
         print(f"{GREEN}✓ All checks passed! Ready for GitHub publication.{RESET}")
         print(f"\n{YELLOW}Next steps:{RESET}")
         print(f"1. Set up PYPI_API_TOKEN secret in GitHub")
-        print(f"2. Run: git add . && git commit -m 'Release v1.3.0'")
+        print(f"2. Run: git add . && git commit -m 'Release v1.4.2'")
         print(f"3. Run: git push origin main")
         print(f"4. Monitor GitHub Actions workflow")
         print(f"5. Create GitHub release after successful PyPI upload")

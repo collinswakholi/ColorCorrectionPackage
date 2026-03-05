@@ -42,6 +42,7 @@ from .metrics import (
 )
 from .transforms import get_poly_features
 from .utils import (
+    HAS_MCC,
     compute_diag,
     compute_temperature,
     estimate_fit,
@@ -84,6 +85,7 @@ __all__ = [
     # Transforms
     "get_poly_features",
     # Utils
+    "HAS_MCC",
     "compute_diag",
     "compute_temperature",
     "estimate_fit",

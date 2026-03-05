@@ -59,6 +59,14 @@ except ImportError as e:
 from . import core
 from . import io
 
+# Warn early if cv2.mcc is missing (color chart detection will fail)
+if not core.HAS_MCC:
+    warnings.warn(
+        "cv2.mcc module not found \u2014 color chart detection will fail. "
+        "Install opencv-contrib-python: pip install opencv-contrib-python",
+        ImportWarning,
+    )
+
 # Public API
 __all__: List[str] = [
     "__version__",

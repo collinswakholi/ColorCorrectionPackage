@@ -1,10 +1,17 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.2: Fixed opencv-python / opencv-contrib-python conflict
+# - Removed opencv-python from dependencies (contrib is a strict superset)
+# - Added HAS_MCC runtime flag in core/utils.py (follows accel.py pattern)
+# - Import-time warning when cv2.mcc is missing
+# - Consolidated all cv2.mcc API access through version-safe factories
+# - Added tests/test_dependencies.py for post-install module verification
+#
 # Release 1.4.1: numba promoted to default (core) dependency
 # - numba>=0.55.0 moved from optional [accel] extra to core dependencies
 # - Hardware acceleration now active out-of-the-box on all supported platforms
