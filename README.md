@@ -222,8 +222,7 @@ cc_kwargs = {
     # 'ncomp': 1,                     # number of components to use
 
     # only if mtd == 'nn' otherwise disable
-    'nlayers': 100,                 # number of layers to use
-    'hidden_layers': [64, 32, 16],  # hidden layers for neural network
+    'hidden_layers': [64, 32, 16],  # hidden layer sizes for neural network
     'learning_rate': 0.001,         # learning rate for neural network
     'batch_size': 16,               # batch size for neural network
     'patience': 10,                 # patience for early stopping
@@ -361,7 +360,7 @@ If you use this package in your research, please cite:
     author = {Wakholi, Collins and Rippner, Devin A.},
     title = {ColorCorrectionPipeline: A stepwise color‐correction pipeline},
     url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-    version = {1.4.1},
+    version = {1.4.3},
     year = {2026}
 }
 ```

@@ -1,10 +1,16 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.3: Unified hidden_layers API for neural-network CC
+# - Replaced nlayers attribute with hidden_layers list in Regressor_Model
+# - MLPRegressor now uses tuple(M.hidden_layers) for hidden_layer_sizes
+# - Backwards compatible: old nlayers key auto-converts to [int(nlayers)]
+# - Updated pipeline.py to pass hidden_layers instead of nlayers
+#
 # Release 1.4.2: Fixed opencv-python / opencv-contrib-python conflict
 # - Removed opencv-python from dependencies (contrib is a strict superset)
 # - Added HAS_MCC runtime flag in core/utils.py (follows accel.py pattern)

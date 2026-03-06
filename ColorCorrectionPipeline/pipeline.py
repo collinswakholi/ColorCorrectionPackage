@@ -462,7 +462,7 @@ class ColorCorrection:
                     "mtd": get_attr(cc_kwargs, "mtd", "linear"),
                     "degree": get_attr(cc_kwargs, "degree", 3),
                     "max_iterations": get_attr(cc_kwargs, "max_iterations", 1000),
-                    "nlayers": get_attr(cc_kwargs, "nlayers", 100),
+                    "hidden_layers": get_attr(cc_kwargs, "hidden_layers", [64, 32, 16]),
                     "ncomp": get_attr(cc_kwargs, "ncomp", -1),
                     "random_state": get_attr(cc_kwargs, "random_state", 0),
                     "tol": get_attr(cc_kwargs, "tol", 1e-8),

@@ -94,14 +94,13 @@ class Regressor_Model:
         tol: Convergence tolerance
         verbose: Whether to print training progress
         ncomp: Number of PLS components
-        nlayers: Number of neurons in MLP hidden layer
         param_search: Whether to use parameter search
-        hidden_layers: Hidden layer sizes for CustomNN
-        learning_rate: Learning rate for CustomNN
-        batch_size: Batch size for CustomNN
+        hidden_layers: Hidden layer sizes (used by both nn/MLPRegressor and custom/CustomNN)
+        learning_rate: Learning rate for NN training
+        batch_size: Batch size for NN training
         use_batch_norm: Whether to use batch normalization
         patience: Early stopping patience
-        dropout_rate: Dropout rate for CustomNN
+        dropout_rate: Dropout rate for NN training
         optim_type: Optimizer type for CustomNN
     """
     
@@ -114,10 +113,9 @@ class Regressor_Model:
         self.tol = 1e-6
         self.verbose = False
         self.ncomp = 1
-        self.nlayers = 100
         self.param_search = False
 
-        # CustomNN specific parameters
+        # NN parameters (shared by MLPRegressor and CustomNN)
         self.hidden_layers = [64, 32, 16]
         self.learning_rate = 0.001
         self.batch_size = 16
@@ -424,10 +422,13 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     M.tol = kwargs.get("tol", 1e-6)
     M.verbose = kwargs.get("verbose", False)
     M.ncomp = kwargs.get("ncomp", 1)
-    M.nlayers = kwargs.get("nlayers", 100)
     M.param_search = kwargs.get("param_search", False)
 
+    # Backwards-compat: if caller sends old "nlayers" key, convert to single-element list
+    _legacy_nlayers = kwargs.get("nlayers", None)
     M.hidden_layers = kwargs.get("hidden_layers", M.hidden_layers)
+    if _legacy_nlayers is not None and "hidden_layers" not in kwargs:
+        M.hidden_layers = [int(_legacy_nlayers)]
     M.learning_rate = kwargs.get("learning_rate", M.learning_rate)
     M.batch_size = kwargs.get("batch_size", M.batch_size)
     M.patience = kwargs.get("patience", M.patience)
@@ -455,7 +456,7 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
             solver="adam",
             learning_rate="adaptive",
             learning_rate_init=0.001,
-            hidden_layer_sizes=(M.nlayers,),
+            hidden_layer_sizes=tuple(M.hidden_layers),
             max_iter=1000 if M.max_iterations == -1 else M.max_iterations,
             shuffle=False,
             random_state=M.random_state,
