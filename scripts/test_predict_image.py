@@ -54,8 +54,8 @@ config = Config(
         'get_deltaE': True
     },
     CC_kwargs={
-        'cc_method': 'ours',
-        'mtd': 'linear',
+        'cc_method': 'ours', # "ours", "conv"
+        'mtd': 'linear', #
         'degree': 2,
         'max_iterations': 1000,
         'random_state': 42,
@@ -101,7 +101,21 @@ print("📊 METRICS SUMMARY (DeltaE - Lower is Better)")
 print("=" * 80)
 print()
 
-# Extract deltaE metrics
+def find_deltae_mean_key(stage_metrics, position):
+    """Return the exact DeltaE mean key for a before/after metric dict."""
+    position = position.lower()
+    matches = [
+        key
+        for key in stage_metrics
+        if "deltae" in key.lower()
+        and position in key.lower()
+        and key.lower().endswith("_mean")
+    ]
+    return matches[0] if matches else None
+
+
+# Extract DeltaE metrics explicitly. The metrics dict also includes MSE/MAE means,
+# so a generic "before/after + mean" search would print the wrong values.
 stages = ['_FFC', '_GC', '_WB', '_CC']
 print(f"{'Stage':<8} {'Before':<10} {'After':<10} {'Δ Change':<12} {'Quality'}")
 print("-" * 80)
@@ -111,15 +125,8 @@ for stage in stages:
         m = metrics[stage]
         stage_display = stage[1:]  # Remove leading underscore
         
-        # Find deltaE keys
-        before_key = None
-        after_key = None
-        
-        for key in m.keys():
-            if 'before' in key.lower() and 'mean' in key.lower():
-                before_key = key
-            elif 'after' in key.lower() and 'mean' in key.lower():
-                after_key = key
+        before_key = find_deltae_mean_key(m, "before")
+        after_key = find_deltae_mean_key(m, "after")
         
         if before_key and after_key:
             before_val = m[before_key]
@@ -148,20 +155,10 @@ print()
 
 # Calculate overall improvement
 if '_FFC' in metrics and '_CC' in metrics:
-    ffc_before = None
-    cc_after = None
-    
-    # Get FFC before deltaE
-    for key in metrics['_FFC'].keys():
-        if 'before' in key.lower() and 'mean' in key.lower():
-            ffc_before = metrics['_FFC'][key]
-            break
-    
-    # Get CC after deltaE
-    for key in metrics['_CC'].keys():
-        if 'after' in key.lower() and 'mean' in key.lower():
-            cc_after = metrics['_CC'][key]
-            break
+    ffc_before_key = find_deltae_mean_key(metrics['_FFC'], "before")
+    cc_after_key = find_deltae_mean_key(metrics['_CC'], "after")
+    ffc_before = metrics['_FFC'][ffc_before_key] if ffc_before_key else None
+    cc_after = metrics['_CC'][cc_after_key] if cc_after_key else None
     
     if ffc_before and cc_after:
         overall_improvement = ((ffc_before - cc_after) / ffc_before * 100)

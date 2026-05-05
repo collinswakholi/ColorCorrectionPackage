@@ -6,6 +6,14 @@ A comprehensive, step-by-step color correction pipeline for digital images. This
 
 **A UI version of this package can be found at _[ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI)_.**
 
+## Associated Manuscript
+
+This package implements the open-source color-correction workflow described in:
+
+Wakholi, C., Hardigan, M. A., Lee, J., Lukas, S. B., Feldman, M. J., Altendorf, K. R., Neyhart, J. L., & Rippner, D. A. (2026). A systematic color correction pipeline for controlled-environment imaging. *The Plant Phenome Journal*, 9(1), e70067. https://doi.org/10.1002/ppj2.70067
+
+Manuscript link: https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70067
+
 ## Features
 
 • **Flat-Field Correction (FFC)**  
@@ -355,13 +363,27 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 If you use this package in your research, please cite:
 
+This package accompanies the manuscript [A systematic color correction pipeline for controlled-environment imaging](https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70067), published in *The Plant Phenome Journal*.
+
 ```bibtex
 @software{colorcorrectionpipeline,
     author = {Wakholi, Collins and Rippner, Devin A.},
     title = {ColorCorrectionPipeline: A stepwise color‐correction pipeline},
     url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-    version = {1.4.3},
+    version = {1.4.4},
     year = {2026}
+}
+
+@article{wakholi2026systematic,
+  author = {Wakholi, Collins and Hardigan, Michael A. and Lee, Jungmin and Lukas, Scott B. and Feldman, Max J. and Altendorf, Kayla R. and Neyhart, Jeffrey L. and Rippner, Devin A.},
+  title = {A systematic color correction pipeline for controlled-environment imaging},
+  journal = {The Plant Phenome Journal},
+  volume = {9},
+  number = {1},
+  pages = {e70067},
+  year = {2026},
+  doi = {10.1002/ppj2.70067},
+  url = {https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70067}
 }
 ```
 

@@ -4,7 +4,9 @@ import itertools
 import json
 import os
 import re
+import tempfile
 import threading
+import warnings
 from typing import Dict, List, Tuple
 
 import colour
@@ -13,10 +15,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import psutil
-import seaborn as sns
-import statsmodels.api as sm
-import statsmodels.stats.multicomp as mc
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -30,7 +28,43 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.utils import check_X_y
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-from .utils.logger_ import log_, match_keywords
+try:
+    from .utils.logger_ import log_, match_keywords
+except ImportError:
+    def log_(message, *args, **kwargs):
+        print(message)
+
+    def match_keywords(query, options):
+        if query is None:
+            return None
+
+        query_text = str(query).lower()
+        options_list = list(options)
+        for option in options_list:
+            if str(option).lower() == query_text:
+                return option
+        for option in options_list:
+            option_text = str(option).lower()
+            if query_text in option_text or option_text in query_text:
+                return option
+        return None
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
+
+try:
+    import statsmodels.api as sm
+    import statsmodels.stats.multicomp as mc
+except ImportError:
+    sm = None
+    mc = None
 
 is_cuda = torch.cuda.is_available()
 # is_cuda = False
@@ -120,15 +154,37 @@ color_chart = colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
 n_proc = os.cpu_count()
 
 
-# checker detection parameters
-CDP = cv2.mcc.DetectorParameters()
-CDP.adaptiveThreshWinSizeMin = 5
-CDP.adaptiveThreshWinSizeStep = 8
-CDP.confidenceThreshold = 0.50
-CDP.maxError = 0.15
-CDP.minGroupSize = 7
+def _create_detector_params():
+    for factory in [
+        lambda: cv2.mcc.DetectorParameters.create(),
+        lambda: cv2.mcc.DetectorParameters_create(),
+        lambda: cv2.mcc.DetectorParameters(),
+    ]:
+        try:
+            return factory()
+        except Exception:
+            continue
+    return None
 
-sns.set_theme(style="whitegrid")
+
+def _set_param_safe(params, name, value):
+    try:
+        setattr(params, name, value)
+    except Exception:
+        pass
+
+
+# checker detection parameters
+CDP = _create_detector_params()
+if CDP is not None:
+    _set_param_safe(CDP, "adaptiveThreshWinSizeMin", int(5))
+    _set_param_safe(CDP, "adaptiveThreshWinSizeStep", int(8))
+    _set_param_safe(CDP, "confidenceThreshold", float(0.50))
+    _set_param_safe(CDP, "maxError", float(0.15))
+    _set_param_safe(CDP, "minGroupSize", int(7))
+
+if sns is not None:
+    sns.set_theme(style="whitegrid")
 
 
 def get_attr(attr, key, default=None):
@@ -328,7 +384,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.patience = patience
         self.optim_type = optim_type
         self.random_state = random_state
-        self.temp_path = "best_model_temp.pth"
+        self.temp_path = None
 
         self.model = None
         self.loss_fn = nn.MSELoss()
@@ -387,18 +443,29 @@ class CustomNN(BaseEstimator, RegressorMixin):
         )
 
         # Split into training and validation sets
-        val_size = int(len(dataset) * self.validation_split)
-        train_size = len(dataset) - val_size
-        generator = torch.Generator().manual_seed(self.random_state)
-        train_dataset, val_dataset = random_split(
-            dataset, [train_size, val_size], generator=generator
-        )
+        if len(dataset) < 2:
+            train_dataset = dataset
+            val_dataset = dataset
+        else:
+            val_size = max(1, int(len(dataset) * self.validation_split))
+            train_size = len(dataset) - val_size
+            generator = torch.Generator().manual_seed(self.random_state)
+            train_dataset, val_dataset = random_split(
+                dataset, [train_size, val_size], generator=generator
+            )
+
+        with tempfile.NamedTemporaryFile(
+            prefix="cc_best_model_", suffix=".pth", delete=False
+        ) as temp_file:
+            self.temp_path = temp_file.name
+
+        pin_memory = self.device.type == "cuda"
 
         train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=True
+            train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=pin_memory
         )
         val_loader = DataLoader(
-            val_dataset, batch_size=self.batch_size, pin_memory=True
+            val_dataset, batch_size=self.batch_size, pin_memory=pin_memory
         )
 
         optimizer_types = {
@@ -493,9 +560,10 @@ class CustomNN(BaseEstimator, RegressorMixin):
                     )
                 break
 
-        if os.path.exists(self.temp_path):
+        if self.temp_path and os.path.exists(self.temp_path):
             self.model.load_state_dict(torch.load(self.temp_path))
             os.remove(self.temp_path)
+            self.temp_path = None
 
         if self.verbose:
             log_("Training complete.", "green", "italic", "bold")
@@ -593,13 +661,14 @@ def free_memory():
 
 def check_memory():
     with memory_lock:
-        ram_usage = psutil.virtual_memory().percent
-        if ram_usage > 95:
-            log_(
-                f"RAM usage is {ram_usage:.2f}%, waiting for free memory...",
-                "yellow",
-                "bold",
-            )
+        if psutil is not None:
+            ram_usage = psutil.virtual_memory().percent
+            if ram_usage > 95:
+                log_(
+                    f"RAM usage is {ram_usage:.2f}%, waiting for free memory...",
+                    "yellow",
+                    "bold",
+                )
 
         if "torch" in globals() and torch.cuda.is_available():
             reserved = torch.cuda.memory_reserved() / 1024**2
@@ -1587,7 +1656,7 @@ def fit_model(det_p, ref_p, kwargs=None):
             hidden_layers=M.hidden_layers,
             optim_type=M.optim_type,
             learning_rate=M.learning_rate,
-            max_epochs=M.max_iterations,
+            max_epochs=1000 if M.max_iterations == -1 else M.max_iterations,
             batch_size=M.batch_size,
             patience=M.patience,
             use_batch_norm=M.use_batch_norm,
@@ -1672,7 +1741,19 @@ def predict_(RGB, M):
 
 def compute_diag(mat_ref, mat_det, rf=0.95):
 
-    factors = np.nanmedian(mat_ref / mat_det, axis=0)
+    mat_ref = np.asarray(mat_ref, dtype=np.float64)
+    mat_det = np.asarray(mat_det, dtype=np.float64)
+    ratios = np.divide(
+        mat_ref,
+        mat_det,
+        out=np.full_like(mat_ref, np.nan, dtype=np.float64),
+        where=np.abs(mat_det) > np.finfo(np.float64).eps,
+    )
+    ratios[~np.isfinite(ratios)] = np.nan
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        factors = np.nanmedian(ratios, axis=0)
+    factors = np.where(np.isfinite(factors), factors, 1.0)
     diag = np.diag(rf * factors)
 
     return diag
@@ -2336,6 +2417,8 @@ def plot_raincloud(
     save_=None,
     show=True,
 ):
+    if sns is None:
+        raise ImportError("plot_raincloud requires seaborn. Install seaborn to use this helper.")
 
     # Determine the hex color values based on color_chart, REF_ILLUMINANT, and patch_names
     if color_chart is not None and REF_ILLUMINANT is not None:
@@ -2449,6 +2532,9 @@ def plot_raincloud(
 
 
 def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
+    if sm is None or mc is None:
+        raise ImportError("get_stats requires statsmodels. Install statsmodels to use this helper.")
+
     # Reshape data into long format
     if condition_ == "row":
         data = data.T
@@ -2576,6 +2662,8 @@ def save_stats(
 
 
 def other_plots(data, save_path=None, title_name="", SHOW_=False):
+    if sns is None:
+        raise ImportError("other_plots requires seaborn. Install seaborn to use this helper.")
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)

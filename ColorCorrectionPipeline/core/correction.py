@@ -14,6 +14,7 @@ All functions preserve backwards compatibility with the original package.
 
 import gc
 import os
+import tempfile
 from typing import Any, Dict, Optional, Tuple
 
 import cv2
@@ -186,7 +187,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
 
         self.input_dim = None
         self.output_dim = None
-        self.temp_path = "best_model_temp.pth"
+        self.temp_path: Optional[str] = None
 
         self.model: Optional[nn.Module] = None
         self.loss_fn = nn.MSELoss()
@@ -245,18 +246,29 @@ class CustomNN(BaseEstimator, RegressorMixin):
         )
 
         # Train/val split
-        val_size = int(len(dataset) * self.validation_split)
-        train_size = len(dataset) - val_size
-        generator = torch.Generator().manual_seed(self.random_state)
-        train_dataset, val_dataset = random_split(
-            dataset, [train_size, val_size], generator=generator
-        )
+        if len(dataset) < 2:
+            train_dataset = dataset
+            val_dataset = dataset
+        else:
+            val_size = max(1, int(len(dataset) * self.validation_split))
+            train_size = len(dataset) - val_size
+            generator = torch.Generator().manual_seed(self.random_state)
+            train_dataset, val_dataset = random_split(
+                dataset, [train_size, val_size], generator=generator
+            )
+
+        with tempfile.NamedTemporaryFile(
+            prefix="cc_best_model_", suffix=".pth", delete=False
+        ) as temp_file:
+            self.temp_path = temp_file.name
+
+        pin_memory = self.device == "cuda"
 
         train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=True
+            train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=pin_memory
         )
         val_loader = DataLoader(
-            val_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=True
+            val_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=pin_memory
         )
 
         # Optimizer
@@ -270,7 +282,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=self.patience // 2, verbose=self.verbose
+            optimizer, mode="min", factor=0.5, patience=self.patience // 2
         )
 
         best_val_loss = float("inf")
@@ -328,9 +340,10 @@ class CustomNN(BaseEstimator, RegressorMixin):
                 break
 
         # Load best model
-        if os.path.exists(self.temp_path):
+        if self.temp_path and os.path.exists(self.temp_path):
             self.model.load_state_dict(torch.load(self.temp_path, map_location=self.device))
             os.remove(self.temp_path)
+            self.temp_path = None
 
         # Release CUDA resources
         if self.device == "cuda":
@@ -476,7 +489,7 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
             hidden_layers=M.hidden_layers,
             optim_type=M.optim_type,
             learning_rate=M.learning_rate,
-            max_epochs=M.max_iterations,
+            max_epochs=1000 if M.max_iterations == -1 else M.max_iterations,
             batch_size=M.batch_size,
             patience=M.patience,
             use_batch_norm=M.use_batch_norm,
@@ -545,6 +558,41 @@ def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     X, _ = get_poly_features(X, degree=M.degree)
     pred = M.model.predict(X)
     return pred.reshape(orig_shape)
+
+
+def _make_black_white_anchor_rows(repeat: int = 50) -> np.ndarray:
+    """Create black/white identity anchor rows for constraining CC fit extremes."""
+    repeat = max(1, int(repeat))
+    anchors = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=np.float64)
+
+    return np.repeat(anchors, repeat, axis=0)
+
+
+def _augment_fit_data_with_black_white_extremes(
+    detected: np.ndarray,
+    reference: np.ndarray,
+    repeat: int = 50,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Append black/white identity anchors to paired detected/reference fit rows."""
+    anchors = _make_black_white_anchor_rows(repeat=repeat)
+    detected_aug = np.vstack([detected, anchors.astype(detected.dtype, copy=False)])
+    reference_aug = np.vstack([reference, anchors.astype(reference.dtype, copy=False)])
+    return detected_aug, reference_aug
+
+
+def _shuffle_fit_data(
+    detected: np.ndarray,
+    reference: np.ndarray,
+    random_state: int = 0,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Shuffle paired fit rows while preserving detected/reference alignment."""
+    if detected.shape[0] != reference.shape[0]:
+        raise ValueError(
+            f"Detected/reference row mismatch: {detected.shape[0]} vs {reference.shape[0]}"
+        )
+    rng = np.random.default_rng(random_state)
+    order = rng.permutation(detected.shape[0])
+    return detected[order], reference[order]
 
 
 def predict_image(
@@ -1267,6 +1315,20 @@ def color_correction(
             cp_values_ex = chart_ex
 
     # Fit model
+    if cc_kwargs.get("augment_extremes", True):
+        cp_values_ex, ref_ex = _augment_fit_data_with_black_white_extremes(
+            cp_values_ex,
+            ref_ex,
+            repeat=cc_kwargs.get("extreme_anchor_repeat", 50),
+        )
+
+    if cc_kwargs.get("shuffle_fit_data", True):
+        cp_values_ex, ref_ex = _shuffle_fit_data(
+            cp_values_ex,
+            ref_ex,
+            random_state=cc_kwargs.get("random_state", 0),
+        )
+
     M_RGB = fit_model(det_p=cp_values_ex, ref_p=ref_ex, kwargs=cc_kwargs)
 
     # Apply model to image

@@ -198,6 +198,16 @@ class TestUtilityFunctions:
         assert diag[0, 0] > 0  # R correction factor
         assert diag[1, 1] > 0  # G correction factor
         assert diag[2, 2] > 0  # B correction factor
+
+    def test_compute_diag_ignores_zero_detected_values(self):
+        """Test white-balance factors stay finite when detected values contain zeros."""
+        mat_ref = np.array([[0.2, 0.3, 0.4], [0.25, 0.35, 0.45]])
+        mat_det = np.array([[0.0, 0.2, 0.4], [0.1, 0.0, 0.5]])
+
+        diag = compute_diag(mat_ref, mat_det, rf=1.0)
+
+        assert np.isfinite(diag).all()
+        assert_array_almost_equal(np.diag(diag), [2.5, 1.5, 0.95])
     
     def test_free_memory(self):
         """Test memory cleanup function."""

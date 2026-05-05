@@ -251,11 +251,12 @@ class ColorCorrection:
             ffc = FlatFieldCorrection(self.White_Image, **ffc_params)
             multiplier = ffc.compute_multiplier(**fit_params)
             
-            # Apply multiplier
-            c_bgr = ffc.apply_ffc(
-                img_bgr8, multiplier, show=get_attr(ffc_kwargs, "show", False)
-            )
-            c_rgb_f64 = to_float64(c_bgr[:, :, ::-1])  # Back to RGB float64
+            # Apply multiplier using the same float path used by predict_image.
+            c_rgb_f64 = apply_ffc_float(Image, multiplier)
+            c_bgr = to_uint8(c_rgb_f64[:, :, ::-1])
+
+            if get_attr(ffc_kwargs, "show", False):
+                ffc.show_results(c_bgr, img_bgr8)
             
             metrics: Dict[str, Any] = {}
             if get_deltaE:
@@ -468,13 +469,15 @@ class ColorCorrection:
                     "tol": get_attr(cc_kwargs, "tol", 1e-8),
                     "verbose": get_attr(cc_kwargs, "verbose", False),
                     "param_search": get_attr(cc_kwargs, "param_search", False),
-                    "hidden_layers": get_attr(cc_kwargs, "hidden_layers", [64, 32, 16]),
                     "learning_rate": get_attr(cc_kwargs, "learning_rate", 0.001),
                     "batch_size": get_attr(cc_kwargs, "batch_size", 16),
                     "patience": get_attr(cc_kwargs, "patience", 10),
                     "dropout_rate": get_attr(cc_kwargs, "dropout_rate", 0.2),
                     "use_batch_norm": get_attr(cc_kwargs, "use_batch_norm", False),
                     "optim_type": get_attr(cc_kwargs, "optim_type", "Adam"),
+                    "augment_extremes": get_attr(cc_kwargs, "augment_extremes", True),
+                    "extreme_anchor_repeat": get_attr(cc_kwargs, "extreme_anchor_repeat", 50),
+                    "shuffle_fit_data": get_attr(cc_kwargs, "shuffle_fit_data", True),
                 }
                 print(f"Info: Using custom CC method: {params['mtd']}")
                 model, img_cc, corrected_card, metrics_cc = color_correction(
@@ -550,6 +553,9 @@ class ColorCorrection:
             >>> print(metrics.keys())  # dict_keys(['test_FFC', 'test_GC', 'test_WB', 'test_CC'])
         """
         print("Info: Initializing ColorCorrection pipeline")
+
+        config = config or Config()
+        config.validate()
         
         # Clear chart detection cache for new image
         clear_chart_cache()
@@ -601,7 +607,6 @@ class ColorCorrection:
                 config.do_ffc = False
         
         # Unpack configuration
-        config = config or Config()
         do_ffc = get_attr(config, "do_ffc", True)
         do_gc = get_attr(config, "do_gc", True)
         do_wb = get_attr(config, "do_wb", True)
@@ -715,7 +720,7 @@ class ColorCorrection:
         if save_results and save_path is not None:
             os.makedirs(save_path, exist_ok=True)
             models_file = os.path.join(save_path, f"{name_}_models.pkl")
-            self.models.save(models_file)
+            self.models.save(save_path, f"{name_}_models")
             print(f"Info: Models saved to {models_file}")
             
             # Save metrics CSV

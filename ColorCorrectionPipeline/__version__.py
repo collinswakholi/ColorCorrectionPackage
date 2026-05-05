@@ -1,10 +1,15 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.3"
+__version__ = "1.4.4"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.4: Publication citation and pipeline hardening
+# - Added the associated Plant Phenome Journal manuscript citation to README
+# - Hardened fit-time/predict-time parity, model persistence, and config validation
+# - Improved finite white-balance factors and CPU/GPU-safe custom NN training paths
+#
 # Release 1.4.3: Unified hidden_layers API for neural-network CC
 # - Replaced nlayers attribute with hidden_layers list in Regressor_Model
 # - MLPRegressor now uses tuple(M.hidden_layers) for hidden_layer_sizes

@@ -12,6 +12,7 @@ Standalone implementations copied from v1_2_01 for compatibility.
 from typing import Optional, Tuple
 import gc
 import hashlib
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -428,8 +429,20 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
 # ============================================================================
 
 def compute_diag(mat_ref, mat_det, rf=0.95):
-    """Compute diagonal correction matrix (from v1_2_01)."""
-    factors = np.nanmedian(mat_ref / mat_det, axis=0)
+    """Compute a finite diagonal correction matrix."""
+    mat_ref = np.asarray(mat_ref, dtype=np.float64)
+    mat_det = np.asarray(mat_det, dtype=np.float64)
+    ratios = np.divide(
+        mat_ref,
+        mat_det,
+        out=np.full_like(mat_ref, np.nan, dtype=np.float64),
+        where=np.abs(mat_det) > np.finfo(np.float64).eps,
+    )
+    ratios[~np.isfinite(ratios)] = np.nan
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        factors = np.nanmedian(ratios, axis=0)
+    factors = np.where(np.isfinite(factors), factors, 1.0)
     diag = np.diag(rf * factors)
     return diag
 
