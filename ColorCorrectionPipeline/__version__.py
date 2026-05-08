@@ -1,10 +1,15 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.5"
+__version__ = "1.4.6"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.6: UI-safe NN config coercion
+# - Coerced UI string config values before sklearn NN fitting
+# - Accepted scalar, JSON, and comma-separated hidden_layers values
+# - Hardened n_samples, random_state, and boolean CC options from UI payloads
+#
 # Release 1.4.5: ONNX detector, NN hardening, and runtime speedups
 # - Replaced runtime ultralytics plane detection with OpenCV DNN ONNX inference
 # - Added cached flat-field multipliers for repeated white-image/config pairs

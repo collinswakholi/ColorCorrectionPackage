@@ -13,6 +13,7 @@ All functions preserve backwards compatibility with the original package.
 """
 
 import gc
+import json
 import os
 import tempfile
 from typing import Any, Dict, Optional, Tuple
@@ -78,6 +79,64 @@ __all__ = [
 
 # CUDA setup
 is_cuda = torch.cuda.is_available()
+
+
+def _coerce_hidden_layers(value, default=None):
+    """Return hidden layer sizes as a non-empty list of positive ints."""
+    if default is None:
+        default = [64]
+    if value is None:
+        return list(default)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return list(default)
+        try:
+            value = json.loads(text)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            value = [part.strip() for part in text.split(",") if part.strip()]
+    if isinstance(value, (int, np.integer)):
+        value = [value]
+    if isinstance(value, tuple):
+        value = list(value)
+    if not isinstance(value, list):
+        return list(default)
+
+    layers = []
+    for item in value:
+        try:
+            layer = int(item)
+        except (TypeError, ValueError):
+            continue
+        if layer > 0:
+            layers.append(layer)
+    return layers or list(default)
+
+
+def _coerce_int(value, default):
+    try:
+        if value is None:
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_float(value, default):
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_bool(value, default):
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return bool(value)
 device_ = torch.device("cuda" if is_cuda else "cpu")
 
 
@@ -480,30 +539,30 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
         kwargs = {}
 
     M = Regressor_Model()
-    M.mtd = kwargs.get("mtd", "linear")
-    M.degree = kwargs.get("degree", 3)
-    M.max_iterations = kwargs.get("max_iterations", 100)
-    M.random_state = kwargs.get("random_state", 42)
-    M.tol = kwargs.get("tol", 1e-6)
-    M.verbose = kwargs.get("verbose", False)
-    M.ncomp = kwargs.get("ncomp", 1)
-    M.param_search = kwargs.get("param_search", False)
+    M.mtd = str(kwargs.get("mtd", "linear")).lower()
+    M.degree = _coerce_int(kwargs.get("degree", 3), 3)
+    M.max_iterations = _coerce_int(kwargs.get("max_iterations", 100), 100)
+    M.random_state = _coerce_int(kwargs.get("random_state", 42), 42)
+    M.tol = _coerce_float(kwargs.get("tol", 1e-6), 1e-6)
+    M.verbose = _coerce_bool(kwargs.get("verbose", False), False)
+    M.ncomp = _coerce_int(kwargs.get("ncomp", 1), 1)
+    M.param_search = _coerce_bool(kwargs.get("param_search", False), False)
 
     # Backwards-compat: if caller sends old "nlayers" key, convert to single-element list
     _legacy_nlayers = kwargs.get("nlayers", None)
-    M.hidden_layers = kwargs.get("hidden_layers", M.hidden_layers)
+    M.hidden_layers = _coerce_hidden_layers(kwargs.get("hidden_layers", M.hidden_layers), M.hidden_layers)
     if _legacy_nlayers is not None and "hidden_layers" not in kwargs:
-        M.hidden_layers = [int(_legacy_nlayers)]
-    M.learning_rate = kwargs.get("learning_rate", M.learning_rate)
-    M.batch_size = kwargs.get("batch_size", M.batch_size)
-    M.patience = kwargs.get("patience", M.patience)
-    M.dropout_rate = kwargs.get("dropout_rate", M.dropout_rate)
-    M.optim_type = kwargs.get("optim_type", M.optim_type)
-    M.use_batch_norm = kwargs.get("use_batch_norm", M.use_batch_norm)
-    M.use_lut = kwargs.get("use_lut", M.use_lut)
-    M.lazy_lut = kwargs.get("lazy_lut", M.lazy_lut)
-    M._lut_grid_size = int(kwargs.get("lut_grid_size", M._lut_grid_size))
-    M.lut_min_pixels = int(kwargs.get("lut_min_pixels", M.lut_min_pixels))
+        M.hidden_layers = _coerce_hidden_layers(_legacy_nlayers, M.hidden_layers)
+    M.learning_rate = _coerce_float(kwargs.get("learning_rate", M.learning_rate), M.learning_rate)
+    M.batch_size = _coerce_int(kwargs.get("batch_size", M.batch_size), M.batch_size)
+    M.patience = _coerce_int(kwargs.get("patience", M.patience), M.patience)
+    M.dropout_rate = _coerce_float(kwargs.get("dropout_rate", M.dropout_rate), M.dropout_rate)
+    M.optim_type = str(kwargs.get("optim_type", M.optim_type))
+    M.use_batch_norm = _coerce_bool(kwargs.get("use_batch_norm", M.use_batch_norm), M.use_batch_norm)
+    M.use_lut = _coerce_bool(kwargs.get("use_lut", M.use_lut), M.use_lut)
+    M.lazy_lut = _coerce_bool(kwargs.get("lazy_lut", M.lazy_lut), M.lazy_lut)
+    M._lut_grid_size = _coerce_int(kwargs.get("lut_grid_size", M._lut_grid_size), M._lut_grid_size)
+    M.lut_min_pixels = _coerce_int(kwargs.get("lut_min_pixels", M.lut_min_pixels), M.lut_min_pixels)
 
     X = det_p
     Y = ref_p
@@ -1353,6 +1412,14 @@ def color_correction(
     """
     if cc_kwargs is None:
         cc_kwargs = {}
+    n_samples = _coerce_int(n_samples, 50)
+    if n_samples < 1:
+        n_samples = 1
+    random_state = _coerce_int(cc_kwargs.get("random_state", 0), 0)
+    extreme_anchor_repeat = _coerce_int(
+        cc_kwargs.get("extreme_anchor_repeat", 50),
+        50,
+    )
 
     Metrics_ = {}
     corrected_color_card = None
@@ -1429,18 +1496,18 @@ def color_correction(
     logger.info(f"Successfully detected {len(cp_values)} color patches")
 
     # Fit model
-    if cc_kwargs.get("augment_extremes", True):
+    if _coerce_bool(cc_kwargs.get("augment_extremes", True), True):
         cp_values_ex, ref_ex = _augment_fit_data_with_black_white_extremes(
             cp_values_ex,
             ref_ex,
-            repeat=cc_kwargs.get("extreme_anchor_repeat", 50),
+            repeat=extreme_anchor_repeat,
         )
 
-    if cc_kwargs.get("shuffle_fit_data", True):
+    if _coerce_bool(cc_kwargs.get("shuffle_fit_data", True), True):
         cp_values_ex, ref_ex = _shuffle_fit_data(
             cp_values_ex,
             ref_ex,
-            random_state=cc_kwargs.get("random_state", 0),
+            random_state=random_state,
         )
 
     M_RGB = fit_model(det_p=cp_values_ex, ref_p=ref_ex, kwargs=cc_kwargs)
