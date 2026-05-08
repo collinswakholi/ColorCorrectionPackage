@@ -3,6 +3,7 @@ name: Publish to PyPI
 on:
   push:
     paths:
+      - '.github/workflows/publish-to-pypi.yml'
       - 'pyproject.toml'
       - 'ColorCorrectionPipeline/__version__.py'
     branches:
@@ -12,6 +13,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/publish-to-pypi.yml'
       - 'pyproject.toml'
       - 'ColorCorrectionPipeline/__version__.py'
   release:

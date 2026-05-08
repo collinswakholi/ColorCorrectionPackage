@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ColorCorrectionPipeline"
+# Keep this in sync with ColorCorrectionPipeline/__version__.py.
 version = "1.4.5"
 description = "A step-wise, color correction pipeline for digital images combining flat-field correction, gamma correction, white-balance, and color-correction"
 readme = "README.md"
