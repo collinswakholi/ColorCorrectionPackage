@@ -196,7 +196,7 @@ def check_github_workflow():
         'name: Publish to PyPI': "Workflow name",
         'pyproject.toml': "Trigger on pyproject.toml",
         '__version__.py': "Trigger on version file",
-        'PYPI_API_TOKEN': "PyPI token reference",
+        'PYPI_CCP_TOKEN': "PyPI token reference",
         'twine upload': "PyPI upload step",
         'git tag': "Tag creation",
     }
@@ -296,7 +296,7 @@ def main():
     if all_passed:
         print(f"{GREEN}✓ All checks passed! Ready for GitHub publication.{RESET}")
         print(f"\n{YELLOW}Next steps:{RESET}")
-        print(f"1. Set up PYPI_API_TOKEN secret in GitHub")
+        print(f"1. Set up PYPI_CCP_TOKEN secret in GitHub")
         print(f"2. Run: git add . && git commit -m 'Release v1.4.5'")
         print(f"3. Run: git push origin main")
         print(f"4. Monitor GitHub Actions workflow")
