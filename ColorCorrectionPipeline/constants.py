@@ -14,16 +14,16 @@ import numpy as np
 # Package root directory
 PACKAGE_ROOT = Path(__file__).parent
 
-# Define the absolute path to the YOLO model for flat-field correction
-MODEL_PATH = str(PACKAGE_ROOT / "flat_field" / "models" / "plane_det_model_YOLO_512_n.pt")
+# Define the absolute path to the OpenCV DNN ONNX model for flat-field correction
+MODEL_PATH = str(PACKAGE_ROOT / "flat_field" / "models" / "plane_det_model_YOLO_512_n.onnx")
 
 # Ensure the model path exists (for development)
 if not os.path.exists(MODEL_PATH):
     import warnings
     
     warnings.warn(
-        f"YOLO model not found at {MODEL_PATH}. "
-        "Flat-field correction will require manual cropping.",
+        f"Plane detection ONNX model not found at {MODEL_PATH}. "
+        "Flat-field correction will use the full image unless a crop is supplied.",
         RuntimeWarning,
     )
 

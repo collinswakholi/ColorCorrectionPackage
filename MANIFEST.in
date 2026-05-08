@@ -16,8 +16,8 @@ recursive-include examples *.txt
 recursive-include docs *.txt
 recursive-include docs *.md
 
-# Include YOLO model
-include color_correc_optim/flat_field/models/plane_det_model_YOLO_512_n.pt
+# Include OpenCV DNN ONNX model
+include ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx
 
 # Exclude unwanted files
 recursive-exclude * __pycache__

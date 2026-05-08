@@ -156,9 +156,10 @@ EQUIVALENCE_TEST_RESULTS.md
 BENCHMARK_SUMMARY.txt
 CLEANUP_SUMMARY.md
 
-# Keep YOLO model in flat_field/models/
+# Keep bundled flat-field detector models in flat_field/models/
 !color_correc_optim/flat_field/models/*.pt
 !ColorCorrectionPipeline/flat_field/models/*.pt
+!ColorCorrectionPipeline/flat_field/models/*.onnx
 
 # GitHub Actions - only exclude logs
 .github/workflows/*.log

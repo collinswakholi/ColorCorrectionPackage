@@ -8,7 +8,7 @@ reference plane, fits a polynomial surface to describe the intensity distributio
 and applies correction to images.
 
 Key Features:
-    - YOLO-based automatic white plane detection
+    - OpenCV DNN automatic white plane detection
     - Manual ROI selection fallback
     - Polynomial surface fitting (configurable degree)
     - Multiple ML backends (linear, NN, PLS, SVM)
@@ -30,20 +30,17 @@ Example:
 
 import gc
 import os
-import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-import torch
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVR
-from ultralytics import YOLO
 
 from ..constants import MODEL_PATH
 
@@ -55,6 +52,32 @@ UINT8 = np.uint8
 
 # Colormaps for visualization
 CMAPS = ["viridis", "plasma", "jet", "Greys", "cividis"]
+
+
+class _PowersOnlyFeatures:
+    """Polynomial transformer that omits x*y interaction terms."""
+
+    def __init__(self, degree: int):
+        self.degree = max(1, int(degree))
+
+    def fit_transform(self, X: np.ndarray) -> np.ndarray:
+        return self.transform(X)
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        X = np.asarray(X)
+        features = [np.ones(X.shape[0], dtype=X.dtype)]
+        for power in range(1, self.degree + 1):
+            features.append(X[:, 0] ** power)
+            features.append(X[:, 1] ** power)
+        return np.column_stack(features)
+
+    def get_feature_names_out(self, input_features: List[str]) -> np.ndarray:
+        x_name, y_name = input_features
+        names = ["1"]
+        for power in range(1, self.degree + 1):
+            names.append(x_name if power == 1 else f"{x_name}^{power}")
+            names.append(y_name if power == 1 else f"{y_name}^{power}")
+        return np.asarray(names)
 
 
 class FlatFieldCorrection:
@@ -69,13 +92,13 @@ class FlatFieldCorrection:
     
     Attributes:
         img: Input BGR image (uint8)
-        model_path: Path to YOLO model for plane detection
+        model_path: Path to OpenCV DNN ONNX model for plane detection
         manual_crop: Whether to use manual ROI selection
         show: Whether to display intermediate plots
         bins: Number of bins for intensity sampling
         smooth_window: Window size for Gaussian smoothing
         crop_rect: Manual crop rectangle [x1, y1, x2, y2]
-        model: YOLO model instance (if not manual_crop)
+        model: OpenCV DNN model instance (if available)
         img_cropped: Cropped white plane region
         cropped_multiplier: Multiplier computed from cropped region
         final_multiplier: Full-image multiplier surface
@@ -84,7 +107,7 @@ class FlatFieldCorrection:
     Example:
         >>> ffc = FlatFieldCorrection(
         ...     img=white_img,
-        ...     model_path="path/to/yolo.pt",
+        ...     model_path="path/to/plane_detector.onnx",
         ...     manual_crop=False,
         ...     bins=50,
         ...     smooth_window=5,
@@ -106,7 +129,7 @@ class FlatFieldCorrection:
         Args:
             img: BGR image (uint8), typically white background image
             **kwargs: Configuration parameters
-                model_path: Path to YOLO model (default: MODEL_PATH constant)
+                model_path: Path to ONNX detection model (default: MODEL_PATH constant)
                 manual_crop: Force manual ROI selection (default: False)
                 show: Display intermediate plots (default: False)
                 bins: Bins for intensity sampling (default: 50)
@@ -116,25 +139,22 @@ class FlatFieldCorrection:
         self.img = img
         self.model_path = kwargs.get("model_path", MODEL_PATH)
         self.manual_crop = kwargs.get("manual_crop", False)
-        
-        # Auto-enable manual crop if model not found
-        if self.model_path == "" or not os.path.exists(self.model_path):
-            self.manual_crop = True
-            
         self.show = kwargs.get("show", False)
         self.bins = kwargs.get("bins", 50)
         self.smooth_window = kwargs.get("smooth_window", 5)
         self.crop_rect = kwargs.get("crop_rect", None)
+        self.conf_threshold = kwargs.get("conf_threshold", 0.7)
+        self.iou_threshold = kwargs.get("iou_threshold", 0.6)
+        self.dnn_input_size = kwargs.get("dnn_input_size", 512)
         
-        self.model: Optional[YOLO] = None
+        self.model: Optional[Any] = None
         self.img_cropped: Optional[np.ndarray] = None
         self.cropped_multiplier: Optional[np.ndarray] = None
         self.final_multiplier: Optional[np.ndarray] = None
         self.is_color = self.check_color(self.img) if self.img is not None else None
         
-        # Load YOLO model if not using manual crop
-        if not self.manual_crop:
-            self.model = YOLO(self.model_path)
+        if not self.manual_crop and self.crop_rect is None:
+            self.model = self._load_detection_model()
             
     def check_color(self, img: np.ndarray) -> bool:
         """Check if image is color (3 channels) vs grayscale."""
@@ -166,6 +186,142 @@ class FlatFieldCorrection:
         if size is not None:
             img_ = cv2.resize(img, (size[1], size[0]), interpolation=cv2.INTER_CUBIC)
         return img_
+
+    def _load_detection_model(self) -> Optional[Any]:
+        """Load the ONNX white-plane detector with OpenCV DNN."""
+        if self.model_path == "" or not os.path.exists(self.model_path):
+            print(
+                f"Warning: plane detection model not found at {self.model_path}. "
+                "Using full image for flat-field correction."
+            )
+            return None
+
+        try:
+            return cv2.dnn.readNetFromONNX(self.model_path)
+        except cv2.error as exc:
+            print(
+                f"Warning: could not load plane detection model at {self.model_path}: {exc}. "
+                "Using full image for flat-field correction."
+            )
+            return None
+
+    def _letterbox(self, img: np.ndarray) -> Tuple[np.ndarray, float, int, int]:
+        """Resize image into the model square while preserving aspect ratio."""
+        if img.ndim == 2:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+        height, width = img.shape[:2]
+        scale = min(self.dnn_input_size / width, self.dnn_input_size / height)
+        new_width = max(1, int(round(width * scale)))
+        new_height = max(1, int(round(height * scale)))
+        resized = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+        pad_x = (self.dnn_input_size - new_width) // 2
+        pad_y = (self.dnn_input_size - new_height) // 2
+        right = self.dnn_input_size - new_width - pad_x
+        bottom = self.dnn_input_size - new_height - pad_y
+        padded = cv2.copyMakeBorder(
+            resized,
+            pad_y,
+            bottom,
+            pad_x,
+            right,
+            cv2.BORDER_CONSTANT,
+            value=(114, 114, 114),
+        )
+        return padded, scale, pad_x, pad_y
+
+    def _parse_yolo_output(
+        self,
+        output: np.ndarray,
+        scale: float,
+        pad_x: int,
+        pad_y: int,
+        img_shape: Tuple[int, ...],
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Parse YOLO-style ONNX output into original-image xyxy boxes."""
+        predictions = np.squeeze(output)
+        if predictions.ndim == 1:
+            predictions = predictions.reshape(1, -1)
+        if predictions.shape[0] < predictions.shape[1] and predictions.shape[0] <= 20:
+            predictions = predictions.T
+
+        height, width = img_shape[:2]
+        boxes_xywh = []
+        boxes_xyxy = []
+        confidences = []
+
+        for row in predictions:
+            if row.shape[0] < 5:
+                continue
+
+            score = float(np.max(row[4:]))
+            if score < self.conf_threshold:
+                continue
+
+            cx, cy, box_w, box_h = row[:4].astype(float)
+            x1 = (cx - box_w / 2 - pad_x) / scale
+            y1 = (cy - box_h / 2 - pad_y) / scale
+            x2 = (cx + box_w / 2 - pad_x) / scale
+            y2 = (cy + box_h / 2 - pad_y) / scale
+
+            x1 = int(np.clip(round(x1), 0, width - 1))
+            y1 = int(np.clip(round(y1), 0, height - 1))
+            x2 = int(np.clip(round(x2), 0, width))
+            y2 = int(np.clip(round(y2), 0, height))
+
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            boxes_xywh.append([x1, y1, x2 - x1, y2 - y1])
+            boxes_xyxy.append([x1, y1, x2, y2])
+            confidences.append(score)
+
+        if not boxes_xyxy:
+            return np.empty((0, 4), dtype=int), np.empty((0,), dtype=float)
+
+        keep = cv2.dnn.NMSBoxes(
+            boxes_xywh,
+            confidences,
+            self.conf_threshold,
+            self.iou_threshold,
+        )
+        if len(keep) == 0:
+            return np.empty((0, 4), dtype=int), np.empty((0,), dtype=float)
+
+        keep_indices = np.asarray(keep).reshape(-1)
+        return (
+            np.asarray(boxes_xyxy, dtype=int)[keep_indices],
+            np.asarray(confidences, dtype=float)[keep_indices],
+        )
+
+    def _detect_plane_opencv_dnn(self, img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Run plane detection through OpenCV DNN."""
+        if self.model is None:
+            return np.empty((0, 4), dtype=int), np.empty((0,), dtype=float)
+
+        model_img, scale, pad_x, pad_y = self._letterbox(img)
+        blob = cv2.dnn.blobFromImage(
+            model_img,
+            scalefactor=1 / 255.0,
+            size=(self.dnn_input_size, self.dnn_input_size),
+            mean=(0, 0, 0),
+            swapRB=True,
+            crop=False,
+        )
+        self.model.setInput(blob)
+        output = self.model.forward()
+        return self._parse_yolo_output(output, scale, pad_x, pad_y, img.shape)
+
+    def _normalize_crop_rect(self, rect: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
+        """Clamp a crop rectangle to the image bounds."""
+        height, width = self.img.shape[:2]
+        x1, y1, x2, y2 = [int(v) for v in rect]
+        x1 = int(np.clip(x1, 0, width - 1))
+        y1 = int(np.clip(y1, 0, height - 1))
+        x2 = int(np.clip(x2, x1 + 1, width))
+        y2 = int(np.clip(y2, y1 + 1, height))
+        return x1, y1, x2, y2
     
     def transform_extremity(
         self, x: np.ndarray, cut_off: float = 1.5, max_val: float = 2.0
@@ -315,52 +471,49 @@ class FlatFieldCorrection:
     
     def detect_and_crop(self):
         """
-        Detect white plane using YOLO or manual ROI selection.
+        Detect white plane using OpenCV DNN or manual ROI selection.
         
         Sets self.crop_rect and self.img_cropped.
         """
-        if not self.manual_crop:
-            # YOLO detection
+        if self.img is None:
+            raise ValueError("Image is required for flat-field correction.")
+
+        if self.crop_rect is not None:
+            x1, y1, x2, y2 = self._normalize_crop_rect(tuple(self.crop_rect))
+        elif not self.manual_crop:
+            # OpenCV DNN detection
             sr = 0.95  # Shrink ratio to avoid edges
-            results = self.model.predict(
-                source=self.img,
-                half=False,
-                show=False,
-                save=False,
-                save_txt=False,
-                conf=0.7,
-                iou=0.6,
-            )
-            
-            boxes = []
-            probs = []
-            for result in results:
-                box_cpu = np.round(result.boxes.xyxy.cpu().numpy()).astype(int)
-                prob_cpu = result.boxes.conf.cpu().numpy()
-                boxes.append(box_cpu[0, :])
-                probs.append(prob_cpu[0])
-                
-            boxes = np.array(boxes)
-            probs = np.array(probs)
-            
-            if len(boxes) > 1:
-                print(f"Warning: {len(boxes)} objects detected, using largest")
-                areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-                max_index = np.argmax(areas)
-                selected_box = boxes[max_index]
-                selected_prob = probs[max_index]
-                print(
-                    f"Selected object {max_index}: BB={selected_box}, prob={selected_prob:.3f}"
-                )
+            boxes, probs = self._detect_plane_opencv_dnn(self.img)
+
+            if len(boxes) == 0:
+                print("Warning: no white plane detected, using full image")
+                x1 = 0
+                y1 = 0
+                x2 = self.img.shape[1]
+                y2 = self.img.shape[0]
             else:
-                selected_box = boxes[0]
-                selected_prob = probs[0]
-            
-            x1, y1, x2, y2 = selected_box
-            x1 = int(x1 + (1 - sr) * (x2 - x1))
-            y1 = int(y1 + (1 - sr) * (y2 - y1))
-            x2 = int(x2 - (1 - sr) * (x2 - x1))
-            y2 = int(y2 - (1 - sr) * (y2 - y1))
+                if len(boxes) > 1:
+                    print(f"Warning: {len(boxes)} objects detected, using largest")
+                    areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+                    max_index = np.argmax(areas)
+                    selected_box = boxes[max_index]
+                    selected_prob = probs[max_index]
+                    print(
+                        f"Selected object {max_index}: BB={selected_box}, prob={selected_prob:.3f}"
+                    )
+                else:
+                    selected_box = boxes[0]
+                    selected_prob = probs[0]
+                    print(f"Detected white plane: BB={selected_box}, prob={selected_prob:.3f}")
+
+                x1, y1, x2, y2 = selected_box
+                margin_x = int(round((1 - sr) * (x2 - x1) / 2))
+                margin_y = int(round((1 - sr) * (y2 - y1) / 2))
+                x1 = int(x1 + margin_x)
+                y1 = int(y1 + margin_y)
+                x2 = int(x2 - margin_x)
+                y2 = int(y2 - margin_y)
+                x1, y1, x2, y2 = self._normalize_crop_rect((x1, y1, x2, y2))
             
         else:
             # Manual ROI selection
@@ -394,9 +547,6 @@ class FlatFieldCorrection:
             cv2.waitKey(500)
             cv2.destroyAllWindows()
         
-        # Cleanup
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
         gc.collect()
     
     def get_L(
@@ -444,8 +594,11 @@ class FlatFieldCorrection:
             tuple: (X_poly, feature_names, poly_object)
         """
         degree = kwargs.get("degree", 5)
-        interactions = not (kwargs.get("interactions", False))
-        poly = PolynomialFeatures(degree=degree, interaction_only=interactions)
+        interactions = kwargs.get("interactions", False)
+        if interactions:
+            poly = PolynomialFeatures(degree=degree, interaction_only=False)
+        else:
+            poly = _PowersOnlyFeatures(degree=degree)
         X_poly = poly.fit_transform(X)
         names = poly.get_feature_names_out(["x", "y"])
         return X_poly, names, poly
@@ -462,7 +615,7 @@ class FlatFieldCorrection:
                 max_iter: Maximum iterations
                 tol: Convergence tolerance
                 verbose: Whether to print progress
-                rand_seed: Random seed
+                random_seed: Random seed
                 
         Returns:
             Fitted sklearn model
@@ -471,7 +624,7 @@ class FlatFieldCorrection:
         max_iter = kwargs.get("max_iter", 1000)
         tol = kwargs.get("tol", 1e-8)
         verbose = kwargs.get("verbose", False)
-        rand_seed = kwargs.get("rand_seed", 0)
+        rand_seed = kwargs.get("random_seed", kwargs.get("rand_seed", 0))
         
         options = ["linear", "nn", "pls", "svm"]
         
@@ -541,7 +694,7 @@ class FlatFieldCorrection:
                 max_iter: Maximum iterations (default: 1000)
                 tol: Tolerance (default: 1e-8)
                 verbose: Print progress (default: False)
-                rand_seed: Random seed (default: 0)
+                random_seed: Random seed (default: 0)
                 
         Returns:
             np.ndarray: Multiplier surface (same size as input image)
@@ -573,18 +726,14 @@ class FlatFieldCorrection:
         
         # 2. Extrapolate multiplier to full image using polynomial fitting
         if self.crop_rect is None:
-            y1, x1, y2, x2 = 0, 0, self.img.shape[1], self.img.shape[0]
+            x1, y1, x2, y2 = 0, 0, self.img.shape[1], self.img.shape[0]
         else:
-            y1, x1, y2, x2 = self.crop_rect
+            x1, y1, x2, y2 = self.crop_rect
         
         # Sample multiplier at bins locations within cropped region
         x = np.linspace(x1, x2 - 1, self.bins)
         y = np.linspace(y1, y2 - 1, self.bins)
         X, Y = np.meshgrid(x, y)
-        
-        x_c = np.linspace(0, L_cropped.shape[0] - 1, self.bins)
-        y_c = np.linspace(0, L_cropped.shape[1] - 1, self.bins)
-        X_c, Y_c = np.meshgrid(x_c, y_c)
         
         h_win = int((self.smooth_window - 1) / 2)
         
@@ -603,8 +752,8 @@ class FlatFieldCorrection:
         z_flat = Z_m.flatten()
         
         # Normalize to [0, 1] for stable fitting
-        min_x, max_x = 0, L_full.shape[0]
-        min_y, max_y = 0, L_full.shape[1]
+        min_x, max_x = 0, L_full.shape[1]
+        min_y, max_y = 0, L_full.shape[0]
         min_z, max_z = np.min(z_flat), np.max(z_flat)
         
         eps = 1e-15
@@ -620,8 +769,8 @@ class FlatFieldCorrection:
         model = self.fit_model(xy_flat, z_flat, **kwargs)
         
         # Predict on full grid
-        x_full = np.linspace(0, L_full.shape[0] - 1, self.bins)
-        y_full = np.linspace(0, L_full.shape[1] - 1, self.bins)
+        x_full = np.linspace(0, L_full.shape[1] - 1, self.bins)
+        y_full = np.linspace(0, L_full.shape[0] - 1, self.bins)
         X_full, Y_full = np.meshgrid(x_full, y_full)
         
         X_full_flat = X_full.flatten()

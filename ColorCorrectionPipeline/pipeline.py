@@ -43,8 +43,11 @@ Example:
 """
 
 import gc
+import hashlib
+import json
 import os
 import time
+from contextlib import nullcontext
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -52,6 +55,10 @@ import colour
 import cv2
 import numpy as np
 import pandas as pd
+try:
+    from threadpoolctl import threadpool_limits
+except ImportError:
+    threadpool_limits = None
 
 from .config import Config
 from .constants import MODEL_PATH, WP_DEFAULT
@@ -124,6 +131,7 @@ class ColorCorrection:
         self.White_Image: Optional[np.ndarray] = None
         self.models = MyModels()
         self.Models_path: Optional[str] = None
+        self._ffc_multiplier_cache: Dict[str, np.ndarray] = {}
         
         # Reference data placeholders (populated by get_reference_values)
         self.REFERENCE_CHART: Any = None
@@ -195,6 +203,36 @@ class ColorCorrection:
         self.REFERENCE_NEUTRAL_PATCHES_PD = REFERENCE_NEUTRAL_PATCHES_PD
         
         return REFERENCE_RGB_PD
+
+    def clear_ffc_cache(self) -> None:
+        """Clear cached flat-field multipliers."""
+        self._ffc_multiplier_cache.clear()
+
+    @staticmethod
+    def _hash_image_for_cache(img: np.ndarray) -> str:
+        """Hash image content and shape for per-process caches."""
+        h, w = img.shape[:2]
+        scale = 128 / max(w, 1)
+        small = cv2.resize(
+            img,
+            (128, max(1, int(h * scale))),
+            interpolation=cv2.INTER_NEAREST,
+        )
+        digest = hashlib.md5(small.tobytes()).hexdigest()
+        return f"{img.shape}|{img.dtype}|{digest}"
+
+    def _ffc_cache_key(
+        self,
+        ffc_params: Dict[str, Any],
+        fit_params: Dict[str, Any],
+    ) -> str:
+        """Create a stable cache key for white image and FFC settings."""
+        payload = {
+            "white": self._hash_image_for_cache(self.White_Image),
+            "ffc_params": {k: v for k, v in ffc_params.items() if k != "show"},
+            "fit_params": fit_params,
+        }
+        return json.dumps(payload, sort_keys=True, default=str)
     
     def do_flat_field_correction(
         self, Image: np.ndarray, do_ffc: bool = True, ffc_kwargs: Optional[Any] = None
@@ -247,16 +285,32 @@ class ColorCorrection:
                 "verbose": get_attr(ffc_kwargs, "verbose", False),
                 "random_seed": get_attr(ffc_kwargs, "random_seed", 0),
             }
-            
-            ffc = FlatFieldCorrection(self.White_Image, **ffc_params)
-            multiplier = ffc.compute_multiplier(**fit_params)
+
+            use_cache = get_attr(ffc_kwargs, "cache_multiplier", True)
+            cache_key = self._ffc_cache_key(ffc_params, fit_params) if use_cache else None
+            multiplier = (
+                self._ffc_multiplier_cache.get(cache_key)
+                if cache_key is not None
+                else None
+            )
+
+            if multiplier is None:
+                ffc = FlatFieldCorrection(self.White_Image, **ffc_params)
+                multiplier = ffc.compute_multiplier(**fit_params)
+                if cache_key is not None:
+                    self._ffc_multiplier_cache[cache_key] = multiplier
+            elif get_attr(ffc_kwargs, "verbose", False):
+                print("Info: Reusing cached flat-field multiplier")
             
             # Apply multiplier using the same float path used by predict_image.
             c_rgb_f64 = apply_ffc_float(Image, multiplier)
             c_bgr = to_uint8(c_rgb_f64[:, :, ::-1])
 
             if get_attr(ffc_kwargs, "show", False):
-                ffc.show_results(c_bgr, img_bgr8)
+                FlatFieldCorrection(self.White_Image, **{**ffc_params, "manual_crop": True}).show_results(
+                    c_bgr,
+                    img_bgr8,
+                )
             
             metrics: Dict[str, Any] = {}
             if get_deltaE:
@@ -463,7 +517,7 @@ class ColorCorrection:
                     "mtd": get_attr(cc_kwargs, "mtd", "linear"),
                     "degree": get_attr(cc_kwargs, "degree", 3),
                     "max_iterations": get_attr(cc_kwargs, "max_iterations", 1000),
-                    "hidden_layers": get_attr(cc_kwargs, "hidden_layers", [64, 32, 16]),
+                    "hidden_layers": get_attr(cc_kwargs, "hidden_layers", [64]),
                     "ncomp": get_attr(cc_kwargs, "ncomp", -1),
                     "random_state": get_attr(cc_kwargs, "random_state", 0),
                     "tol": get_attr(cc_kwargs, "tol", 1e-8),
@@ -478,6 +532,10 @@ class ColorCorrection:
                     "augment_extremes": get_attr(cc_kwargs, "augment_extremes", True),
                     "extreme_anchor_repeat": get_attr(cc_kwargs, "extreme_anchor_repeat", 50),
                     "shuffle_fit_data": get_attr(cc_kwargs, "shuffle_fit_data", True),
+                    "use_lut": get_attr(cc_kwargs, "use_lut", True),
+                    "lazy_lut": get_attr(cc_kwargs, "lazy_lut", True),
+                    "lut_grid_size": get_attr(cc_kwargs, "lut_grid_size", 33),
+                    "lut_min_pixels": get_attr(cc_kwargs, "lut_min_pixels", 4096),
                 }
                 print(f"Info: Using custom CC method: {params['mtd']}")
                 model, img_cc, corrected_card, metrics_cc = color_correction(
@@ -489,6 +547,9 @@ class ColorCorrection:
                     cc_kwargs=params,
                     n_samples=get_attr(cc_kwargs, "n_samples", 50),
                 )
+                if model is None:
+                    print("Error: Color correction skipped because no color chart was detected")
+                    return Image, metrics_cc, True
                 if get_attr(cc_kwargs, "show", False):
                     colour.plotting.plot_multi_colour_checkers(
                         [self.REFERENCE_CHART, corrected_card]
@@ -824,9 +885,6 @@ class ColorCorrection:
         
         end = time.time()
         print(f"Info: Prediction done in {(end - start):.2f}s")
-        
-        gc.collect()
-        
         return out_images
 
     # ── Batch / parallel prediction ──────────────────────────────────────
@@ -890,20 +948,26 @@ class ColorCorrection:
         completed = 0
         t0 = time.time()
 
-        with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futures = {pool.submit(_worker, i): i for i in range(n)}
+        limit_context = (
+            threadpool_limits(limits=1)
+            if threadpool_limits is not None and max_workers > 1
+            else nullcontext()
+        )
+        with limit_context:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                futures = {pool.submit(_worker, i): i for i in range(n)}
 
-            for future in as_completed(futures):
-                idx, result = future.result()
-                results[idx] = result
-                completed += 1
-                name = _name(images[idx], idx)
-                if on_progress is not None:
-                    on_progress(completed, n, name)
+                for future in as_completed(futures):
+                    idx, result = future.result()
+                    results[idx] = result
+                    completed += 1
+                    name = _name(images[idx], idx)
+                    if on_progress is not None:
+                        on_progress(completed, n, name)
 
-                # Periodic GC instead of per-image
-                if completed % max(1, max_workers) == 0:
-                    gc.collect()
+                    # Periodic GC instead of per-image
+                    if completed % max(1, max_workers) == 0:
+                        gc.collect()
 
         elapsed = time.time() - t0
         print(

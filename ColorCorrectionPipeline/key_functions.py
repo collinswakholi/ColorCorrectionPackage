@@ -344,7 +344,7 @@ class Regressor_Model:
         self.param_search = False
 
         # NN parameters (shared by MLPRegressor and CustomNN)
-        self.hidden_layers = [64, 32, 16]
+        self.hidden_layers = [64]
         self.learning_rate = 0.001
         self.batch_size = 16
         self.use_batch_norm = False
@@ -356,7 +356,7 @@ class Regressor_Model:
 class CustomNN(BaseEstimator, RegressorMixin):
     def __init__(
         self,
-        hidden_layers=[64, 32, 16],
+        hidden_layers=[64],
         optim_type="Adam",
         random_state=42,
         learning_rate=0.001,

@@ -324,7 +324,7 @@ def do_color_adaptation(
 def which_is_saturated(
     mat: np.ndarray,
     threshold: float = 0.99,
-) -> tuple[bool, np.ndarray]:
+) -> Tuple[bool, np.ndarray]:
     """
     Identify saturated pixels in color matrix.
     

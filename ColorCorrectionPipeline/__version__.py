@@ -1,10 +1,18 @@
 """Version information for ColorCorrectionPipeline package."""
 
-__version__ = "1.4.4"
+__version__ = "1.4.5"
 __version_info__ = tuple(int(i) for i in __version__.split("."))
 
 __all__ = ["__version__", "__version_info__"]
 
+# Release 1.4.5: ONNX detector, NN hardening, and runtime speedups
+# - Replaced runtime ultralytics plane detection with OpenCV DNN ONNX inference
+# - Added cached flat-field multipliers for repeated white-image/config pairs
+# - Made CC 3D LUT construction lazy/configurable for faster model fitting
+# - Hardened custom NN batch normalization and CUDA OOM fallback paths
+# - Improved n_samples > 1 CC training path by avoiding duplicate chart detection
+# - Updated recommended NN default to hidden_layers=[64]
+#
 # Release 1.4.4: Publication citation and pipeline hardening
 # - Added the associated Plant Phenome Journal manuscript citation to README
 # - Hardened fit-time/predict-time parity, model persistence, and config validation

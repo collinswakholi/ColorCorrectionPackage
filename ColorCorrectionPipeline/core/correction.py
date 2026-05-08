@@ -19,7 +19,6 @@ from typing import Any, Dict, Optional, Tuple
 
 import cv2
 import colour
-from colour_checker_detection import detect_colour_checkers_segmentation
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -31,6 +30,11 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.utils import check_X_y
 from torch.utils.data import DataLoader, TensorDataset, random_split
+
+try:
+    from colour_checker_detection import detect_colour_checkers_segmentation
+except ImportError:
+    detect_colour_checkers_segmentation = None
 
 from ..constants import EPSILON, WP_DEFAULT
 from .color_spaces import convert_to_lab
@@ -103,6 +107,10 @@ class Regressor_Model:
         patience: Early stopping patience
         dropout_rate: Dropout rate for NN training
         optim_type: Optimizer type for CustomNN
+        use_lut: Whether to use a 3D LUT for image-sized predictions
+        lazy_lut: Whether to build the 3D LUT only on first large prediction
+        lut_grid_size: 3D LUT grid resolution
+        lut_min_pixels: Minimum RGB rows before using/building the LUT
     """
     
     def __init__(self):
@@ -117,7 +125,7 @@ class Regressor_Model:
         self.param_search = False
 
         # NN parameters (shared by MLPRegressor and CustomNN)
-        self.hidden_layers = [64, 32, 16]
+        self.hidden_layers = [64]
         self.learning_rate = 0.001
         self.batch_size = 16
         self.use_batch_norm = False
@@ -128,6 +136,10 @@ class Regressor_Model:
         # 3D LUT acceleration (filled after fit_model)
         self._lut = None            # (G, G, G, 3) ndarray or None
         self._lut_grid_size = 33    # default grid resolution
+        self._lut_predict_fn: Optional[Any] = None
+        self.use_lut = True
+        self.lazy_lut = True
+        self.lut_min_pixels = 4096
 
 
 class CustomNN(BaseEstimator, RegressorMixin):
@@ -160,7 +172,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
     
     def __init__(
         self,
-        hidden_layers=[64, 32, 16],
+        hidden_layers=[64],
         optim_type="Adam",
         random_state=42,
         learning_rate=0.001,
@@ -184,6 +196,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
         self.validation_split = 0.15
+        self._requested_batch_norm = use_batch_norm
 
         self.input_dim = None
         self.output_dim = None
@@ -237,21 +250,38 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1] if len(y.shape) > 1 else 1
 
+        # Train/val split sizes. Compute these before model construction so
+        # batch-normalization can be disabled for splits that are too small.
+        dataset_size = len(X)
+        if dataset_size < 2:
+            train_size = dataset_size
+            val_size = dataset_size
+        else:
+            val_size = max(1, int(dataset_size * self.validation_split))
+            train_size = dataset_size - val_size
+
+        self.use_batch_norm = self._requested_batch_norm
+        if self.use_batch_norm and (train_size < 2 or self.batch_size < 2):
+            if self.verbose:
+                print(
+                    "Disabling batch normalization because the training split "
+                    "or batch size is too small."
+                )
+            self.use_batch_norm = False
+
         self._build_model()
 
-        # Convert to tensors
+        # Convert to tensors after batch-norm validation so model construction uses
+        # the effective normalization setting.
         dataset = TensorDataset(
             torch.tensor(X, dtype=torch.float32),
             torch.tensor(y, dtype=torch.float32)
         )
 
-        # Train/val split
-        if len(dataset) < 2:
+        if dataset_size < 2:
             train_dataset = dataset
             val_dataset = dataset
         else:
-            val_size = max(1, int(len(dataset) * self.validation_split))
-            train_size = len(dataset) - val_size
             generator = torch.Generator().manual_seed(self.random_state)
             train_dataset, val_dataset = random_split(
                 dataset, [train_size, val_size], generator=generator
@@ -264,8 +294,17 @@ class CustomNN(BaseEstimator, RegressorMixin):
 
         pin_memory = self.device == "cuda"
 
+        drop_last_train_batch = (
+            self.use_batch_norm
+            and len(train_dataset) > self.batch_size
+            and len(train_dataset) % self.batch_size == 1
+        )
         train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=pin_memory
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            pin_memory=pin_memory,
+            drop_last=drop_last_train_batch,
         )
         val_loader = DataLoader(
             val_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=pin_memory
@@ -387,6 +426,19 @@ class CustomNN(BaseEstimator, RegressorMixin):
                             success = True
                         except RuntimeError as e2:
                             if "out of memory" in str(e2):
+                                if batch_size == 1:
+                                    if self.device == "cuda":
+                                        cpu_model = self.model.to("cpu")
+                                        cpu_tensor = X_tensor.detach().cpu()
+                                        predictions = cpu_model(cpu_tensor)
+                                        self.model = cpu_model
+                                        self.device = "cpu"
+                                        success = True
+                                        continue
+                                    raise RuntimeError(
+                                        "CustomNN prediction ran out of memory even "
+                                        "with batch_size=1."
+                                    ) from e2
                                 batch_size = max(1, batch_size // 2)
                                 torch.cuda.empty_cache() if self.device == "cuda" else None
                             else:
@@ -448,6 +500,10 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     M.dropout_rate = kwargs.get("dropout_rate", M.dropout_rate)
     M.optim_type = kwargs.get("optim_type", M.optim_type)
     M.use_batch_norm = kwargs.get("use_batch_norm", M.use_batch_norm)
+    M.use_lut = kwargs.get("use_lut", M.use_lut)
+    M.lazy_lut = kwargs.get("lazy_lut", M.lazy_lut)
+    M._lut_grid_size = int(kwargs.get("lut_grid_size", M._lut_grid_size))
+    M.lut_min_pixels = int(kwargs.get("lut_min_pixels", M.lut_min_pixels))
 
     X = det_p
     Y = ref_p
@@ -517,14 +573,46 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
             Xp, _ = get_poly_features(rgb_n3, degree=M.degree)
             return M.model.predict(Xp)
 
-        M._lut_grid_size = 33
-        M._lut = build_3d_lut(_model_predict_rgb, grid_size=M._lut_grid_size)
+        M._lut_predict_fn = _model_predict_rgb if M.use_lut else None
+        if M.use_lut and not M.lazy_lut:
+            M._lut = build_3d_lut(_model_predict_rgb, grid_size=M._lut_grid_size)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Failed to build 3D LUT: {e}")
         M._lut = None
 
     return M
+
+
+def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
+    """Predict RGB values without 3D LUT interpolation."""
+    orig_shape = RGB.shape
+    if len(RGB.shape) == 3:
+        X = RGB.reshape(-1, 3)
+    else:
+        X = RGB
+
+    X, _ = get_poly_features(X, degree=M.degree)
+    pred = M.model.predict(X)
+    return pred.reshape(orig_shape)
+
+
+def _ensure_lut(M: Regressor_Model) -> bool:
+    """Build a configured LUT on demand."""
+    if M._lut is not None:
+        return True
+    if not M.use_lut or M._lut_predict_fn is None:
+        return False
+
+    try:
+        M._lut = build_3d_lut(M._lut_predict_fn, grid_size=M._lut_grid_size)
+        return True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to build 3D LUT: {e}")
+        M._lut = None
+        M._lut_predict_fn = None
+        return False
 
 
 def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
@@ -543,21 +631,15 @@ def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
         np.ndarray: Predicted RGB values (same shape as input)
     """
     orig_shape = RGB.shape
+    n_pixels = int(np.prod(orig_shape[:-1])) if len(orig_shape) > 1 else orig_shape[0]
 
     # ── Fast path: 3D LUT trilinear interpolation ──
-    if M._lut is not None:
+    if n_pixels >= M.lut_min_pixels and _ensure_lut(M):
         result = trilinear_lut_apply(RGB, M._lut, M._lut_grid_size)
         return result.reshape(orig_shape)
 
     # ── Slow path: polynomial expansion + model.predict ──
-    if len(RGB.shape) == 3:
-        X = RGB.reshape(-1, 3)
-    else:
-        X = RGB
-
-    X, _ = get_poly_features(X, degree=M.degree)
-    pred = M.model.predict(X)
-    return pred.reshape(orig_shape)
+    return _predict_direct(RGB, M)
 
 
 def _make_black_white_anchor_rows(repeat: int = 50) -> np.ndarray:
@@ -697,8 +779,9 @@ def estimate_gamma_profile(
     _, cps_before = extract_neutral_patches(img_bgr, return_one=True)
     
     if cps_before is None:
-        # No patches found, return original
-        return np.array([0, 1]), img_rgb, {}
+        # No patches found: keep prediction safe by returning an identity
+        # polynomial for Lab L (y = x).
+        return np.array([1, 0]), img_rgb, {}
     
     values_cps = cps_before.values
 
@@ -1075,6 +1158,21 @@ def extract_color_chart_ex(
             img_crop = img[y1:y2, x1:x2, :]
             img_crop_rgb = to_float64(img_crop[:, :, ::-1])
             
+            if detect_colour_checkers_segmentation is None:
+                logger.warning(
+                    "colour-checker-detection is not installed, using basic extraction"
+                )
+                chart, _, _ = extract_color_chart(img)
+                if chart is None:
+                    return None, None
+
+                if chart.max() > 1.5:
+                    chart = chart.astype(np.float64) / 255.0
+
+                chart_ex = np.repeat(chart, npts, axis=0)
+                ref_ex = np.repeat(ref, npts, axis=0)
+                return chart_ex, ref_ex
+
             # Segmentation-based detection
             requested_samples = max(10, int(1.2 * npts))
             data = detect_colour_checkers_segmentation(
@@ -1280,39 +1378,55 @@ def color_correction(
     
     logger.debug(f"color_correction: Converted image for chart detection: shape={img_bgr.shape}, dtype={img_bgr.dtype}, range=[{img_bgr.min()}, {img_bgr.max()}]")
     
-    # Temporarily suppress warnings from ColorCorrectionPipeline package during chart detection
-    # (They log warnings even when succeeding)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        old_log_level = logging.getLogger('root').level
-        logging.getLogger('root').setLevel(logging.ERROR)
-        try:
-            _, color_patches = extract_neutral_patches(img_bgr, show=show if n_samples == 1 else False)
-        finally:
-            logging.getLogger('root').setLevel(old_log_level)
-    
-    if color_patches is None:
-        # No patches found, return None model with original image
-        logger.warning("No color patches detected in input image, cannot perform color correction")
-        return None, img_rgb, None, {}
-    
-    logger.info(f"Successfully detected {len(color_patches.values)} color patches")
-    
-    cp_values = color_patches.values
+    cp_values = None
+    color_patches = None
+    chart_ex = None
+    ref_ex = None
 
-    # Get training data
-    if n_samples == 1:
-        ref_ex = ref_rgb
-        cp_values_ex = cp_values
-    else:
+    if n_samples > 1:
         chart_ex, ref_ex = extract_color_chart_ex(
-            img_bgr, ref=ref_rgb, npts=n_samples, show=show, randomize=True
+            img_bgr, ref=ref_rgb, npts=n_samples, show=show, randomize=False
         )
-        if chart_ex is None:
-            cp_values_ex = cp_values
-            ref_ex = ref_rgb
-        else:
+        if chart_ex is not None and chart_ex.shape[0] == 24 * n_samples:
+            cp_values = chart_ex.reshape(24, n_samples, 3).mean(axis=1)
             cp_values_ex = chart_ex
+        else:
+            cp_values_ex = None
+    else:
+        cp_values_ex = None
+
+    if cp_values is None:
+        # Temporarily suppress warnings from ColorCorrectionPipeline package during chart detection
+        # (They log warnings even when succeeding)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            old_log_level = logging.getLogger('root').level
+            logging.getLogger('root').setLevel(logging.ERROR)
+            try:
+                _, color_patches = extract_neutral_patches(
+                    img_bgr,
+                    show=show if n_samples == 1 else False,
+                )
+            finally:
+                logging.getLogger('root').setLevel(old_log_level)
+
+        if color_patches is None:
+            logger.warning("No color patches detected in input image, cannot perform color correction")
+            return None, img_rgb, None, {}
+
+        cp_values = color_patches.values
+        cp_values_ex = cp_values
+        ref_ex = ref_rgb
+
+        if n_samples > 1 and chart_ex is None:
+            chart_ex, ref_ex_ex = extract_color_chart_ex(
+                img_bgr, ref=ref_rgb, npts=n_samples, show=show, randomize=False
+            )
+            if chart_ex is not None:
+                cp_values_ex = chart_ex
+                ref_ex = ref_ex_ex
+
+    logger.info(f"Successfully detected {len(cp_values)} color patches")
 
     # Fit model
     if cc_kwargs.get("augment_extremes", True):

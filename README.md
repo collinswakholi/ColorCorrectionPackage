@@ -17,7 +17,7 @@ Manuscript link: https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70
 ## Features
 
 • **Flat-Field Correction (FFC)**  
-  Automatically detect or manually crop "white" background image. Fits an n-degree 2D surface to describe the light distribution in the FOV, extrapolates to full image.
+  Automatically detect or manually crop the "white" background image. Automatic plane detection uses the bundled ONNX model through OpenCV DNN, so no `ultralytics` runtime dependency is required. FFC multipliers are cached per white image and configuration to speed repeated runs.
 
 • **Saturation Check / Extrapolation**  
   Identify and fix saturated patches on the chart before proceeding, ensuring accurate downstream corrections.
@@ -31,16 +31,16 @@ Manuscript link: https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70
 • **Color Correction (CC)**  
   Two methods:
   - Conventional ("conv"): configurable polynomial expansion with the Finlayson 2015 method, produces a 3xn matrix that can be applied to the entire image.
-  - Custom ("ours"): uses ML with linear regression, pls regression, or neural networks, produces a model that can be applied to the entire image.
+  - Custom ("ours"): uses ML with linear regression, PLS regression, or neural networks, produces a model that can be applied to the entire image. For real-image NN workflows, `mtd="nn"`, `degree=2`, `n_samples=50`, and `hidden_layers=[64]` is the recommended starting point.
 
 • **Predict on New Images**  
   Once models are saved, apply FFC → GC → WB → CC in sequence to any new photograph, no chart needed.
 
 • **⚡ Hardware Acceleration (Numba/CUDA)**  
-  Automatic detection of CPU parallelism and CUDA at import time. Numba-JIT kernels accelerate sRGB↔Lab conversion (via precomputed LUTs), 3-D LUT trilinear interpolation for CC prediction, and FFC. Falls back transparently to NumPy when Numba CUDA is unavailable. Delivers up to **1.50× speedup** (avg **1.41× over v1.3.4**) with zero code changes required.
+  Automatic detection of CPU parallelism and CUDA at import time. Numba-JIT kernels accelerate sRGB↔Lab conversion (via precomputed LUTs), 3-D LUT trilinear interpolation for CC prediction, and FFC. CC LUTs are built lazily by default so small chart-metric predictions do not pay the full LUT startup cost.
 
 • **📦 Batch Prediction (`predict_images()`)**  
-  Apply the full FFC → GC → WB → CC pipeline to a list of images in parallel using a `ThreadPoolExecutor`. Accepts file paths or pre-loaded arrays, and an optional `progress_callback` for real-time progress tracking.
+  Apply the full FFC → GC → WB → CC pipeline to a list of images in parallel using a `ThreadPoolExecutor`. Accepts file paths or pre-loaded arrays, and an optional `on_progress` callback for real-time progress tracking.
 
 ## Package Structure
 
@@ -67,14 +67,25 @@ ColorCorrectionPipeline/
 │   ├── correction.py         # FFC implementation
 │   └── models/               # Pre-trained models (included in package)
 │       ├── __init__.py
-│       └── plane_det_model_YOLO_512_n.pt  # YOLO model for automatic white plane detection
+│       └── plane_det_model_YOLO_512_n.onnx  # OpenCV DNN model for automatic white plane detection
 └── io/                       # I/O utilities
     ├── __init__.py
     ├── readers.py            # Image readers
     └── writers.py            # Image writers
 ```
 
-Note: The YOLO model (`plane_det_model_YOLO_512_n.pt`) is automatically included when you install the package, so you don't need to download or specify the model path separately.
+Note: The ONNX plane detection model (`plane_det_model_YOLO_512_n.onnx`) is automatically included when you install the package, so you don't need to download or specify the model path separately.
+
+## Release Highlights
+
+### 1.4.5
+
+- Replaced runtime `ultralytics` plane detection with OpenCV DNN inference using the bundled ONNX detector.
+- Added flat-field multiplier caching for repeated white-image/configuration pairs.
+- Made color-correction 3-D LUT construction lazy and configurable with `use_lut`, `lazy_lut`, `lut_grid_size`, and `lut_min_pixels`.
+- Hardened custom PyTorch NN training around batch normalization and CUDA out-of-memory fallback behavior.
+- Improved `n_samples > 1` color-correction training by avoiding duplicate chart detection.
+- Updated the recommended sklearn NN color-correction starting point to `hidden_layers=[64]`, which gave the best speed/accuracy balance on the bundled real-image test.
 
 ## Installation
 
@@ -113,18 +124,17 @@ pip install -e ".[dev]"
 The package automatically installs the following dependencies:
 
 **Core Dependencies:**
-• `numpy` - Numerical computing  
-• `scipy` - Scientific computing  
-• `scikit-learn` - Machine learning algorithms  
-• `opencv-python`, `opencv-contrib-python` - Computer vision  
-• `torch` - Deep learning framework  
-• `ultralytics` - YOLO object detection  
-• `numba` - JIT-compiled CPU/CUDA kernels for accelerated image processing
+- `numpy` - Numerical computing
+- `scipy` - Scientific computing
+- `scikit-learn` - Machine learning algorithms
+- `opencv-contrib-python` - Computer vision with MCC color-checker detection
+- `torch` - Deep learning framework
+- `numba` - JIT-compiled CPU/CUDA kernels for accelerated image processing
 
 **Image Processing:**
 • `scikit-image` - Image processing algorithms  
 • `colour-science` - Color science computations  
-• `colour-checker-detection` - Color checker detection
+• `colour-checker-detection` - Optional segmentation-based color checker sampling (`pip install "ColorCorrectionPipeline[segmentation]"`)
 
 **Visualization & Analysis:**
 • `matplotlib`, `plotly`, `seaborn` - Plotting and visualization  
@@ -159,9 +169,9 @@ from ColorCorrectionPipeline.core.utils import to_float64
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. File paths
 # ─────────────────────────────────────────────────────────────────────────────
-IMG_PATH         = "Data/Images/Sample_1.JPG"        # Image containing color checker
-WHITE_PATH       = "Data/Images/white.JPG"           # Optional White background image for FFC
-TEST_IMAGE_PATH  = "Data/Images/Image_1.JPG"         # Optional New image for prediction
+IMG_PATH         = "Images/Sample_1.JPG"        # Image containing color checker
+WHITE_PATH       = "Images/white.JPG"           # Optional White background image for FFC
+TEST_IMAGE_PATH  = "Images/Image_1.JPG"         # Optional New image for prediction
 
 # Output directory (only used if config.save=True)
 SAVE_PATH = os.path.join(os.getcwd(), "results")
@@ -195,6 +205,7 @@ ffc_kwargs = {
     "tol": 1e-8,                    # Tolerance for stopping criterion
     "verbose": False,               # Whether to print verbose output
     "random_seed": 0,               # Random seed
+    "cache_multiplier": True,       # Reuse multiplier for same white image/config
 }
 
 # Gamma Correction (GC) kwargs:
@@ -229,14 +240,18 @@ cc_kwargs = {
     # only if mtd == 'pls' otherwise disable
     # 'ncomp': 1,                     # number of components to use
 
-    # only if mtd == 'nn' otherwise disable
-    'hidden_layers': [64, 32, 16],  # hidden layer sizes for neural network
+    # only if mtd == 'nn' or mtd == 'custom' otherwise disable
+    'hidden_layers': [64],          # recommended hidden layer size for sklearn NN
     'learning_rate': 0.001,         # learning rate for neural network
     'batch_size': 16,               # batch size for neural network
     'patience': 10,                 # patience for early stopping
     'dropout_rate': 0.2,            # dropout rate for neural network
     'optim_type': 'adam',           # optimizer type for neural network
-    'use_batch_norm': True,         # whether to use batch normalization
+    'use_batch_norm': False,        # only used by mtd == 'custom'
+    'use_lut': True,                # use 3-D LUT acceleration for image prediction
+    'lazy_lut': True,               # build LUT only when first needed
+    'lut_grid_size': 33,            # 3-D LUT grid resolution
+    'lut_min_pixels': 4096,         # direct-predict small arrays below this size
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -281,8 +296,7 @@ def on_progress(done, total, name):
     print(f"[{done}/{total}] finished: {name}")
 
 batch_results = cc.predict_images(
-    images=["Data/Images/Image_1.JPG", "Data/Images/Image_2.JPG"],
-    show=False,
+    images=["Images/Image_1.JPG"],
     max_workers=4,
     on_progress=on_progress,
 )
@@ -291,10 +305,10 @@ batch_results = cc.predict_images(
 
 ### Assuming you have;
 
-1. A photograph with a color checker chart: `Data/Images/Sample_1.JPG`,
-2. An optional matching white-field image (for FFC): `Data/Images/white.JPG`,
-3. The YOLO model for detecting the white plane is now automatically included in the package: `ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.pt`
-4. Another optional image (no chart required) to test the learned corrections: `Data/Images/Image_1.JPG`
+1. A photograph with a color checker chart: `Images/Sample_1.JPG`,
+2. An optional matching white-field image (for FFC): `Images/white.JPG`,
+3. The ONNX model for detecting the white plane is now automatically included in the package: `ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx`
+4. Another optional image (no chart required) to test the learned corrections: `Images/Image_1.JPG`
 
 ## Sample Results
 
@@ -370,7 +384,7 @@ This package accompanies the manuscript [A systematic color correction pipeline 
     author = {Wakholi, Collins and Rippner, Devin A.},
     title = {ColorCorrectionPipeline: A stepwise color‐correction pipeline},
     url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-    version = {1.4.4},
+    version = {1.4.5},
     year = {2026}
 }
 

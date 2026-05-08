@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Pre-publication verification script for ColorCorrectionPackage v1.4.2
+Pre-publication verification script for ColorCorrectionPackage v1.4.5
 Checks all critical files, configurations, and runtime dependencies before GitHub push.
 """
 
@@ -102,7 +102,6 @@ def check_required_files():
     
     required_files = {
         "pyproject.toml": "Project configuration",
-        "CHANGELOG.md": "Changelog",
         "README.md": "README",
         ".gitignore": "Git ignore rules",
         "LICENSE": "License file",
@@ -112,10 +111,8 @@ def check_required_files():
         "ColorCorrectionPipeline/config.py": "Configuration",
         "ColorCorrectionPipeline/models.py": "Models",
         "ColorCorrectionPipeline/constants.py": "Constants",
-        "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.pt": "YOLO model",
+        "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": "OpenCV DNN plane detection model",
         ".github/workflows/publish-to-pypi.yml": "GitHub Actions workflow",
-        "GITHUB_PUBLISHING_GUIDE.md": "Publishing guide",
-        "RELEASE_CHECKLIST_v1.3.0.md": "Release checklist",
     }
     
     all_exist = True
@@ -138,7 +135,7 @@ def check_pyproject_toml():
     
     checks = {
         'packages = ["ColorCorrectionPipeline"]': "Correct package name",
-        'ColorCorrectionPipeline/flat_field/models': "YOLO model inclusion",
+        'scikit-image>=0.19.0': "scikit-image dependency",
         'requires-python = ">=3.8"': "Python version requirement",
     }
     
@@ -269,7 +266,7 @@ def check_critical_modules():
 def main():
     """Run all verification checks"""
     print(f"\n{BLUE}{'='*60}{RESET}")
-    print(f"{BLUE}ColorCorrectionPackage v1.3.0 Pre-Publication Verification{RESET}")
+    print(f"{BLUE}ColorCorrectionPackage v1.4.5 Pre-Publication Verification{RESET}")
     print(f"{BLUE}{'='*60}{RESET}")
     
     results = []
@@ -300,7 +297,7 @@ def main():
         print(f"{GREEN}✓ All checks passed! Ready for GitHub publication.{RESET}")
         print(f"\n{YELLOW}Next steps:{RESET}")
         print(f"1. Set up PYPI_API_TOKEN secret in GitHub")
-        print(f"2. Run: git add . && git commit -m 'Release v1.4.2'")
+        print(f"2. Run: git add . && git commit -m 'Release v1.4.5'")
         print(f"3. Run: git push origin main")
         print(f"4. Monitor GitHub Actions workflow")
         print(f"5. Create GitHub release after successful PyPI upload")

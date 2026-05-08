@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ColorCorrectionPipeline"
-version = "1.4.4"
+version = "1.4.5"
 description = "A step-wise, color correction pipeline for digital images combining flat-field correction, gamma correction, white-balance, and color-correction"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -41,12 +41,11 @@ dependencies = [
     "numpy>=1.21.0",
     "opencv-contrib-python>=4.5.0",
     "colour-science>=0.4.0",
-    "colour-checker-detection>=0.1.0",
     "pandas>=1.3.0",
     "scikit-learn>=1.0.0",
+    "scikit-image>=0.19.0",
     "scipy>=1.7.0",
     "torch>=1.10.0",
-    "ultralytics>=8.0.0",
     "matplotlib>=3.4.0",
     "plotly>=5.0.0",
     "seaborn>=0.11.0",
@@ -65,6 +64,9 @@ dev = [
 docs = [
     "sphinx>=5.0",
     "sphinx-rtd-theme>=1.0",
+]
+segmentation = [
+    "colour-checker-detection>=0.1.0",
 ]
 
 [project.urls]
@@ -104,7 +106,6 @@ warn_unused_ignores = true
 module = [
     "colour.*",
     "cv2.*",
-    "ultralytics.*",
     "plotly.*",
     "seaborn.*",
 ]
