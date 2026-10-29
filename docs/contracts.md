@@ -135,5 +135,5 @@ accepting NumPy's ordinary writable restoration.
 unknown/noninteger versions, nonfinite values, inconsistent shapes and supplied
 digest mismatches are rejected. A digest is computed when importing a new
 payload without one; that does not establish external authenticity. These data
-contracts do not make arbitrary pickle files safe to load and do not implement
-the later portable inference-model bundle.
+contracts do not make arbitrary pickle files safe to load. Portable inference
+parameters use the separate [calibration bundle](calibration-bundles.md) format.

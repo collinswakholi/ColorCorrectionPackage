@@ -494,8 +494,7 @@ class ColorCorrection:
                 **params,
             )
             self.models.model_gc = coeffs_gc
-            # CRITICAL FIX: Clip output to [0,1] to prevent out-of-range values from
-            # propagating to subsequent stages and causing polynomial extrapolation issues
+            # Bound stage output before downstream polynomial evaluation.
             return np.clip(img_gc, 0.0, 1.0), metrics_gc, False
         
         except Exception as e:
@@ -545,8 +544,7 @@ class ColorCorrection:
                 **params,
             )
             self.models.model_wb = diag_wb
-            # CRITICAL FIX: Clip output to [0,1] to prevent out-of-range values from
-            # propagating to CC stage and causing polynomial extrapolation issues
+            # Bound white-balanced output before color-model evaluation.
             return np.clip(img_wb, 0.0, 1.0), metrics_wb, False
         
         except Exception as e:
@@ -820,6 +818,7 @@ class ColorCorrection:
             # replacing destinations, and preserve the active calibration on error.
             if selected.save:
                 candidate._save_run_outputs(metrics, name_, selected)
+            # Publish the complete context under the lock used by prediction snapshots.
             with self._state_lock:
                 for attr in ("models", "Image", "White_Image", "REF_ILLUMINANT", "REFERENCE_CHART",
                              "REFERENCE_RGB_PD", "REFERENCE_NEUTRAL_PATCHES_PD", "Models_path",

@@ -1,4 +1,4 @@
-# Prepared execution (local patch 9)
+# Prepared execution
 
 Existing prediction methods retain their numerical/default policies. Repeated
 application can opt into an owned, reusable execution snapshot:
@@ -24,7 +24,7 @@ families retain their recorded inference adapter. Unsupported explicit backend
 requests fail when `allow_fallback=False`; automatic selection reports the actual
 backend, output precision, and any fallback. Install the optional accelerator
 with `pip install "ColorCorrectionPipeline[performance]"`. The base wheel runs
-without Numba. No Taichi backend is enabled by this patch.
+without Numba. Taichi is not a production backend.
 Saved legacy polynomial GC retains its existing runtime-dependent NumPy/Numba
 Lab conversion and Torch CUDA polynomial helper, when available. An explicit
 CPU backend controls the new CC/LUT kernels; it does not redefine those legacy
@@ -37,8 +37,7 @@ intermediates receive independent copies. Other model families and arbitrary WB
 matrices retain chunked execution; `chunk_pixels` still bounds their workspace.
 The bulk path uses constant scalar kernel workspace beyond source, output and
 requested intermediates, so it does not allocate a chunk-sized feature expansion.
-See [direct qualification](DIRECT_COLOR_OPTIMIZATION.md) and the latest
-[bulk optimization evidence](BULK_DIRECT_OPTIMIZATION.md).
+See [measured performance](performance.md) for timings and measurement scope.
 
 `mode="auto"` attempts a combined GC→WB→CC trilinear LUT at grids 17, 33, 65 and
 129, in that order. The default maximum sampled RGB error is 0.002 in the declared
@@ -67,8 +66,7 @@ choose the fastest implementation. Affine CC can favor direct execution. In the
 local photo calibrations even 129³ failed the default RGB budget; the reference
 fallback is intentional. An early, weaker audit accepted a full-pipeline preview
 at `max_rgb_error=1/255`, `max_delta_e00=0.5`, while dense image tests found RGB
-error 0.00535 and Delta-E 0.848 near black. That counterexample is retained as a
-regression fixture. The strengthened audit rejects it. Explicitly relaxed budgets
+error 0.00535 and Delta-E 0.848 near black. The strengthened qualification audit rejects that case. Explicitly relaxed budgets
 are measured separately; even the stronger sampled audit is not an all-pixel or
 all-continuous-color guarantee.
 
@@ -92,7 +90,7 @@ entries; `cache.info` reports retained bytes, builds and hits.
 Legacy per-regressor LUT construction is synchronized and invalidates on learned
 parameter/settings changes. Its one-table cache is immutable and excluded from
 lock/callback serialization. Saving after a producer mutation omits a stale
-derived table instead of blessing it on load. Pre-patch artifacts cannot prove
+derived table instead of blessing it on load. Older artifacts cannot prove
 their original table producer; exact old table values are adopted for compatibility
 and current producer content is pinned for subsequent invalidation.
 
@@ -105,7 +103,6 @@ by the consumer. Export preserves existing files on pre-publication failure.
 
 Chart inference GPU selection remains independent of pointwise execution. Its
 existing CUDA/DirectML/WebGPU/CoreML selection and CPU fallback remain in place.
-This patch promotes only measured CPU kernels; no unqualified GPU/Taichi color
-kernel is silently selected. See [the benchmark report](VALIDATION_9.md) for actual
-host/backend timings and [distribution qualification](distribution-qualification.md)
-for installed-wheel checks and the unrun platform matrix.
+Prepared color execution uses qualified CPU kernels. No GPU/Taichi color kernel
+is selected automatically. See [performance measurements](performance.md) and
+[distribution qualification](distribution-qualification.md) for scope and checks.

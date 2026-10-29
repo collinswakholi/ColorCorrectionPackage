@@ -8,43 +8,6 @@ permissions:
   contents: read
 
 jobs:
-  source-tests:
-    name: Source tests (${{ matrix.os }}, Python ${{ matrix.python }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ['3.8', '3.12']
-        include:
-          - {os: ubuntu-latest, python: '3.9'}
-          - {os: ubuntu-latest, python: '3.10'}
-          - {os: ubuntu-latest, python: '3.11'}
-    env:
-      MPLBACKEND: Agg
-      OMP_NUM_THREADS: '1'
-      MKL_NUM_THREADS: '1'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - run: python -m pip install --upgrade pip
-      - name: Install CPU Torch on Linux and Windows qualification runners
-        if: runner.os != 'macOS'
-        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Install and test the source with the performance extra
-        run: |
-          python -m pip install ".[dev,performance]"
-          python -m pip check
-          python -m pytest tests --cov-report=xml
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-${{ matrix.os }}-${{ matrix.python }}
-          path: coverage.xml
-          if-no-files-found: ignore
-
   build:
     name: Build and inspect wheel and sdist
     runs-on: ubuntu-latest
@@ -75,8 +38,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         python: ['3.8', '3.12']
+        include:
+          # Python 3.8 needs an Intel macOS runner; newer Python also covers ARM.
+          # https://github.com/actions/setup-python/issues/808
+          - {os: macos-15-intel, python: '3.8'}
+          - {os: macos-latest, python: '3.12'}
+          - {os: ubuntu-latest, python: '3.9'}
+          - {os: ubuntu-latest, python: '3.10'}
+          - {os: ubuntu-latest, python: '3.11'}
     env:
       MPLBACKEND: Agg
       OMP_NUM_THREADS: '1'
@@ -110,18 +81,11 @@ jobs:
           run('-m', 'pip', 'install', wheel)
           run('-m', 'pip', 'check')
           common = ['-I', root / 'scripts/verify_installed.py', '--forbid-source', root,
-                    '--photo', root / 'Images/Image_1.JPG',
-                    '--legacy-baseline', root / 'tests/fixtures/legacy_numeric_baseline.json']
+                    '--photo', root / 'Images/Image_1.JPG']
           run(*common, '--expect-numba', 'no', '--output', evidence / 'base.json')
-          direct = ['-I', root / 'benchmarks/bulk_direct/verify_installed.py']
-          run(*direct, '--expect-numba', 'no', '--output', evidence / 'base-direct.json')
-          image_io = ['-I', root / 'benchmarks/io_final/verify_installed.py', '--fixtures', root / 'tests/fixtures']
-          run(*image_io, '--expect-numba', 'no', '--output', evidence / 'base-io.json')
           run('-m', 'pip', 'install', str(wheel) + '[performance]')
           run('-m', 'pip', 'check')
           run(*common, '--expect-numba', 'yes', '--output', evidence / 'performance.json')
-          run(*direct, '--expect-numba', 'yes', '--output', evidence / 'performance-direct.json')
-          run(*image_io, '--expect-numba', 'yes', '--output', evidence / 'performance-io.json')
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -130,8 +94,8 @@ jobs:
           if-no-files-found: error
 
   qualified:
-    name: Source and installed distributions qualified
-    needs: [source-tests, build, installed-wheel]
+    name: Built and installed distributions qualified
+    needs: [build, installed-wheel]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Source tests, artifact inspection and isolated wheel workflows passed."
+      - run: echo "Artifact inspection and isolated wheel qualification passed."

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (1.4.6)
+
+- Transactional calibration state, structured failures and verified atomic persistence.
+- Model-based chart detection with GPU provider diagnostics and CPU recovery.
+- Explicit image/reference/observation and color contracts, opt-in modern numerical policies and reproducible grouped fitting.
+- Portable calibration bundles, bounded batch processing and precision-preserving image export.
+- Qualified direct CPU execution, optional Numba acceleration and an explicit fast-lossless PNG profile.
+- Consolidated current documentation and isolated distribution qualification.
+
 ## [1.4.5] - 2026-05-07
 
 ### Changed

@@ -10,8 +10,7 @@ The source license does not replace those model declarations.
 | `flat_field/models/plane_det_model_YOLO_512_n.onnx` | 44,658,747 | `1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54` | Existing package plane detector; declares Ultralytics 8.4.12. No training record or independently verified base-weight ancestry is supplied. |
 
 The paths above are relative to `ColorCorrectionPipeline`. The package loads
-these ONNX files directly. The unused `.pt` training checkpoint is excluded from
-wheel and source distributions. `scripts/verify_distribution.py` checks exact
+these ONNX files directly. Training checkpoints are not needed for inference and are not distributed. `scripts/verify_distribution.py` checks exact
 asset sizes, hashes, notices and license texts before an artifact is qualified.
 
 The chart model's sanitized metadata was inherited from the UI implementation.

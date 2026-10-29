@@ -137,7 +137,7 @@ unchanged. The codec is lossless relative to the selected integer samples.
 Encoded bytes, SHA256 and file size differ intentionally; all strict fsync,
 read-back, decoded sample/metadata verification and atomic publication checks stay
 active. Other formats reject this PNG-only option. Batch `export_options` accepts
-the same profile. See [final timing and validation evidence](IO_FINAL_OPTIMIZATION.md).
+the same profile. See [performance measurements](performance.md).
 
 Eligible large integer normalization/quantization uses qualified optional CPU
 Numba arithmetic, with NumPy fallback and exact operation order. Images below

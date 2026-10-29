@@ -1,3 +1,0 @@
-direct 512 {'file_predict_ms': 46.5957, 'strict_export_ms': 56.6982, 'file_total_ms': 103.3014}
-direct 1080p {'file_predict_ms': 268.843, 'strict_export_ms': 225.1303, 'file_total_ms': 507.2466}
-direct 4k {'file_predict_ms': 1104.7746, 'strict_export_ms': 823.4967, 'file_total_ms': 1928.2818}

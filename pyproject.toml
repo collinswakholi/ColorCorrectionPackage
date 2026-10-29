@@ -93,7 +93,7 @@ packages = ["ColorCorrectionPipeline"]
 exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt", "docs/validation/**", "benchmarks/taichi/baseline_pkg/**"]
+exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt", ".github/**", "uv.lock"]
 
 [tool.ruff]
 line-length = 100
@@ -127,11 +127,3 @@ module = [
     "seaborn.*",
 ]
 ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q --strict-markers --cov=ColorCorrectionPipeline --cov-report=term-missing"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]

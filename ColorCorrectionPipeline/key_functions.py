@@ -1,3 +1,5 @@
+# Historical utility entry points remain importable for saved models and callers.
+# The current pipeline implementation lives in pipeline.py and core/.
 import gc
 import glob
 import itertools
@@ -67,17 +69,12 @@ except ImportError:
     mc = None
 
 is_cuda = torch.cuda.is_available()
-# is_cuda = False
 device_ = torch.device("cuda" if is_cuda else "cpu")
-# print device Name
 if is_cuda:
     device_name = torch.cuda.get_device_name(0)
-    # print(f"Using GPU: {device_name}")
 else:
     device_name = "CPU"
-    # print("Using CPU")
 
-# torch.set_num_threads(1)
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -105,7 +102,7 @@ __all__ = [
     "poly_func",
     "extrapolate_if_saturated_mat",
     "estimate_gamma_profile",
-    "wb_correction",  #'poly_func_cupy',
+    "wb_correction",
     "compute_diag",
     "color_correction_1",
     "color_correction",
@@ -125,7 +122,7 @@ __all__ = [
     "load_spectra",
     "adapt_chart",
     "arrange_metrics",
-    "get_json_file",  #'generate_powers_with_combinations',
+    "get_json_file",
     "extrapolate_if_sat_image",
     "CustomNN",
     "plot_raincloud",
@@ -147,7 +144,6 @@ gc.enable()
 FF = 1e-15
 WP = "D65"  # default white point
 CMFS = "CIE 1931 2 Degree Standard Observer"
-# CMFS = "CIE 1964 10 Degree Standard Observer"
 REF_ILLUMINANT = colour.CCS_ILLUMINANTS[CMFS][WP]
 color_chart = colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
 
@@ -240,16 +236,10 @@ def get_color_chart_hex(color_chart, REF_ILLUMINANT):
     return {k: v for k, v in sorted(hex_dict.items(), key=lambda item: item[0])}
 
 
-# hex_ = get_color_chart_hex(color_chart, REF_ILLUMINANT)
-# print(hex_)
 
 
-# ------------------------------------------------------------------------------------------------------------------------------
-# 2. Functions and Classes
-# ------------------------------------------------------------------------------------------------------------------------------
 
 
-# CLASSES
 class metrics:
     def __init__(self, deltaE, mse, mae):
         self.deltaE = deltaE
@@ -414,12 +404,10 @@ class CustomNN(BaseEstimator, RegressorMixin):
             current_dim = hidden_dim
 
         # Add output layer
-        # layers.append(nn.Tanh())
         layers.append(
             nn.Linear(current_dim, self.output_dim)
         )  # Final output layer: nx1
 
-        # print(f"Output dim: {self.output_dim}")
 
         # Assign the sequential model
         self.model = nn.Sequential(*layers).to(self.device)
@@ -538,7 +526,6 @@ class CustomNN(BaseEstimator, RegressorMixin):
             if scheduler:
                 scheduler.step(val_loss)
 
-            # model_over_fit if  val_loss > 1.2*train_loss else None
             model_over_fit = val_loss > 0.8 * train_loss
             if val_loss < best_val_loss and not model_over_fit:
                 log_(
@@ -637,14 +624,10 @@ class CustomNN(BaseEstimator, RegressorMixin):
         return results
 
 
-# FUNCTIONS
 
 memory_lock = threading.Lock()
 
 try:
-    # cv2.setNumThreads(0)
-    # torch.set_num_threads(1)
-    # cv2.ocl.setUseOpenCL(False)
     torch.cuda.set_per_process_memory_fraction(0.99, device=0)
 except:
     pass
@@ -675,8 +658,6 @@ def check_memory():
             reserved = torch.cuda.memory_reserved() / 1024**2
             max_reserved = torch.cuda.max_memory_reserved() / 1024**2
             vram_usage = (reserved / max_reserved * 100) if max_reserved > 0 else 0.0
-            # if vram_usage > 95:
-            #     log_(f'VRAM usage is high {vram_usage:.2f}%...', 'yellow', 'bold')
             log_(
                 f"Used GPU memory: {torch.cuda.memory_usage(0):.2f}%",
                 "light_blue",
@@ -687,7 +668,6 @@ def check_memory():
 def get_available_gpu_memory():
     """Returns the available GPU memory in bytes."""
     if torch.cuda.is_available():
-        # torch.cuda.synchronize()
         rem_memory = torch.cuda.mem_get_info()[0]
         is_less_than_1gb = rem_memory < 1024**3
         return rem_memory, is_less_than_1gb
@@ -759,7 +739,6 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
         charts = det_.getListColorChecker()
         charts = sorted(charts, key=lambda c: c.getCost())
         len_ = len(charts)
-        # log_(f"Detected {len_} charts.", 'light_yellow', 'italic', 'warn')
         if (len_ - 1) < n_charts:
             log_(
                 f"Detected {len(charts)-1} charts instead of {n_charts}.",
@@ -774,7 +753,6 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
                 "warn",
             )
         elif (len_ - 1) >= n_charts:
-            # log_(f"Selecting top {n_charts} charts out of {len_} detected charts based on lowest cost.", 'yellow', 'italic', 'warn')
             charts = sorted(charts, key=lambda c: c.getCost())[:n_charts]
 
         return charts
@@ -816,7 +794,6 @@ def extract_color_chart(img, get_patch_size=False):
         return np.array(src), img_draw, dims
 
 
-# det_params =
 def extract_color_charts(
     img: np.ndarray, n_charts: int = 1
 ) -> Tuple[List[np.ndarray], np.ndarray]:
@@ -860,8 +837,6 @@ def extract_color_charts(
             int(img.shape[0] / 400),
         )
 
-        # conf_score = checker.getCost()
-        # print(conf_score)
         chartSRGB = checker.getChartsRGB()
         w, _ = chartSRGB.shape[:2]
         roi = chartSRGB[0:w, 1]
@@ -994,7 +969,7 @@ def extract_color_chart_ex(
                 max_val = patch_pixels.max(axis=0)
                 min_val = patch_pixels.min(axis=0)
                 
-                # Adaptive sampling strategy (FIXED: no negative dimensions)
+                # Allocate additional samples only after accounting for the three statistics.
                 n_samples_needed = max(0, npts - n_stats)
                 
                 if n_samples_needed > 0:
@@ -1028,7 +1003,7 @@ def extract_color_chart_ex(
                 elif all_data.shape[0] > npts:
                     all_data = all_data[:npts, :]
                 
-                # Direct array assignment (FIXED: explicit repetition instead of broadcast_to)
+                # Repeat reference rows explicitly to match the sampled observations.
                 end_idx = current_idx + npts
                 chart_result[current_idx:end_idx, :] = all_data
                 ref_result[current_idx:end_idx, :] = ref_color  # Broadcasting
@@ -1085,8 +1060,6 @@ def compute_temperature(rgb):
     Z = -0.68202 * rgb[:, 0] + 0.77073 * rgb[:, 1] + 0.56332 * rgb[:, 2]
 
     # sRGB to XYZ
-    # XYZ = colour.sRGB_to_XYZ(rgb)*255.0
-    # X, Y, Z = XYZ[:, 0], XYZ[:, 1], XYZ[:, 2]
 
     denominator = X + Y + Z
     x = X / denominator
@@ -1189,11 +1162,9 @@ def estimate_fit(measured: np.ndarray, reference: np.ndarray, degree: int = 3):
     X = np.vstack([measured**i for i in range(degree, -1, -1)]).T
 
     # Solve for coefficients using lstsq
-    # coeffs, _, _, _ = np.linalg.lstsq(X, reference, rcond=None)
     coeffs = np.linalg.lstsq(X, reference, rcond=None)[0]
 
     return coeffs
-    # return coeffs # Coefficients [a, b, c, d]
 
 
 def predict_image(
@@ -1263,7 +1234,6 @@ def get_metrics(
     # mean angle error
     mae = compute_mae(mat1, mat2)
 
-    # print(deltaE.shape, mse.shape, mae.shape)
 
     return metrics(deltaE, mse, mae)
 
@@ -1513,7 +1483,6 @@ def process_in_chunks(RGB, feature_names, degree, n_chunk):
         RGB_chunk = chunks[i]
 
         # Move to GPU
-        # RGB_torch = torch.from_numpy(RGB).to(device_, dtype=torch.float32)
         RGB_torch = (
             torch.from_numpy(RGB_chunk).pin_memory().to(device_, dtype=torch.float32)
         )
@@ -1562,12 +1531,7 @@ def get_poly_features(RGB, degree=1):
             chunk_size = estimate_chunk_size(RGB)
             X_poly, names = process_in_chunks(RGB, feature_names, degree, chunk_size)
 
-            # chunk_size = int(available_memory / (RGB.shape[1] * RGB.dtype.itemsize
-            # RGB_torch = torch.from_numpy(RGB).to(device_, dtype=torch.float32)
-            # RGB_torch = torch.from_numpy(RGB).pin_memory().to(device_, dtype=torch.float32)
 
-            # X_poly_, names = generate_powers_with_combinations_torch(RGB_torch, feature_names, degree=degree)
-            # X_poly = X_poly_.cpu().numpy()
             free_memory()
         else:
             # CPU case
@@ -1629,8 +1593,6 @@ def fit_model(det_p, ref_p, kwargs=None):
     model_dict = {
         "linear": LinearRegression(
             fit_intercept=True,
-            # n_jobs = 4,
-            # n_jobs=int(0.9*n_proc), # use 80% of cores
         ),
         "nn": MLPRegressor(
             activation="relu",  # relu, tanh, identity, logistic
@@ -1813,10 +1775,8 @@ def get_illuminant_from(type_="", var=None, CMFS="CIE 1931 2 Degree Standard Obs
             # dectect illuminant from neutral patches
             np_, _ = extract_neutral_patches(to_uint8(var))
             n_6_5 = np_.iloc[2, :]
-            # T, x, y = compute_temperature(np_.values)
             T, x, y = compute_temperature(n_6_5.values)
             print(T, x, y)
-            # T, x, y = compute_temperature_2(n_6_5.values)
             log_(
                 f"Detected Temperature from neutral patches, Temperature: {T.astype(int)}K, \tx: {x}, \ty: {y}",
                 "cyan",
@@ -1907,7 +1867,6 @@ def estimate_gamma_profile(
 
     ref_lab = convert_to_lab(ref_cp, ref_illuminant, c_space="srgb")
     ref_L = ref_lab[:, 0]
-    # print(ref_L)
 
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
     _, cps_before = extract_neutral_patches(img_bgr, return_one=True)
@@ -1926,7 +1885,6 @@ def estimate_gamma_profile(
     MSE = []
 
     range_ = range(1, max_degree + 1)
-    # print(f'range_: {range_}')
 
     for degree in range_:
         coeffs = estimate_fit(values_L_, ref_L_, degree)
@@ -1935,11 +1893,9 @@ def estimate_gamma_profile(
         pred_ = poly_func(values_L, coeffs)
 
         mse = np.mean((ref_L - pred_) ** 2)
-        # print(f'degree: {degree}), mse: {mse}')
         MSE.append(mse)
 
     grad_MSE = np.gradient(MSE)
-    # print(f'grad_MSE: {grad_MSE}')
 
     min_idx = np.argmin(grad_MSE)
 
@@ -1967,13 +1923,10 @@ def estimate_gamma_profile(
 
     log_(f"Optimal polynomial degree: {degree}", "cyan", "italic")
 
-    # find optimal degree
-    # coeffs = estimate_fit(values_L_, ref_L_, degree)
 
     eq = "F(x) = " + "+".join(
         f"{round(c, 2)}x^{i}" for i, c in enumerate(reversed(coeffs))
     )
-    # print(eq)
 
     # apply gamma profile to image
     img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant)
@@ -1990,10 +1943,6 @@ def estimate_gamma_profile(
 
     if show:
         if is_cuda:
-            # prediction = poly_func_cupy(
-            #     cp.asarray(values_L.flatten()),
-            #     cp.asarray(coeffs)
-            # )
             check_memory()
             free_memory()
             prediction = poly_func_torch(
@@ -2001,16 +1950,12 @@ def estimate_gamma_profile(
                 torch.from_numpy(coeffs).to(device_, dtype=torch.float32),
             )
             prediction = prediction.cpu().numpy()
-            # prediction = cp.asnumpy(prediction)
 
             free_memory()
         else:
             prediction = poly_func(values_L.flatten(), coeffs)
         prediction = prediction.reshape(values_L.shape)
-        # print(prediction)
 
-        # max__ = np.max([ref_L, values_L, prediction])
-        # min__ = np.min([ref_L, values_L, prediction])
         # Plot results
         plt.scatter(ref_L, values_L, c="red", label="Measured vs. Reference")
         plt.xlim(-1, 101)
@@ -2064,8 +2009,6 @@ def wb_correction(
 
     img_pred = img_rgb @ diag_
 
-    # print(f'max: {np.max(img_pred)}')
-    # print(f'min: {np.min(img_pred)}')
 
     if get_deltaE:
         m_b = get_metrics(ref_cp, cps_before.values, ref_illuminant, "srgb")
@@ -2105,7 +2048,6 @@ def color_correction_1(
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
     _, color_patches = extract_neutral_patches(img_bgr, show=show)
 
-    # cp_names = color_patches.index
     cp_values = color_patches.values
 
     ccm = colour.characterisation.matrix_colour_correction(
@@ -2284,7 +2226,6 @@ def scatter_RGB(
             mat.shape == reference.shape
         ), f"Matrix {name} does not have same shape as reference"
 
-    # edge_colors = ['r','g','b','c','m','y']
     shapes = ["^", "o", "v", "*", "D", "p"]
     alphas = [1.0, 0.75, 0.5, 0.25, 0.125]
     sizes = maker_size * np.array([1.0, 0.9, 0.8, 0.7, 0.6, 0.5])
@@ -2296,7 +2237,6 @@ def scatter_RGB(
     plt.ylabel("Predicted", fontsize=font_headings)
 
     for i, (k, v) in enumerate(mats.items()):
-        # edge_color_ = edge_colors[i]
         shape_ = shapes[i]
         alpha_ = alphas[i]
         size_ = sizes[i]
@@ -2367,7 +2307,6 @@ def do_color_adaptation(img, orig_illuminant, dest_illuminant):
             img_XYZ,
             colour.xy_to_XYZ(dest_illuminant),
             colour.xy_to_XYZ(orig_illuminant),
-            # colour.xy_to_XYZ(dest_illuminant),
         )
 
         # convert back to sRGB
@@ -2401,7 +2340,6 @@ def get_json_file(folder):
         with open(details[0], "r") as f:
             data = json.load(f)
 
-        # print(data)
         return data
     else:
         return False
@@ -2574,7 +2512,6 @@ def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
                 "DeltaE"
             ],
         )
-        # print("T-Test Results:\n", t_test_results)
         t_test_results = pd.DataFrame(
             {"T-Statistic": [t_stat], "Degrees of Freedom": [dof], "p-value": [p_value]}
         )
@@ -2587,7 +2524,6 @@ def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
         formula = "DeltaE ~ C(Condition)"
         model = sm.formula.ols(formula, data=long_data).fit()
         anova_results = sm.stats.anova_lm(model, typ=2)
-        # print("ANOVA Results:\n", anova_results)
     except Exception as e:
         print("Error occurred during ANOVA:", e)
         anova_results = pd.DataFrame()
@@ -2602,7 +2538,6 @@ def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
                 tukey_results.summary().data[1:],
                 columns=tukey_results.summary().data[0],
             )
-            # print("\nTukey's HSD Results:\n", tukey_df)
         else:
             print("\nNot enough unique groups for Tukey's HSD test.")
             tukey_df = pd.DataFrame()
@@ -2682,7 +2617,6 @@ def other_plots(data, save_path=None, title_name="", SHOW_=False):
             robust=True,
         )
         plt.tight_layout()
-        # plt.savefig(os.path.join(plots_dir, "Correlation_Heatmap_DeltaE.svg"), dpi=1200) if SAVE else None
         if save_path is not None:
             plt.savefig(
                 os.path.join(
@@ -2706,7 +2640,6 @@ def other_plots(data, save_path=None, title_name="", SHOW_=False):
             height=3,
             aspect=1.2,
         )
-        # plt.tight_layout()
         if save_path is not None:
             plt.savefig(
                 os.path.join(

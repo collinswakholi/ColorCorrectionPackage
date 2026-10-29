@@ -109,12 +109,12 @@ Legacy pickle containers are still trusted-file-only. New metadata stores image,
 reference, observation and color contracts, stage switches, detector provenance
 and algorithm identities. Loading validates hashes/assignments and supported
 engine policies before changing active models. Metadata-free older models retain
-legacy interpretation, without invented source/capture metadata. This is not the
-future non-executable portable bundle, and old package versions do not understand
-new explicit metadata.
+legacy interpretation, without invented source/capture metadata. Use the separate [portable bundle format](calibration-bundles.md) for
+non-executable inference parameters. Old package versions do not understand new
+explicit metadata.
 
 The defaults described here retain the earlier stage algorithms. Opt-in modern
 saturation/neutral GC/WB/guarded FFC and reproducible fitting are now documented
-in [patches 5–6 policies](numerical-policies-and-validation.md).
+in [numerical policies](numerical-policies-and-validation.md).
 Independent-capture validation and high-precision FFC remain later work.
-Earlier fit/apply parity tests disable the legacy fit-only saturation operation.
+Fit/apply parity comparisons must account for the legacy fit-only saturation operation.

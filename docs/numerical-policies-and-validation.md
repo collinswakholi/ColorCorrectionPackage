@@ -168,5 +168,5 @@ that is reported rather than hidden. Disable evaluation explicitly through
 The public tuple return remains. CC metrics include `fitting` and `validation`;
 `last_run['numerical_report']` and model metadata also retain the complete records.
 Metadata validation checks new policies and estimator versions before activation.
-Persistence remains the trusted-file pickle compatibility format; a non-executable
-portable bundle belongs to patch 7 and has not been introduced here.
+Prefer the non-executable [portable calibration bundle](calibration-bundles.md).
+Trusted-file pickle persistence remains available for compatibility.

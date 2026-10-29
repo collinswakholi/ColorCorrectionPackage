@@ -1,6 +1,0 @@
-{
-  "wheel_sha256": "c26d3e1906a3cc26e8ebef2d1d12269d6e28828efd647a799359154775740b2f",
-  "python_source_tree_sha256": "fac4e692ad5664513ef3ec282121e0f1269be20855a4838bcb95b47bb52aa48a",
-  "python_files": 44,
-  "exact_clone_match": true
-}

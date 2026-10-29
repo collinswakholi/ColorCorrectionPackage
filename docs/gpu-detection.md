@@ -85,8 +85,8 @@ The recorded local hardware checks used Windows, NVIDIA RTX4070TiSUPER/IntelUHD7
 ONNX Runtime1.31.1 with WebGPU plugin0.4.0, and separate DirectML runtime1.24.4.
 One reviewed photograph produced the expected Classic chart through D3D12,
 Vulkan and DirectML with GPU node events and zero CPU node events. Apple Silicon,
-Radeon and CUDA hardware need their own host qualification. Driver-independent
-unit tests exercise those selection/failure policies; they are not hardware tests.
+Radeon and CUDA hardware need their own host qualification. Policy checks do
+not establish execution on unavailable hardware.
 
 Primary references:
 

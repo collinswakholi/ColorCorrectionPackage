@@ -1,5 +1,2 @@
-# Frozen reference fixtures carry byte-level SHA256 expectations.
-tests/fixtures/** -text -whitespace
-benchmarks/taichi/baseline_pkg/** -text -whitespace
-# Archived generated evidence is retained verbatim, not reformatted source.
-docs/validation/** -whitespace
+# Inference assets must remain byte-identical across checkouts.
+*.onnx binary

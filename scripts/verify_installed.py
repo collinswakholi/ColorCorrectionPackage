@@ -82,7 +82,7 @@ def main():
         np.testing.assert_allclose(batch.items[0].images["CC"], predicted, atol=tolerance, rtol=tolerance)
         families[method] = {"fit_bundle_apply_batch": True, "max_direct_reload_difference": float(np.max(np.abs(predict_(x, loaded.model_cc[0]) - before)))}
 
-    # Qualify patch-9 APIs against an installed portable affine model. A small
+    # Qualify prepared execution against an installed portable affine model. A small
     # affine LUT makes a tight numerical oracle without a costly benchmark.
     prepared_pipeline = ColorCorrection().load_bundle(work / "linear.ccpb")
     prepared_pipeline.models.model_gc = None

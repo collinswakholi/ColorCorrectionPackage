@@ -1,7 +1,0 @@
-Processing c:\users\collins\.codex\visualizations\2026\10\28\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\ccp-direct-next\candidate-dist\colorcorrectionpipeline-1.4.6-py3-none-any.whl
-Installing collected packages: colorcorrectionpipeline
-  Attempting uninstall: colorcorrectionpipeline
-    Found existing installation: ColorCorrectionPipeline 1.4.6
-    Uninstalling ColorCorrectionPipeline-1.4.6:
-      Successfully uninstalled ColorCorrectionPipeline-1.4.6
-Successfully installed colorcorrectionpipeline-1.4.6

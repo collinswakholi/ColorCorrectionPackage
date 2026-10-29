@@ -372,6 +372,7 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
+        # Verify persisted bytes and decoded samples before publishing the destination.
         saved = temporary.read_bytes()
         if saved != payload:
             raise OSError("temporary image read-back differs from encoded bytes")
