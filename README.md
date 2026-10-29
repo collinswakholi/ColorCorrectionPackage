@@ -1,5 +1,44 @@
 # ColorCorrectionPipeline
 
+Local reliability update: calibration runs now commit state only on success,
+model saves preserve existing files on failure, and chart detection defaults to
+the bundled Classic24 ONNX model with GPU-first execution and CPU fallback. See [GPU setup and evidence](docs/gpu-detection.md), [image/reference/observation contracts](docs/contracts.md), [explicit color semantics](docs/color-semantics.md), [behavior and compatibility](docs/local-reliability.md),
+[detector configuration](docs/chart-detection.md), and the [recorded baseline](docs/BASELINE.md).
+Set `do_ffc=False` when no white image is supplied. Enabled stages are required;
+inspect `pipeline.last_run` for failure reasons and detector diagnostics.
+
+Legacy encoded-sRGB behavior remains the default. Opt into versioned semantics
+with `Config(color_semantics={"version": "explicit-v1"})`; typed `ImageData`
+declares precision, encoding and orientation, and `ReferenceProfile` preserves
+unclipped canonical Lab D50 truth separately from display swatches. See
+[patches 3–4 integration](docs/contracts-and-color-integration.md).
+
+New calibration algorithms are opt-in through `stage_policy="modern-v1"` and
+`fitting_policy="reproducible-v1"` alongside explicit color semantics. These add
+clipping-based observation selection, neutral-only monotonic gamma, recorded WB
+headroom, guarded FFC, effective/reproducible CPU fitting and fully accounted
+CC-only grouped evaluation. See [numerical policies and limitations](docs/numerical-policies-and-validation.md).
+Existing configurations and saved calibrations keep their earlier numerical paths.
+The [Taichi CPU/Vulkan investigation](docs/TAICHI_INVESTIGATION.md) includes actual
+timings, precision differences and reproduction scripts; Taichi is not a production dependency.
+
+Portable `.ccpb` calibration bundles store validated inference parameters without
+pickle. New bounded batch APIs provide per-file outcomes, cancellation, selected
+stage retention, precision-preserving exports and compact JSON reports. Existing
+pickle/image helpers and list prediction keep their compatibility behavior. See
+[bundle format](docs/calibration-bundles.md), [explicit I/O](docs/image-io-policies.md),
+and [batch/reporting usage](docs/batch-and-reporting.md).
+
+Opt-in [prepared execution](docs/acceleration.md) adds a sampled-error-qualified
+combined GC→WB→CC LUT, fused CPU polynomial inference, bounded immutable caches,
+and atomic `.cube` export. Numba is now optional through `[performance]`; the
+base installation retains a NumPy fallback. See [patch 9 measurements](docs/VALIDATION_9.md)
+and [installed-distribution qualification](docs/distribution-qualification.md).
+The subsequent [bulk direct execution report](docs/BULK_DIRECT_OPTIMIZATION.md)
+records its timings and accuracy tests. The subsequent
+[decode/strict-export report](docs/IO_FINAL_OPTIMIZATION.md) records exact I/O
+arithmetic, the optional fast-lossless PNG profile and final local push preparation.
+
 A comprehensive, step-by-step color correction pipeline for digital images. This package integrates flat-field correction (FFC), gamma correction (GC), white balance (WB), and color correction (CC) into a unified, user-friendly workflow. After training on a reference image with a color checker chart (and optionally a white-field image for FFC), the learned corrections can be applied to any new image captured under the same conditions—no color chart required for subsequent images.
 
 **This package builds upon a previous package _[ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool)_.**
@@ -20,10 +59,10 @@ Manuscript link: https://acsess.onlinelibrary.wiley.com/doi/full/10.1002/ppj2.70
   Automatically detect or manually crop the "white" background image. Automatic plane detection uses the bundled ONNX model through OpenCV DNN, so no `ultralytics` runtime dependency is required. FFC multipliers are cached per white image and configuration to speed repeated runs.
 
 • **Saturation Check / Extrapolation**  
-  Identify and fix saturated patches on the chart before proceeding, ensuring accurate downstream corrections.
+  Legacy mode retains its historical 0.95 scaling. Modern mode reports sampled clipping and optionally excludes affected training cells without changing pixels or inventing recovered measurements.
 
 • **Gamma Correction (GC)**  
-  Fits an optimum polynomial (up to configurable degree) mapping between measured neutral patch intensities and reference values, and applies it to the entire image.
+  Legacy configurable polynomial tone mapping remains available. Opt-in modern fitting uses named neutrals, measured-range checks and an endpoint-constrained monotonic Lab L* curve.
 
 • **White Balance (WB)**  
   Diagonal white-balance correction using the neutral patches of the color checker. Gets diagonal matrix and applies it to the entire image.
@@ -97,7 +136,13 @@ Install directly from PyPI:
 pip install ColorCorrectionPipeline
 ```
 
-`numba` is installed automatically. Hardware acceleration (CPU parallelism and CUDA, if an NVIDIA GPU is present) is detected and enabled at import time — no extra install flags or code changes needed.
+For the local candidate, install optional CPU JIT acceleration with
+`pip install "ColorCorrectionPipeline[performance]"`. Base installations use
+NumPy fallbacks. Prepared direct execution is an explicit API choice; see
+[execution policies](docs/acceleration.md). GPU chart detection uses the
+separate ONNX provider policy described in [GPU setup](docs/gpu-detection.md).
+The PyPI command above installs the published package, which does not yet
+include these unpushed local changes.
 
 ### Development Installation
 
@@ -117,7 +162,7 @@ pip install -e ".[dev]"
 • Python: 3.8 or higher  
 • Operating System: Windows, macOS, Linux  
 • Memory: Minimum 4GB RAM (8GB recommended for large images)  
-• GPU: Optional (CUDA-compatible GPU for accelerated processing)
+• GPU: Optional; chart detection selects supported CUDA, DirectML, WebGPU or CoreML providers and falls back to CPU. Hardware availability and execution are reported.
 
 ### Dependencies
 
@@ -127,9 +172,11 @@ The package automatically installs the following dependencies:
 - `numpy` - Numerical computing
 - `scipy` - Scientific computing
 - `scikit-learn` - Machine learning algorithms
-- `opencv-contrib-python` - Computer vision with MCC color-checker detection
+- `opencv-contrib-python` - Image processing and explicit legacy MCC compatibility
+- `onnxruntime` - Model-based chart detection; platform-qualified WebGPU support is selected by dependency markers
+- `Pillow`, `tifffile` - Image metadata and precision-preserving TIFF I/O
 - `torch` - Deep learning framework
-- `numba` - JIT-compiled CPU/CUDA kernels for accelerated image processing
+- `numba` - Optional JIT kernels (`pip install "ColorCorrectionPipeline[performance]"`)
 
 **Image Processing:**
 • `scikit-image` - Image processing algorithms  
@@ -139,7 +186,6 @@ The package automatically installs the following dependencies:
 **Visualization & Analysis:**
 • `matplotlib`, `plotly`, `seaborn` - Plotting and visualization  
 • `pandas` - Data manipulation  
-• `statsmodels` - Statistical modeling
 
 **Development & Testing:**
 • `pytest` - Testing framework
@@ -334,7 +380,9 @@ Same images after applying the complete FFC → GC → WB → CC pipeline, showi
 • ✅ Accurate color reproduction matching reference standards (CC)  
 • ✅ Consistent results across multiple images captured under the same conditions
 
-Typical results after full pipeline correction achieve ΔE < 2.0 for most images, with many achieving ΔE < 1.2.
+Chart residuals depend on the capture, reference, model and evaluation protocol.
+The local validation reports distinguish fit-chart residuals, grouped validation,
+and interpolation error; they do not establish accuracy on independent captures.
 
 ## Contributing
 
@@ -371,7 +419,9 @@ black .
 
 ### License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/collinswakholi/ColorCorrectionPackage/blob/main/LICENSE) file for details.
+Package source is licensed under MIT; see [LICENSE](LICENSE). The bundled detector
+assets declare AGPL-3.0 in their upstream metadata. Their provenance and unresolved
+rights records are described in [the included model notice](ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md).
 
 ## Citation
 

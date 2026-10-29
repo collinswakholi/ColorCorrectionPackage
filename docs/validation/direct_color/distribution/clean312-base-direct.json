@@ -1,0 +1,89 @@
+{
+  "python": "3.12.10",
+  "package": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+  "numba": false,
+  "versions": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "colour-science": "0.4.7"
+  },
+  "tone_backend": {
+    "actual_backend": "cpu-numpy",
+    "requested_backend": "auto",
+    "fallback_reason": null,
+    "precision": "float64",
+    "LUT": false,
+    "runtime_fallback": false,
+    "method": "reference-D65-neutral-PCHIP"
+  },
+  "max_rgb_reference_error": 0.0,
+  "bundle_sha256": "8b449416a07ab64e9b888c5c88abcb24fbc1b8035eab3737c898c12cb021db8b",
+  "calibration_id": "5f0babee96b5beba50b7a6f574de3bdeddb19afe398d2df9b183d6373d4f7491",
+  "bundle_reload_exact": true,
+  "trusted_pickle_reload_exact": true,
+  "runtime_kernel_state_not_serialized": true,
+  "qualification": {
+    "method": "sampled qualification and separate audit; not all-domain proof",
+    "reason": "direct execution requested",
+    "candidates": [],
+    "selected_mode": "direct",
+    "budgets": {
+      "max_rgb_error": 0.002,
+      "max_delta_e00": 0.5
+    },
+    "qualification_sha256": "ec0699197b9a9518794155edde4d08c4eee5b2862080bb1b6f6c9f1af087361a",
+    "audit_sha256": "f3253eeaf5d58dd9498c9cb2ea63488ff6438a0ffafa1b8a03e93a66773a6698",
+    "direct_backend": {
+      "GC": "explicit-D65-neutral-PCHIP",
+      "WB": "numpy-diagonal/matrix",
+      "CC": "disabled",
+      "GC_execution": {
+        "actual_backend": "cpu-numpy",
+        "requested_backend": "auto",
+        "fallback_reason": null,
+        "precision": "float64",
+        "LUT": false,
+        "runtime_fallback": false,
+        "method": "reference-D65-neutral-PCHIP",
+        "downstream_rgb_gain_bound": 0.9,
+        "backends_used": [
+          "cpu-numpy"
+        ],
+        "calls_by_backend": {
+          "cpu-numpy": 1
+        },
+        "runtime_fallback_occurred": false,
+        "fallback_reasons": []
+      }
+    },
+    "direct_backend_error": {
+      "samples": 909,
+      "max_rgb_error": 0.0,
+      "p95_rgb_error": 0.0,
+      "max_delta_e00": 0.0,
+      "p95_delta_e00": 0.0,
+      "rgb_error_encoding": "srgb",
+      "delta_e_white": "D65"
+    },
+    "direct_backend_audit": {
+      "samples": 935,
+      "max_rgb_error": 0.0,
+      "p95_rgb_error": 0.0,
+      "max_delta_e00": 0.0,
+      "p95_delta_e00": 0.0,
+      "rgb_error_encoding": "srgb",
+      "delta_e_white": "D65"
+    },
+    "direct_backend_selected": "auto",
+    "direct_roundoff_limits": {
+      "max_rgb_error": 5e-12,
+      "max_delta_e00": 1e-08
+    },
+    "direct_GC_error": {
+      "qualification_max_encoded_rgb_error": 0.0,
+      "audit_max_encoded_rgb_error": 0.0,
+      "max_encoded_rgb_limit": 5e-12
+    }
+  },
+  "all_checks_passed": true
+}

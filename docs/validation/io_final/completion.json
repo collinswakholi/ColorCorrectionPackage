@@ -1,0 +1,30 @@
+{
+  "completed_utc": "2026-10-29T20:47:53.545762+00:00",
+  "all_checks_passed": true,
+  "application_files": 44,
+  "changed_application_files_from_preceding_wheel": [
+    "ColorCorrectionPipeline/_image_numeric.py",
+    "ColorCorrectionPipeline/contracts.py",
+    "ColorCorrectionPipeline/io/writers.py",
+    "ColorCorrectionPipeline/prediction.py"
+  ],
+  "tests_passed": 1261,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "source_unchanged_since_qualification": true,
+  "python_source_tree_sha256": "fac4e692ad5664513ef3ec282121e0f1269be20855a4838bcb95b47bb52aa48a",
+  "wheel_sha256": "c26d3e1906a3cc26e8ebef2d1d12269d6e28828efd647a799359154775740b2f",
+  "sdist_sha256": "904e72d8b49545fd1559cabea7af009668538c773fb9e3db84bdd63aad46ce8d",
+  "isolated_installed_profiles": 4,
+  "exact_default_bytes_and_export_facts": true,
+  "fast_profile_exact_samples_and_source_facts": true,
+  "real_ui_cpu_and_gpu_checked": true,
+  "chart_gpu_execution_verified": true,
+  "ui_checkout_clean": true,
+  "ci_syntax_and_doc_links_checked": true,
+  "remote_ci_unrun": true,
+  "no_push_tag_release_or_publication": true,
+  "local_review_commit_prepared_separately": true,
+  "end_to_end_ui_parity_reached": false
+}

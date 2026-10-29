@@ -1,0 +1,533 @@
+{
+  "mode": "auto",
+  "strict_gpu": true,
+  "rotation": 0,
+  "resolution": "original",
+  "source_fingerprints": {
+    "charts.py": "14921d522cb1360fca85fc88b1b15a4c93243f9ff666013f29c694e571c8f461",
+    "providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268"
+  },
+  "cases": [
+    {
+      "image": "ColorCard_Big.JPG",
+      "sha256": "f942a60763713b536fff1023b5fde6ebf1bc8f6c11c85b667b6672b8fca321bb",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "WebGpuExecutionProvider",
+          "graphics_backend": "D3D12",
+          "device_id": null,
+          "runtime_version": "1.31.1",
+          "library": "onnxruntime_providers_webgpu.dll",
+          "options": {
+            "enableGraphCapture": "0",
+            "powerPreference": "high-performance",
+            "deviceId": "0",
+            "dawnBackendType": "D3D12"
+          },
+          "enumerated_gpu_devices": [
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "NVIDIA",
+              "device_id": 9989,
+              "metadata": {
+                "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+                "Discrete": "1",
+                "DxgiAdapterNumber": "1",
+                "DxgiHighPerformanceIndex": "0",
+                "DxgiVideoMemory": "16061 MB",
+                "LUID": "58194"
+              }
+            },
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "Intel Corporation",
+              "device_id": 42880,
+              "metadata": {
+                "Description": "Intel(R) UHD Graphics 770",
+                "Discrete": "0",
+                "DxgiAdapterNumber": "0",
+                "DxgiHighPerformanceIndex": "1",
+                "DxgiVideoMemory": "128 MB",
+                "LUID": "65837"
+              }
+            }
+          ],
+          "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+          "registered_providers": [
+            "WebGpuExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {},
+          "requested_device": "auto",
+          "selected_device": "webgpu",
+          "provider": "WebGpuExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "AzureExecutionProvider",
+            "CPUExecutionProvider",
+            "WebGpuExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "cuda",
+              "provider": "CUDAExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "DmlExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "webgpu",
+              "provider": "WebGpuExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "WebGpuExecutionProvider": 210
+          },
+          "anchors": 9
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 3.4080794097558945e-07,
+          "maximum_absolute_normalized_rgb_difference": 2.6003842894990123e-06
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 11.599830199964345
+    },
+    {
+      "image": "ColorCard_Combo.JPG",
+      "sha256": "7d666664b018e544a43d986184a6520bc27479cbf5a739b5da6da064316d3740",
+      "expected_charts": 2,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 2,
+      "gpu_charts": 2,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 2,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "WebGpuExecutionProvider",
+          "graphics_backend": "D3D12",
+          "device_id": null,
+          "runtime_version": "1.31.1",
+          "library": "onnxruntime_providers_webgpu.dll",
+          "options": {
+            "enableGraphCapture": "0",
+            "powerPreference": "high-performance",
+            "deviceId": "0",
+            "dawnBackendType": "D3D12"
+          },
+          "enumerated_gpu_devices": [
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "NVIDIA",
+              "device_id": 9989,
+              "metadata": {
+                "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+                "Discrete": "1",
+                "DxgiAdapterNumber": "1",
+                "DxgiHighPerformanceIndex": "0",
+                "DxgiVideoMemory": "16061 MB",
+                "LUID": "58194"
+              }
+            },
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "Intel Corporation",
+              "device_id": 42880,
+              "metadata": {
+                "Description": "Intel(R) UHD Graphics 770",
+                "Discrete": "0",
+                "DxgiAdapterNumber": "0",
+                "DxgiHighPerformanceIndex": "1",
+                "DxgiVideoMemory": "128 MB",
+                "LUID": "65837"
+              }
+            }
+          ],
+          "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+          "registered_providers": [
+            "WebGpuExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {},
+          "requested_device": "auto",
+          "selected_device": "webgpu",
+          "provider": "WebGpuExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "AzureExecutionProvider",
+            "CPUExecutionProvider",
+            "WebGpuExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "cuda",
+              "provider": "CUDAExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "DmlExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "webgpu",
+              "provider": "WebGpuExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "WebGpuExecutionProvider": 210
+          },
+          "anchors": 16
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 1.8255223042557253e-07,
+          "maximum_absolute_normalized_rgb_difference": 1.5129508593712244e-06
+        },
+        {
+          "cpu_face": 1,
+          "gpu_face": 1,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 0.0,
+          "maximum_absolute_normalized_rgb_difference": 0.0
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 4.813200799981132
+    },
+    {
+      "image": "Sample_3572.JPG",
+      "sha256": "3d6f8a5d5de5390bc6348fb416118ff9cbfc4fd41153792ae5e7134c825c8d87",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "WebGpuExecutionProvider",
+          "graphics_backend": "D3D12",
+          "device_id": null,
+          "runtime_version": "1.31.1",
+          "library": "onnxruntime_providers_webgpu.dll",
+          "options": {
+            "enableGraphCapture": "0",
+            "powerPreference": "high-performance",
+            "deviceId": "0",
+            "dawnBackendType": "D3D12"
+          },
+          "enumerated_gpu_devices": [
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "NVIDIA",
+              "device_id": 9989,
+              "metadata": {
+                "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+                "Discrete": "1",
+                "DxgiAdapterNumber": "1",
+                "DxgiHighPerformanceIndex": "0",
+                "DxgiVideoMemory": "16061 MB",
+                "LUID": "58194"
+              }
+            },
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "Intel Corporation",
+              "device_id": 42880,
+              "metadata": {
+                "Description": "Intel(R) UHD Graphics 770",
+                "Discrete": "0",
+                "DxgiAdapterNumber": "0",
+                "DxgiHighPerformanceIndex": "1",
+                "DxgiVideoMemory": "128 MB",
+                "LUID": "65837"
+              }
+            }
+          ],
+          "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+          "registered_providers": [
+            "WebGpuExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {},
+          "requested_device": "auto",
+          "selected_device": "webgpu",
+          "provider": "WebGpuExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "AzureExecutionProvider",
+            "CPUExecutionProvider",
+            "WebGpuExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "cuda",
+              "provider": "CUDAExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "DmlExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "webgpu",
+              "provider": "WebGpuExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "WebGpuExecutionProvider": 210
+          },
+          "anchors": 8
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 0.0,
+          "maximum_absolute_normalized_rgb_difference": 0.0
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 3.7717763000400737
+    },
+    {
+      "image": "Sample_3573.JPG",
+      "sha256": "70a08fdd115a058f5b0119b60dfcb0ef799809d27d78bd87e5e47c56bb4d2ef1",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "WebGpuExecutionProvider",
+          "graphics_backend": "D3D12",
+          "device_id": null,
+          "runtime_version": "1.31.1",
+          "library": "onnxruntime_providers_webgpu.dll",
+          "options": {
+            "enableGraphCapture": "0",
+            "powerPreference": "high-performance",
+            "deviceId": "0",
+            "dawnBackendType": "D3D12"
+          },
+          "enumerated_gpu_devices": [
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "NVIDIA",
+              "device_id": 9989,
+              "metadata": {
+                "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+                "Discrete": "1",
+                "DxgiAdapterNumber": "1",
+                "DxgiHighPerformanceIndex": "0",
+                "DxgiVideoMemory": "16061 MB",
+                "LUID": "58194"
+              }
+            },
+            {
+              "type": "OrtHardwareDeviceType.GPU",
+              "vendor": "Intel Corporation",
+              "device_id": 42880,
+              "metadata": {
+                "Description": "Intel(R) UHD Graphics 770",
+                "Discrete": "0",
+                "DxgiAdapterNumber": "0",
+                "DxgiHighPerformanceIndex": "1",
+                "DxgiVideoMemory": "128 MB",
+                "LUID": "65837"
+              }
+            }
+          ],
+          "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+          "registered_providers": [
+            "WebGpuExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {},
+          "requested_device": "auto",
+          "selected_device": "webgpu",
+          "provider": "WebGpuExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "AzureExecutionProvider",
+            "CPUExecutionProvider",
+            "WebGpuExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "cuda",
+              "provider": "CUDAExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "failed",
+              "type": "ProviderUnavailableError",
+              "reason": "DmlExecutionProvider is not advertised by installed ONNX Runtime"
+            },
+            {
+              "device": "webgpu",
+              "provider": "WebGpuExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "WebGpuExecutionProvider": 210
+          },
+          "anchors": 8
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 1.2220492835336054e-06,
+          "maximum_absolute_normalized_rgb_difference": 3.6405380053209086e-05
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 3.928470400045626
+    },
+    {
+      "image": "Blank.JPG",
+      "sha256": "95d7dd22b165fa5304247241c541886c466b2ae35774e7a757a2347e18ebaada",
+      "expected_charts": 0,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "expected_negative",
+      "cpu_charts": 0,
+      "gpu_charts": 0,
+      "cpu_error": "NoChartDetectedError",
+      "gpu_error": "NoChartDetectedError",
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "failed",
+          "reason": "model inference found no valid chart lattice",
+          "error_type": "NoChartDetectedError",
+          "provider_attempts": []
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 2.5929055999731645
+    }
+  ],
+  "note": "CPU comparison is same-photo equivalence, not independent physical color truth. GPU node counts verify the cached session's initial forward.",
+  "passed": true,
+  "elapsed_seconds": 28.91471280006226
+}

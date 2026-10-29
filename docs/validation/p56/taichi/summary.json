@@ -1,0 +1,248 @@
+{
+  "date": "2026-10-28",
+  "case_count": 128,
+  "matrix": {
+    "cpu-f64": 30,
+    "cpu-f32": 30,
+    "nvidia-vulkan-f32": 30,
+    "nvidia-vulkan-f64": 18,
+    "intel-vulkan-f32": 20
+  },
+  "unexpected_failures": 0,
+  "max_abs_error_vs_original_f64": {
+    "cpu-f64": {
+      "lut": 4.440892098500626e-16,
+      "lab": 1.6697754290362354e-13,
+      "ffc": 1.7180701306074297e-14,
+      "wb": 0.0,
+      "poly3": 2.220446049250313e-16
+    },
+    "cpu-f32": {
+      "lut": 2.006938819576476e-07,
+      "lab": 7.49747125494693e-05,
+      "ffc": 7.448425480463539e-06,
+      "wb": 1.3232148221575812e-07,
+      "poly3": 1.0833643637742085e-07
+    },
+    "nvidia-vulkan-f32": {
+      "lut": 1.777093195931556e-07,
+      "lab": 0.00011112516781963677,
+      "ffc": 1.1926508481550913e-05,
+      "wb": 1.3232148221575812e-07,
+      "poly3": 1.0818926021727293e-07
+    },
+    "nvidia-vulkan-f64": {
+      "lut": 3.3306690738754696e-16,
+      "lab": null,
+      "ffc": null,
+      "wb": 0.0,
+      "poly3": 0.0
+    },
+    "intel-vulkan-f32": {
+      "lut": 1.2481139599618274e-07,
+      "lab": 0.00010346690450546703,
+      "ffc": 9.449622718697703e-06,
+      "wb": 1.322686329352507e-07,
+      "poly3": 1.0696571117740916e-07
+    }
+  },
+  "measured_benchmark_script_sha256": "df077a4e6781c3883b34e51cd41acd75792108fc20421db1fbb6fae7a1e8d43c",
+  "portable_benchmark_script_sha256": "cbb36a83ef5c8b20dce167d120744f21bfb830a92e45cf108dac3b1f15147d06",
+  "measured_onnx_reference_script_sha256": "0679ee5ccb79b0384ed9aac56338c2dc67ee97d11d52d7b861417eb098bfed19",
+  "original_accel_sha256": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+  "original_predict_direct_sha256": "f56e53a4cc0219d2a49488b6e112e3ac78d73b34de5188b758dd7ddb22e7434a",
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.6",
+    "numba": "0.65.1",
+    "taichi": "1.7.4"
+  },
+  "hardware_not_measured": [
+    "Radeon",
+    "Apple Silicon/Metal",
+    "Linux/ARM",
+    "Taichi CUDA"
+  ],
+  "production_taichi_changes": false,
+  "onnx_reference": {
+    "cpu": {
+      "scope": "unchanged ORT detector, letterbox+ONNX+decode+geometry; excludes disk decode; not Taichi NN inference",
+      "device": "cpu",
+      "cpu_fallback_allowed": false,
+      "original_photo": "ColorCard_Big.JPG",
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "photo_sha256": "f942a60763713b536fff1023b5fde6ebf1bc8f6c11c85b667b6672b8fca321bb",
+      "model_sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+      "cpu_threads": 4,
+      "opencv_threads": 32,
+      "first_call_including_session_init_ms": 814.5484,
+      "warmups": 3,
+      "repeats": 11,
+      "median_ms": 494.1962,
+      "p95_ms": 520.24475,
+      "samples_ms": [
+        494.6352,
+        496.8378,
+        493.1936,
+        494.1962,
+        492.1294,
+        543.3077,
+        493.7249,
+        497.1818,
+        494.8682,
+        490.8889,
+        490.4582
+      ],
+      "faces": 1,
+      "execution_details": {
+        "requested_provider": "CPUExecutionProvider",
+        "graphics_backend": null,
+        "device_id": null,
+        "runtime_version": "1.31.1",
+        "registered_providers": [
+          "CPUExecutionProvider"
+        ],
+        "provider_options": {},
+        "requested_device": "cpu",
+        "selected_device": "cpu",
+        "provider": "CPUExecutionProvider",
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+        "model": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\ColorCorrectionPipeline\\detection\\models\\chart_detector_1280.onnx",
+        "input_size": 1280,
+        "available_providers": [
+          "AzureExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "attempts": [
+          {
+            "device": "cpu",
+            "provider": "CPUExecutionProvider",
+            "status": "succeeded"
+          }
+        ],
+        "cpu_fallback": false,
+        "execution_verified": true,
+        "execution_evidence": "explicit_cpu_only_session",
+        "node_provider_counts": {},
+        "anchors": 9
+      }
+    },
+    "vulkan": {
+      "scope": "unchanged ORT detector, letterbox+ONNX+decode+geometry; excludes disk decode; not Taichi NN inference",
+      "device": "vulkan",
+      "cpu_fallback_allowed": false,
+      "original_photo": "ColorCard_Big.JPG",
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "photo_sha256": "f942a60763713b536fff1023b5fde6ebf1bc8f6c11c85b667b6672b8fca321bb",
+      "model_sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+      "cpu_threads": 4,
+      "opencv_threads": 32,
+      "first_call_including_session_init_ms": 1768.3957,
+      "warmups": 3,
+      "repeats": 11,
+      "median_ms": 183.9554,
+      "p95_ms": 200.089,
+      "samples_ms": [
+        180.7166,
+        179.5657,
+        182.4281,
+        182.0076,
+        179.8196,
+        183.9554,
+        196.0291,
+        195.2084,
+        196.1566,
+        200.5217,
+        199.6563
+      ],
+      "faces": 1,
+      "execution_details": {
+        "requested_provider": "WebGpuExecutionProvider",
+        "graphics_backend": "Vulkan",
+        "device_id": null,
+        "runtime_version": "1.31.1",
+        "library": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\onnxruntime_ep_webgpu\\onnxruntime_providers_webgpu.dll",
+        "options": {
+          "enableGraphCapture": "0",
+          "powerPreference": "high-performance",
+          "deviceId": "0",
+          "dawnBackendType": "Vulkan"
+        },
+        "enumerated_gpu_devices": [
+          {
+            "type": "OrtHardwareDeviceType.GPU",
+            "vendor": "NVIDIA",
+            "device_id": 9989,
+            "metadata": {
+              "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+              "Discrete": "1",
+              "DxgiAdapterNumber": "1",
+              "DxgiHighPerformanceIndex": "0",
+              "DxgiVideoMemory": "16061 MB",
+              "LUID": "58194"
+            }
+          },
+          {
+            "type": "OrtHardwareDeviceType.GPU",
+            "vendor": "Intel Corporation",
+            "device_id": 42880,
+            "metadata": {
+              "Description": "Intel(R) UHD Graphics 770",
+              "Discrete": "0",
+              "DxgiAdapterNumber": "0",
+              "DxgiHighPerformanceIndex": "1",
+              "DxgiVideoMemory": "128 MB",
+              "LUID": "65837"
+            }
+          }
+        ],
+        "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+        "registered_providers": [
+          "WebGpuExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "provider_options": {},
+        "requested_device": "vulkan",
+        "selected_device": "vulkan",
+        "provider": "WebGpuExecutionProvider",
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+        "model": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\ColorCorrectionPipeline\\detection\\models\\chart_detector_1280.onnx",
+        "input_size": 1280,
+        "available_providers": [
+          "AzureExecutionProvider",
+          "CPUExecutionProvider",
+          "WebGpuExecutionProvider"
+        ],
+        "attempts": [
+          {
+            "device": "vulkan",
+            "provider": "WebGpuExecutionProvider",
+            "status": "succeeded"
+          }
+        ],
+        "cpu_fallback": false,
+        "execution_verified": true,
+        "execution_evidence": "node_profile",
+        "node_provider_counts": {
+          "WebGpuExecutionProvider": 210
+        },
+        "anchors": 9
+      }
+    }
+  },
+  "expected_fp64_power_compile_rejection": {
+    "backend": "vulkan",
+    "precision": "float64",
+    "nonzero_exit_observed": true,
+    "message": "[glsl450] the operand type of instruction Pow(26) must <=32bits",
+    "log_sha256": "129a781a7aa92d073efa3c289d91690870d77a311d80a473378420474af5f8ca"
+  }
+}

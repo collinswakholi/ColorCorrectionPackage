@@ -27,6 +27,9 @@ def read_image(
     color_space: str = "rgb",
     dtype: str = "float64",
     range_: str = "0-1",
+    *,
+    strict: bool = False,
+    image_options=None,
 ) -> np.ndarray:
     """
     Read image from file with proper color space handling.
@@ -50,6 +53,26 @@ def read_image(
         >>> print(img_rgb.dtype)  # float64
         >>> print(img_rgb.min(), img_rgb.max())  # 0.0 1.0
     """
+    if type(strict) is not bool:
+        raise TypeError("strict must be boolean")
+    if strict:
+        from .image_data import read_image_data
+        if color_space.lower() not in ("rgb", "bgr"):
+            raise ValueError("strict reader returns three-channel RGB/BGR; choose grayscale preprocessing explicitly")
+        if dtype.lower() not in ("float32", "float64", "uint8", "uint16"):
+            raise ValueError("unsupported strict output dtype")
+        expected_range = "0-1" if dtype.lower().startswith("float") else "0-255" if dtype.lower() == "uint8" else "0-65535"
+        if range_ != expected_range:
+            raise ValueError("strict reader range_ must match the selected output dtype")
+        data = read_image_data(path, **(image_options or {}))
+        pixels = data.pixels
+        if color_space.lower() == "bgr":
+            pixels = pixels[..., ::-1]
+        if dtype.lower() in ("uint8", "uint16"):
+            return np.rint(pixels * np.iinfo(dtype.lower()).max).astype(dtype.lower())
+        return pixels.astype(dtype.lower())
+    if image_options is not None:
+        raise ValueError("image_options requires strict=True")
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Image file not found: {path}")
@@ -124,6 +147,9 @@ def read_batch(
     dtype: str = "float64",
     range_: str = "0-1",
     verbose: bool = True,
+    *,
+    strict: bool = False,
+    image_options=None,
 ) -> Tuple[List[np.ndarray], List[str]]:
     """
     Read multiple images in batch.
@@ -150,7 +176,7 @@ def read_batch(
     
     for i, path in enumerate(paths):
         try:
-            img = read_image(path, color_space=color_space, dtype=dtype, range_=range_)
+            img = read_image(path, color_space=color_space, dtype=dtype, range_=range_, strict=strict, image_options=image_options)
             images.append(img)
             if verbose:
                 print(f"Info: Read image {i+1}/{len(paths)}: {path}")

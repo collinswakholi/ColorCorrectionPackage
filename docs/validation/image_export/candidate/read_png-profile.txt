@@ -1,0 +1,53 @@
+         9799 function calls (9301 primitive calls) in 2.695 seconds
+
+   Ordered by: cumulative time
+   List reduced from 259 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.004    0.004    2.695    2.695 bench_image_io.py:103(<lambda>)
+        1    0.001    0.001    2.692    2.692 image_data.py:252(read_image_data)
+        1    0.001    0.001    2.039    2.039 contracts.py:345(from_array)
+        1    0.356    0.356    1.685    1.685 contracts.py:130(_normalized_image_snapshot)
+      380    1.196    0.003    1.196    0.003 {method 'write' of '_io.BytesIO' objects}
+        1    0.000    0.000    0.627    0.627 image_data.py:166(_decode)
+        1    0.615    0.615    0.615    0.615 {imdecode}
+        1    0.000    0.000    0.353    0.353 <string>:2(__init__)
+        1    0.000    0.000    0.353    0.353 contracts.py:303(__post_init__)
+        1    0.000    0.000    0.241    0.241 contracts.py:110(_image_digests)
+        1    0.000    0.000    0.240    0.240 _base.py:646(__exit__)
+        1    0.000    0.000    0.240    0.240 thread.py:220(shutdown)
+        1    0.000    0.000    0.240    0.240 threading.py:1117(join)
+    14/11    0.000    0.000    0.240    0.022 {method 'acquire' of '_thread.lock' objects}
+        1    0.000    0.000    0.240    0.240 threading.py:1155(_wait_for_tstate_lock)
+        1    0.001    0.001    0.240    0.240 _base.py:428(result)
+        3    0.000    0.000    0.239    0.080 threading.py:323(wait)
+      381    0.007    0.000    0.210    0.001 contracts.py:103(_image_bounds)
+      764    0.194    0.000    0.194    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      381    0.001    0.000    0.101    0.000 {method 'min' of 'numpy.ndarray' objects}
+      381    0.001    0.000    0.100    0.000 _methods.py:43(_amin)
+      381    0.001    0.000    0.096    0.000 {method 'max' of 'numpy.ndarray' objects}
+      381    0.001    0.000    0.095    0.000 _methods.py:39(_amax)
+      380    0.030    0.000    0.030    0.000 {built-in method numpy.array}
+        1    0.000    0.000    0.014    0.014 image_data.py:22(_read_snapshot)
+        1    0.001    0.001    0.011    0.011 image_data.py:36(_png_metadata_snapshot)
+      120    0.010    0.000    0.010    0.000 {built-in method zlib.crc32}
+        9    0.009    0.001    0.009    0.001 {method 'read' of '_io.BufferedReader' objects}
+        3    0.009    0.003    0.009    0.003 {built-in method _hashlib.openssl_sha256}
+        1    0.004    0.004    0.004    0.004 {method 'join' of 'bytes' objects}
+      381    0.001    0.000    0.004    0.000 _ufunc_config.py:472(__enter__)
+      381    0.001    0.000    0.002    0.000 _ufunc_config.py:488(__exit__)
+        1    0.000    0.000    0.002    0.002 thread.py:54(run)
+        1    0.000    0.000    0.001    0.001 pathlib.py:835(stat)
+        1    0.001    0.001    0.001    0.001 {built-in method nt.stat}
+      2/1    0.000    0.000    0.001    0.001 contracts.py:226(_hash_parts)
+      381    0.001    0.000    0.001    0.000 {built-in method numpy._core._multiarray_umath._make_extobj}
+      6/3    0.236    0.039    0.001    0.000 {method 'update' of '_hashlib.HASH' objects}
+      381    0.001    0.000    0.001    0.000 {method 'reset' of '_contextvars.ContextVar' objects}
+  752/442    0.000    0.000    0.001    0.000 {built-in method builtins.isinstance}
+      381    0.001    0.000    0.001    0.000 {method 'set' of '_contextvars.ContextVar' objects}
+    121/4    0.000    0.000    0.001    0.000 contracts.py:28(_plain)
+        1    0.000    0.000    0.001    0.001 contracts.py:44(_metadata)
+        1    0.001    0.001    0.001    0.001 {method 'getvalue' of '_io.BytesIO' objects}
+      155    0.000    0.000    0.001    0.000 typing.py:1221(__instancecheck__)
+
+

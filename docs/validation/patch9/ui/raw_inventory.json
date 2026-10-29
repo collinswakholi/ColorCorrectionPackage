@@ -1,0 +1,111 @@
+{
+  "root": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui",
+  "files": [
+    {
+      "path": "benchmark-ui/metadata.json",
+      "bytes": 2315,
+      "sha256": "88454262d0bbe75db912c3faaf189e06b81921809945860cdf772bd0fa5afc87"
+    },
+    {
+      "path": "benchmark-ui/benchmark.json",
+      "bytes": 363023,
+      "sha256": "bf5998cc77e45fe75da1d3e3ab447795c86f5fa1b7be69574c413f5cf627ddd9"
+    },
+    {
+      "path": "functional/metadata.json",
+      "bytes": 1878,
+      "sha256": "ea979dcb8cbf6b2bffe4ec1b57e86e12d5a604d14abc7a7c5a2f39de74ba27ae"
+    },
+    {
+      "path": "functional/functional.json",
+      "bytes": 264757,
+      "sha256": "a069f278e8267e441c53dab26ae80239f0c85e5c6570706db59bab294810ca76"
+    },
+    {
+      "path": "benchmark-p78/benchmark.json",
+      "bytes": 231322,
+      "sha256": "91cc55a95585a8e91a6ac0cfa28c8fc85462379810d8f3d563428dac29ac2659"
+    },
+    {
+      "path": "benchmark-p9-direct/benchmark.json",
+      "bytes": 265591,
+      "sha256": "90340f6d152f36d04169510a9b7999a729b2726919b52b0a4f773d254091bb4a"
+    },
+    {
+      "path": "benchmark-p9-auto/benchmark.json",
+      "bytes": 292930,
+      "sha256": "23b2ab04574da7bfd8175ecf872f6ac8a3b3b6d5105fbc1b46c35a88e7bb7128"
+    },
+    {
+      "path": "benchmark-p9-preview/benchmark.json",
+      "bytes": 314866,
+      "sha256": "4528cd2c935863062af35f7ccbd68842478b1264ad3393fbfd535a784f4e1fe2"
+    },
+    {
+      "path": "final-source/final.json",
+      "bytes": 102325,
+      "sha256": "69bf632971c354e1deda7088e1f8c195754f2affe7d6942def9453c5488e1860"
+    },
+    {
+      "path": "final-png/final-png.json",
+      "bytes": 35916,
+      "sha256": "027a42ecc2c8d0f313e6ecab60c0c51ff37a06e986a3eff251e5aa9c21d1314d"
+    },
+    {
+      "path": "detect-p78/detection.json",
+      "bytes": 23509,
+      "sha256": "84a0c45ae03ec93b26e998590efe0d42fc0995d362e1fd948c33a754be37b170"
+    },
+    {
+      "path": "detect-p9/detection.json",
+      "bytes": 23216,
+      "sha256": "6d54158f8ca213290378686250fb1a879bd47d715a30a3c7502c12817dd85857"
+    },
+    {
+      "path": "detect-p9-explicit-temp/detection.json",
+      "bytes": 25779,
+      "sha256": "24f87a786ccdaf8402d1b8f1102224d4d611024406c4a454e9ce1ff414ea0205"
+    },
+    {
+      "path": "ui-fast-accuracy/accuracy.json",
+      "bytes": 34119,
+      "sha256": "f467863fe2ce15d27363a7b6650f1c816faef239308c91dbffbda1da0591636a"
+    },
+    {
+      "path": "runtime-spread/runtime-spread.json",
+      "bytes": 184118,
+      "sha256": "6c886126f67f4a69ce3e9c45e66137a81a1739c3cacd9040d94524ef00259fe4"
+    },
+    {
+      "path": "preview-stress/stress.json",
+      "bytes": 31158,
+      "sha256": "5f56ebdb38e8481d74e985e266a63e896129d7ceee90b92e21536126ea30e5f6"
+    },
+    {
+      "path": "endpoint-stress/endpoint-stress.json",
+      "bytes": 9063,
+      "sha256": "acf70750831525f70456add493dfac5670dda711276971847ca871663c811068"
+    },
+    {
+      "path": "adversarial-full-pointwise.json",
+      "bytes": 1372,
+      "sha256": "d283fc381d14451a05f56e1c246f1f9a9026abe2f40fe2d6f4affe911d75b31e"
+    },
+    {
+      "path": "adversarial-full-witnesses.json",
+      "bytes": 5072,
+      "sha256": "51bebdba1e87563e25be19280649bc4bb5af7a1ab882c5195d5b5cc950cf90ea"
+    },
+    {
+      "path": "results_summary.json",
+      "bytes": 139418,
+      "sha256": "eb3ed486efb8ce4d186279c874b20a1a636b6e5f05f5baa1ee870b75d46541c3"
+    },
+    {
+      "path": "source_fingerprints.json",
+      "bytes": 7842,
+      "sha256": "4c3659e2e5aca45d0e53b4e52ab913c92b97f9685f412a37e7a39eb6819cf537"
+    }
+  ],
+  "excluded": "Derived PNG/JPEG/NPY images, cube exports, native binaries, and model weights are excluded from this copy inventory."
+}

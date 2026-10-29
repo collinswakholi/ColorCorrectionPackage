@@ -20,6 +20,8 @@ from typing import Any, Dict, Optional, Tuple
 
 import cv2
 import colour
+from ..conventional import apply_conventional
+from ..checker_compat import make_colour_checker
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -199,6 +201,38 @@ class Regressor_Model:
         self.use_lut = True
         self.lazy_lut = True
         self.lut_min_pixels = 4096
+
+    def __getstate__(self):
+        """Callbacks are derived runtime state, never persisted with the model."""
+        from .lut_cache import persistence_lut
+        state = self.__dict__.copy()
+        state["_lut"] = persistence_lut(self)
+        state.pop("_lut_predict_fn", None)
+        for name in ("_lut_lock", "_lut_identity", "_lut_failed_identity", "_lut_cache_info", "_lut_table_ref"):
+            state.pop(name, None)
+        return state
+
+    def __setstate__(self, state):
+        # Supply acceleration defaults for older trusted pickle containers.
+        self.__init__()
+        self.__dict__.update(state)
+        # Pre-LUT artifacts used exact estimator prediction; do not silently opt
+        # them into interpolation merely because new acceleration defaults exist.
+        if "use_lut" not in state:
+            self.use_lut = False
+        self._lut_predict_fn = None
+        if self.use_lut and self.model is not None:
+            self._lut_predict_fn = self._predict_for_lut
+        if self._lut is not None:
+            from .lut_cache import prime_lut_identity
+            prime_lut_identity(self)
+
+    def _predict_for_lut(self, rgb_n3):
+        return _predict_direct(rgb_n3, self)
+
+    def clear_lut_cache(self):
+        from .lut_cache import clear_lut_cache
+        clear_lut_cache(self)
 
 
 class CustomNN(BaseEstimator, RegressorMixin):
@@ -538,6 +572,18 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     if kwargs is None:
         kwargs = {}
 
+    if "fitting_policy" in kwargs:
+        from ..fitting import FittingPolicy, fit_observations
+        policy = FittingPolicy.from_value(kwargs["fitting_policy"])
+        if policy.version == "reproducible-v1":
+            modern = dict(kwargs)
+            modern.pop("fitting_policy")
+            groups = modern.pop("groups", None)
+            synthetic = modern.pop("synthetic_mask", None)
+            if groups is None:
+                raise ValueError("reproducible fitting requires explicit canonical groups")
+            return fit_observations(det_p, ref_p, groups, modern, policy, synthetic)
+
     M = Regressor_Model()
     M.mtd = str(kwargs.get("mtd", "linear")).lower()
     M.degree = _coerce_int(kwargs.get("degree", 3), 3)
@@ -618,7 +664,7 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     # Select model
     fit_method = M.mtd.lower()
     if fit_method not in model_dict:
-        fit_method = "linear"
+        raise ValueError(f"Unknown regression method: {M.mtd}. Choose linear, pls, nn or custom")
 
     M.model = model_dict[fit_method]
 
@@ -627,14 +673,11 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
 
     # ── Build 3D LUT for fast prediction ──
     try:
-        def _model_predict_rgb(rgb_n3):
-            """Predict using the fitted polynomial model."""
-            Xp, _ = get_poly_features(rgb_n3, degree=M.degree)
-            return M.model.predict(Xp)
-
-        M._lut_predict_fn = _model_predict_rgb if M.use_lut else None
+        M._lut_predict_fn = M._predict_for_lut if M.use_lut else None
         if M.use_lut and not M.lazy_lut:
-            M._lut = build_3d_lut(_model_predict_rgb, grid_size=M._lut_grid_size)
+            M._lut = build_3d_lut(M._lut_predict_fn, grid_size=M._lut_grid_size)
+            from .lut_cache import prime_lut_identity
+            prime_lut_identity(M)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Failed to build 3D LUT: {e}")
@@ -651,27 +694,21 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     else:
         X = RGB
 
-    X, _ = get_poly_features(X, degree=M.degree)
+    if getattr(M, "portable_inference", False) or getattr(M, "fitting_version", "legacy-v1") == "reproducible-v1":
+        # Match the recorded CPU feature precision/order rather than switching
+        # large prediction arrays to the legacy float32 CUDA feature generator.
+        from sklearn.preprocessing import PolynomialFeatures
+        X = PolynomialFeatures(degree=M.degree, include_bias=True).fit_transform(np.asarray(X, dtype=np.float64))
+    else:
+        X, _ = get_poly_features(X, degree=M.degree)
     pred = M.model.predict(X)
     return pred.reshape(orig_shape)
 
 
 def _ensure_lut(M: Regressor_Model) -> bool:
-    """Build a configured LUT on demand."""
-    if M._lut is not None:
-        return True
-    if not M.use_lut or M._lut_predict_fn is None:
-        return False
-
-    try:
-        M._lut = build_3d_lut(M._lut_predict_fn, grid_size=M._lut_grid_size)
-        return True
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Failed to build 3D LUT: {e}")
-        M._lut = None
-        M._lut_predict_fn = None
-        return False
+    """Synchronize one content-keyed owned LUT; transient state is not pickled."""
+    from .lut_cache import ensure_lut
+    return ensure_lut(M, build_3d_lut)
 
 
 def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
@@ -740,6 +777,7 @@ def predict_image(
     img: np.ndarray,
     coeffs: np.ndarray,
     ref_illuminant: np.ndarray = WP_DEFAULT,
+    explicit_color: bool = False,
 ) -> np.ndarray:
     """
     Apply gamma correction to image using polynomial coefficients.
@@ -757,6 +795,14 @@ def predict_image(
     """
     H, W, C = img.shape
     img_flat = img.reshape(-1, C)
+
+    if explicit_color:
+        from ..colorimetry import D65, white_xy, rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb
+        if white_xy(ref_illuminant) != D65:
+            raise ValueError("explicit gamma application requires working D65")
+        lab = xyz_to_lab(rgb_to_xyz(img_flat, encoding="srgb"), white=D65)
+        lab[:, 0] = poly_func(lab[:, 0], coeffs)
+        return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="preserve").reshape(H, W, C)
 
     # ── sRGB → Lab (fast) ──
     if HAS_NUMBA:
@@ -803,6 +849,9 @@ def estimate_gamma_profile(
     max_degree: int = 7,
     show: bool = False,
     get_deltaE: bool = False,
+    require_chart: bool = False,
+    explicit_color: bool = False,
+    reference_lightness=None,
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     Estimate optimal gamma correction polynomial from neutral patches.
@@ -830,14 +879,24 @@ def estimate_gamma_profile(
     Metrics_all = {}
 
     # Convert reference to Lab
-    ref_lab = convert_to_lab(ref_cp, ref_illuminant, c_space="srgb")
-    ref_L = ref_lab[:, 0]
+    if explicit_color:
+        from ..colorimetry import D65, white_xy, rgb_to_xyz, xyz_to_lab
+        if white_xy(ref_illuminant) != D65:
+            raise ValueError("explicit gamma fitting requires working D65")
+        ref_lab = xyz_to_lab(rgb_to_xyz(ref_cp, encoding="srgb", domain="extended"), white=D65)
+    else:
+        ref_lab = convert_to_lab(ref_cp, ref_illuminant, c_space="srgb")
+    ref_L = ref_lab[:, 0] if reference_lightness is None else np.asarray(reference_lightness, dtype=np.float64)
+    if ref_L.shape != (len(ref_cp),) or not np.isfinite(ref_L).all():
+        raise ValueError("reference_lightness must contain one finite L value per reference cell")
 
     # Extract neutral patches from image
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
     _, cps_before = extract_neutral_patches(img_bgr, return_one=True)
     
     if cps_before is None:
+        if require_chart:
+            raise ValueError("GC requires a detected Classic24 chart; no gamma model was fitted")
         # No patches found: keep prediction safe by returning an identity
         # polynomial for Lab L (y = x).
         return np.array([1, 0]), img_rgb, {}
@@ -845,7 +904,8 @@ def estimate_gamma_profile(
     values_cps = cps_before.values
 
     # Convert to Lab
-    values_lab = convert_to_lab(values_cps, ref_illuminant, c_space="srgb")
+    values_lab = (xyz_to_lab(rgb_to_xyz(values_cps, encoding="srgb"), white=D65) if explicit_color
+                  else convert_to_lab(values_cps, ref_illuminant, c_space="srgb"))
     values_L = values_lab[:, 0]
 
     # Augment with endpoints (100 and 0)
@@ -867,7 +927,7 @@ def estimate_gamma_profile(
         MSE.append(mse)
 
     # Find optimal degree using gradient
-    grad_MSE = np.gradient(MSE)
+    grad_MSE = np.gradient(MSE) if len(MSE) > 1 else np.array([0.0])
     min_idx = np.argmin(grad_MSE)
 
     # Filter function to avoid overfitting
@@ -896,7 +956,7 @@ def estimate_gamma_profile(
         print(f"Optimal polynomial degree: {degree}")
 
     # Apply gamma correction
-    img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant)
+    img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant, explicit_color=explicit_color)
 
     # Compute metrics
     if get_deltaE:
@@ -967,6 +1027,8 @@ def wb_correction(
     ref_illuminant: np.ndarray,
     show: bool = False,
     get_deltaE: bool = False,
+    require_chart: bool = False,
+    neutral_indices=None,
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     White balance correction using diagonal matrix from neutral patches.
@@ -993,13 +1055,15 @@ def wb_correction(
     Metrics_all = {}
     
     # Use only neutral patches (last 6)
-    ref_np = ref_cp[-6:]
+    ref_np = ref_cp[-6:] if neutral_indices is None else ref_cp[list(neutral_indices)]
 
     # Extract neutral patches from image
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
-    values_, cps_before = extract_neutral_patches(img_bgr, return_one=True)
+    values_, cps_before = extract_neutral_patches(img_bgr, return_one=True, neutral_indices=neutral_indices)
     
     if values_ is None or cps_before is None:
+        if require_chart:
+            raise ValueError("WB requires a detected Classic24 chart; no white-balance model was fitted")
         # No patches found, return original with identity matrix
         return np.eye(3), img_rgb, {}
     
@@ -1048,6 +1112,7 @@ def color_correction_1(
     cc_kwargs: Optional[dict] = None,
     show: bool = False,
     get_deltaE: bool = False,
+    require_chart: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, Any, dict]:
     """
     Color correction method 1: Conventional (Finlayson 2015).
@@ -1086,6 +1151,8 @@ def color_correction_1(
     _, color_patches = extract_neutral_patches(img_bgr, show=show)
     
     if color_patches is None:
+        if require_chart:
+            raise ValueError("CC requires a detected Classic24 chart; no correction matrix was fitted")
         # No patches found, return original with identity matrix
         return np.eye(3), img_rgb, None, {}
     
@@ -1097,7 +1164,7 @@ def color_correction_1(
     )
 
     # Apply CCM
-    img_rgb_ccm = colour.characterisation.apply_matrix_colour_correction(
+    img_rgb_ccm = apply_conventional(
         RGB=img_rgb, CCM=ccm, **cc_kwargs
     )
     img_rgb_ccm = np.clip(img_rgb_ccm, 0, 1)
@@ -1114,7 +1181,7 @@ def color_correction_1(
 
     # Create corrected color checker
     if show and color_patches_corrected is not None:
-        corrected_color_card = colour.characterisation.ColourChecker(
+        corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(
@@ -1179,6 +1246,13 @@ def extract_color_chart_ex(
         return None, None
     
     logger.debug(f"extract_color_chart_ex called: img.shape={img.shape}, img.dtype={img.dtype}, npts={npts}")
+
+    # Keep the extended training path on the selected detector too. Model samples
+    # preserve canonical cell order and reuse geometry within a calibration run.
+    from ..detection import model_chart_samples
+    model_samples = model_chart_samples(img, npts)
+    if model_samples is not None:
+        return model_samples, np.repeat(ref, npts, axis=0)
     
     # Suppress noisy warnings during chart detection
     with warnings.catch_warnings():
@@ -1545,7 +1619,7 @@ def color_correction(
 
     # Create corrected color checker
     if show and color_patches_corrected is not None:
-        corrected_color_card = colour.characterisation.ColourChecker(
+        corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(

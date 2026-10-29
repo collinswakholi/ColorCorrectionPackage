@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "file": "chart_detector_1280.onnx",
+  "bytes": 39354948,
+  "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+  "source": "ColorCorrectionPackage_UI models/opt2/best_assemble_fp32_1280.onnx",
+  "comparison_revision": "16c6f42176cbd392c167ecabea4bb2519984fda8",
+  "declared_model_license": "AGPL-3.0",
+  "notice": "UPSTREAM-NOTICE.md",
+  "license_text": "LICENSE-AGPL-3.0.txt",
+  "changes": "none; copied byte-for-byte from the inspected local UI model"
+}

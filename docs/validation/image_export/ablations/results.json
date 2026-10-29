@@ -1,0 +1,271 @@
+{
+  "shape": [
+    2160,
+    3840,
+    3
+  ],
+  "cv2_default_threads": 32,
+  "cv2_parallel_framework": [
+    "  Parallel framework:            Concurrency"
+  ],
+  "runs": [
+    {
+      "name": "parallel/float64_unit",
+      "median_ms": 233.1807,
+      "raw_ms": [
+        230.1535,
+        233.1807,
+        237.6434
+      ],
+      "cpu_raw_ms": [
+        375.0,
+        375.0,
+        359.375
+      ],
+      "median_cpu_ms": 375.0,
+      "peak_traced_bytes": 199081510
+    },
+    {
+      "name": "sequential/float64_unit",
+      "median_ms": 354.0563,
+      "raw_ms": [
+        368.4852,
+        350.7452,
+        354.0563
+      ],
+      "cpu_raw_ms": [
+        359.375,
+        343.75,
+        343.75
+      ],
+      "median_cpu_ms": 343.75,
+      "peak_traced_bytes": 199072606
+    },
+    {
+      "name": "growing/uint8",
+      "median_ms": 665.9316,
+      "raw_ms": [
+        714.6237,
+        659.4987,
+        665.9316
+      ],
+      "cpu_raw_ms": [
+        859.375,
+        812.5,
+        781.25
+      ],
+      "median_cpu_ms": 812.5,
+      "peak_traced_bytes": 212732040
+    },
+    {
+      "name": "growing/float64_nonunit",
+      "median_ms": 668.0438,
+      "raw_ms": [
+        667.6759,
+        680.7119,
+        668.0438
+      ],
+      "cpu_raw_ms": [
+        812.5,
+        781.25,
+        796.875
+      ],
+      "median_cpu_ms": 796.875,
+      "peak_traced_bytes": 212207672
+    },
+    {
+      "name": "preallocated/uint8",
+      "median_ms": 280.8684,
+      "raw_ms": [
+        280.8684,
+        283.5132,
+        279.8738
+      ],
+      "cpu_raw_ms": [
+        406.25,
+        421.875,
+        359.375
+      ],
+      "median_cpu_ms": 406.25,
+      "peak_traced_bytes": 200640643
+    },
+    {
+      "name": "preallocated/float64_nonunit",
+      "median_ms": 267.9797,
+      "raw_ms": [
+        266.1995,
+        267.9797,
+        277.8036
+      ],
+      "cpu_raw_ms": [
+        375.0,
+        406.25,
+        406.25
+      ],
+      "median_cpu_ms": 406.25,
+      "peak_traced_bytes": 200116275
+    },
+    {
+      "name": "full_inplace/uint8",
+      "median_ms": 294.3947,
+      "raw_ms": [
+        311.2123,
+        294.2052,
+        294.3947
+      ],
+      "cpu_raw_ms": [
+        437.5,
+        437.5,
+        421.875
+      ],
+      "median_cpu_ms": 437.5,
+      "peak_traced_bytes": 398145876
+    },
+    {
+      "name": "full_inplace/float64_nonunit",
+      "median_ms": 305.5883,
+      "raw_ms": [
+        314.0156,
+        305.5883,
+        305.2059
+      ],
+      "cpu_raw_ms": [
+        453.125,
+        453.125,
+        437.5
+      ],
+      "median_cpu_ms": 453.125,
+      "peak_traced_bytes": 398145845
+    },
+    {
+      "name": "native_snapshot/uint8",
+      "median_ms": 289.8071,
+      "raw_ms": [
+        289.8071,
+        290.6438,
+        286.4042
+      ],
+      "cpu_raw_ms": [
+        421.875,
+        437.5,
+        421.875
+      ],
+      "median_cpu_ms": 421.875,
+      "peak_traced_bytes": 398146164
+    },
+    {
+      "name": "native_snapshot/float64_nonunit",
+      "median_ms": 308.6438,
+      "raw_ms": [
+        306.7885,
+        309.3688,
+        308.6438
+      ],
+      "cpu_raw_ms": [
+        437.5,
+        453.125,
+        437.5
+      ],
+      "median_cpu_ms": 437.5,
+      "peak_traced_bytes": 398145745
+    },
+    {
+      "name": "opencv_before/to_srgb_copy",
+      "median_ms": 41.374,
+      "raw_ms": [
+        41.374,
+        41.0173,
+        44.711
+      ],
+      "cpu_raw_ms": [
+        46.875,
+        46.875,
+        46.875
+      ],
+      "median_cpu_ms": 46.875
+    },
+    {
+      "name": "opencv_before/encode",
+      "median_ms": 244.0955,
+      "raw_ms": [
+        241.8335,
+        244.346,
+        244.0955
+      ],
+      "cpu_raw_ms": [
+        218.75,
+        250.0,
+        250.0
+      ],
+      "median_cpu_ms": 250.0
+    },
+    {
+      "name": "opencv_after/to_srgb_copy",
+      "median_ms": 41.5278,
+      "raw_ms": [
+        42.2567,
+        41.5278,
+        41.4368
+      ],
+      "cpu_raw_ms": [
+        46.875,
+        31.25,
+        31.25
+      ],
+      "median_cpu_ms": 31.25
+    },
+    {
+      "name": "opencv_after/encode",
+      "median_ms": 243.3803,
+      "raw_ms": [
+        244.9177,
+        242.0311,
+        243.3803
+      ],
+      "cpu_raw_ms": [
+        250.0,
+        234.375,
+        250.0
+      ],
+      "median_cpu_ms": 250.0
+    },
+    {
+      "name": "opencv_one_thread/to_srgb_copy",
+      "median_ms": 43.287,
+      "raw_ms": [
+        43.8783,
+        42.3396,
+        43.287
+      ],
+      "cpu_raw_ms": [
+        46.875,
+        31.25,
+        46.875
+      ],
+      "median_cpu_ms": 46.875
+    },
+    {
+      "name": "opencv_one_thread/encode",
+      "median_ms": 248.2568,
+      "raw_ms": [
+        244.7375,
+        328.6246,
+        248.2568
+      ],
+      "cpu_raw_ms": [
+        234.375,
+        312.5,
+        250.0
+      ],
+      "median_cpu_ms": 250.0
+    }
+  ],
+  "host_memory": {
+    "total": 34028462080,
+    "available": 6693920768,
+    "percent": 80.3,
+    "used": 27334541312,
+    "free": 6693920768
+  },
+  "initial_rss": 841764864
+}

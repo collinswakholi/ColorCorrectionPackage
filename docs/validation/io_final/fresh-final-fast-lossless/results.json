@@ -1,0 +1,1116 @@
+{
+  "site": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+  "package_file": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\ColorCorrectionPipeline\\__init__.py",
+  "threads": 8,
+  "source_sha256": {
+    "acceleration.py": "329aa3008800829cb804629aaff650f025376efaea7809e1238d97539cf5b8bb",
+    "batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+    "bundle.py": "8c35ae0eee500aa057c5496f0ee89d8068a2914e72544b09b052deee7b4fcb73",
+    "checker_compat.py": "bd69209d93eb8dfed262bf7e87b5e64ce26dead974d835b37a1626910d21d85d",
+    "colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+    "config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+    "constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+    "contracts.py": "c481c445568c2fc501056661e21d35d471dfa9505d73bb1f4e33b68b238603a3",
+    "conventional.py": "2217fb9561ccef70fdaf6d9e5d3cb49144c0a1e566fd60cbefa74bc72bdc61e3",
+    "evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+    "fitting.py": "530ffd4827404b48553f723cb83adc11eb5602e7c80b9f309f164dad83366645",
+    "key_functions.py": "13ea22a50963c943975d6abe5dbe2def8416dd7dd7d5d88ed543adc531ed9603",
+    "models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+    "modern.py": "34e16f87cfa1a6804cb34d074fcd85951f2ec45346f01a4fd75db65981b1e6da",
+    "observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+    "pipeline.py": "b8c0704fad69272e983891ba5490499f5cfedac7794b3cfa314527d80f5bea16",
+    "portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+    "prediction.py": "32cf87eb576f7bd85a1637a8e2f9c4f54c2c0b8ea3d295474f404831d6d190cf",
+    "reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+    "results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+    "sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+    "stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142",
+    "_image_numeric.py": "729b2820efc92e20461a0511357e7796d8b1e676bdb026e675db36c625c13261",
+    "__init__.py": "21653840398df3c4994f49ec182638cd21cff828a7de5de9813573699ef63732",
+    "__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+    "core\\accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+    "core\\color_spaces.py": "c847e96f517f3ac5f7b0130e83f3beb470eaeef657a7c34a7451a97d0b7db8cc",
+    "core\\correction.py": "a47729b4881e2d2bfdac434ba1fac515203f4d7441e664fa7204c5fa1541ac1e",
+    "core\\execution.py": "f0f6efec9867feaffb796e6de9168510cde9c6213087a9dc5ccb1daaa5ca9d5d",
+    "core\\lut_cache.py": "f14a87b047a6a3a9528898367f03ecaef85ea7b4280ed758ed6ad66aa1c3dc84",
+    "core\\metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+    "core\\transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+    "core\\utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+    "core\\__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+    "detection\\charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+    "detection\\providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+    "detection\\__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+    "flat_field\\correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+    "flat_field\\__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+    "io\\image_data.py": "e0293fca9a2e9eeba0b0fde382be8316a87796dfc273398120b7234c7716d7cc",
+    "io\\readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+    "io\\writers.py": "34b122b2d8142429b464f565f68f10863ae528482cdf915c6e6ab1f8ee8287ba",
+    "io\\__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+    "flat_field\\models\\__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1"
+  },
+  "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-p78\\full.ccpb",
+  "model_sha256": "bdd98b714c9c7ca64e7e97cacff0d33df10c4ce981df41f5c7ba0e5074eab58b",
+  "png_profile": "fast-lossless",
+  "kind": "full",
+  "threadpools": [
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll",
+      "version": "0.3.31.188.0",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll",
+      "version": "0.3.31.dev",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "vcomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\sklearn\\.libs\\vcomp140.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiomp5md.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 1,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiompstubs5md.dll",
+      "version": null
+    }
+  ],
+  "runs": [
+    {
+      "mode": "direct",
+      "size": "512",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+      "input_sha256": "2793dfa3b54d92c79c5e0415d43bf89b9712b39b5b46748d2d7d9261792b2184",
+      "reused_ImageData_setup_ms": null,
+      "first_file_predict_ms": 2254.1882,
+      "timings": {
+        "file_predict_ms": {
+          "n": 3,
+          "median_ms": 47.005,
+          "p95_ms": 81.11158,
+          "raw_ms": [
+            84.9012,
+            43.9179,
+            47.005
+          ]
+        },
+        "strict_export_ms": {
+          "n": 3,
+          "median_ms": 54.6565,
+          "p95_ms": 62.96287,
+          "raw_ms": [
+            63.8858,
+            54.6565,
+            49.9461
+          ]
+        },
+        "file_total_ms": {
+          "n": 3,
+          "median_ms": 98.5913,
+          "p95_ms": 143.77832,
+          "raw_ms": [
+            148.7991,
+            98.5913,
+            96.9593
+          ]
+        }
+      },
+      "checks": {
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "dtype": "float64",
+        "file_pixels_sha256": "9814ce1e47ee8689f9798677f96aab6f559b86bc9750ad197cb01d9401316787",
+        "file_diagnostics": {
+          "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+          "pointwise_id": "55ec89cd6b8931fd2cbc57984237a36739d6d2046e0ea6fb51ed99c113fa1d36",
+          "requested": {
+            "mode": "direct",
+            "backend": "auto",
+            "grid_sizes": [
+              17,
+              33,
+              65,
+              129
+            ],
+            "max_rgb_error": 0.002,
+            "max_delta_e00": 0.5,
+            "validation_samples": 4096,
+            "stress_grid_size": 67,
+            "random_state": 92026,
+            "chunk_pixels": 65536,
+            "allow_fallback": true
+          },
+          "selected_mode": "direct",
+          "backend": {
+            "GC": "explicit-D65-neutral-PCHIP",
+            "GC_execution": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "fallback_reason": null,
+              "precision": "float64",
+              "LUT": false,
+              "runtime_fallback": false,
+              "method": "fused-D65-neutral-PCHIP",
+              "downstream_rgb_gain_bound": 1.4480766388289743,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "runtime_fallback_occurred": false,
+              "fallback_reasons": []
+            },
+            "WB": "numpy-diagonal/matrix",
+            "CC": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "precision": "float64",
+              "method": "owned-buffer-polynomial-affine",
+              "fallback_reason": null,
+              "runtime_fallback": false,
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "feature_policy": "portable/reproducible CPU float64",
+              "polynomial_degree": 1,
+              "feature_count": 4,
+              "runtime_fallback_occurred": false,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "fallback_reasons": []
+            },
+            "pointwise_execution": "owned-buffer-bulk-direct",
+            "WB_execution": "numpy-channel-gains"
+          },
+          "qualification": {
+            "method": "sampled qualification and separate audit; not all-domain proof",
+            "reason": "direct execution requested",
+            "candidates": [],
+            "selected_mode": "direct",
+            "budgets": {
+              "max_rgb_error": 0.002,
+              "max_delta_e00": 0.5
+            },
+            "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+            "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+            "direct_backend": {
+              "GC": "explicit-D65-neutral-PCHIP",
+              "GC_execution": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "fallback_reason": null,
+                "precision": "float64",
+                "LUT": false,
+                "runtime_fallback": false,
+                "method": "fused-D65-neutral-PCHIP",
+                "downstream_rgb_gain_bound": 1.4480766388289743,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "runtime_fallback_occurred": false,
+                "fallback_reasons": []
+              },
+              "WB": "numpy-diagonal/matrix",
+              "CC": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "precision": "float64",
+                "method": "owned-buffer-polynomial-affine",
+                "fallback_reason": null,
+                "runtime_fallback": false,
+                "domain_policy": "reject",
+                "input_was_clipped": false,
+                "feature_policy": "portable/reproducible CPU float64",
+                "polynomial_degree": 1,
+                "feature_count": 4,
+                "runtime_fallback_occurred": false,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "fallback_reasons": []
+              },
+              "pointwise_execution": "owned-buffer-bulk-direct",
+              "WB_execution": "numpy-channel-gains"
+            },
+            "direct_backend_error": {
+              "samples": 4941,
+              "max_rgb_error": 4.430483757644765e-15,
+              "p95_rgb_error": 1.3322676295501878e-15,
+              "max_delta_e00": 2.3269945694747825e-13,
+              "p95_delta_e00": 7.479446806920668e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_audit": {
+              "samples": 4967,
+              "max_rgb_error": 4.433953204596719e-15,
+              "p95_rgb_error": 1.4432899320127035e-15,
+              "max_delta_e00": 2.44162194996785e-13,
+              "p95_delta_e00": 7.848359057048755e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_selected": "auto",
+            "direct_roundoff_limits": {
+              "max_rgb_error": 5e-12,
+              "max_delta_e00": 1e-08
+            },
+            "direct_GC_error": {
+              "qualification_max_encoded_rgb_error": 3.552713678800501e-15,
+              "audit_max_encoded_rgb_error": 3.552713678800501e-15,
+              "max_encoded_rgb_limit": 5e-12
+            }
+          },
+          "input_image": {
+            "version": 1,
+            "color_space": "srgb",
+            "channel_order": "RGB",
+            "shape": [
+              512,
+              512,
+              3
+            ],
+            "source_dtype": "uint8",
+            "source_range": [
+              0.0,
+              255.0
+            ],
+            "source_channel_order": "RGB",
+            "source_orientation": 1,
+            "orientation_applied": true,
+            "source_shape": [
+              512,
+              512,
+              3
+            ],
+            "provenance": {
+              "alpha_background": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "alpha_compositing_domain": "linear-light",
+              "alpha_policy": "reject",
+              "associated_alpha": false,
+              "channel_order": "BGR",
+              "declared_file_encoding": null,
+              "decode_limits": {
+                "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates",
+                "max_decoded_bytes": 1073741824,
+                "max_file_bytes": 1073741824,
+                "max_pixels": 100000000
+              },
+              "decoded_dtype": "uint8",
+              "decoded_shape": [
+                512,
+                512,
+                3
+              ],
+              "decoder": "OpenCV IMREAD_UNCHANGED",
+              "file_sha256": "2793dfa3b54d92c79c5e0415d43bf89b9712b39b5b46748d2d7d9261792b2184",
+              "filename": "512.png",
+              "format": "PNG",
+              "frame_count": 1,
+              "frame_index": 0,
+              "grayscale_policy": "reject",
+              "icc_policy": "reject",
+              "icc_present": false,
+              "icc_transform": "none",
+              "mode": "RGB",
+              "orientation": 1,
+              "source_kind": "file"
+            },
+            "digest": "a8294871e8eea9d74cdca3f32e3bee136ad04ced93fdf3700747df9643680d04",
+            "pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138"
+          },
+          "seconds": {
+            "decode": 0.048632799996994436,
+            "FFC": 5.200039595365524e-06,
+            "pointwise_and_output": 0.03571670001838356,
+            "total": 0.0843558000633493
+          },
+          "FFC_spatial": false
+        }
+      },
+      "export_record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\fresh-final-fast-lossless\\direct-512-0.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "87dbc9874fa38d237df446fbaa5dafadb21bd4f0c21b0591eb11fc40bd17cee8",
+        "source_pixel_digest": "64b65ef2ec359c2d039c3d5315bd96ed53c37cdb9a14dcc46f69932c8b2b0d4a",
+        "sha256": "967351f1cd88c864f5a772d95cbd29c9ffec123a08352837db108d540fabdc83",
+        "bytes": 787243,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0019607366699373463,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "mode": "direct",
+      "size": "1080p",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+      "input_sha256": "973fed5733d635257fa60a281ed2a1da49738b84072a3b7935ffca731a25ae56",
+      "reused_ImageData_setup_ms": null,
+      "first_file_predict_ms": 1097.3866,
+      "timings": {
+        "file_predict_ms": {
+          "n": 3,
+          "median_ms": 321.7539,
+          "p95_ms": 337.45566,
+          "raw_ms": [
+            298.899,
+            339.2003,
+            321.7539
+          ]
+        },
+        "strict_export_ms": {
+          "n": 3,
+          "median_ms": 177.6567,
+          "p95_ms": 540.16977,
+          "raw_ms": [
+            580.449,
+            168.8506,
+            177.6567
+          ]
+        },
+        "file_total_ms": {
+          "n": 3,
+          "median_ms": 508.0623,
+          "p95_ms": 842.2268099999999,
+          "raw_ms": [
+            879.3562,
+            508.0623,
+            499.4204
+          ]
+        }
+      },
+      "checks": {
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "dtype": "float64",
+        "file_pixels_sha256": "5419106746c0ad697c43eb8145b7b4e5985abdb240428a610d0713fa40335402",
+        "file_diagnostics": {
+          "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+          "pointwise_id": "55ec89cd6b8931fd2cbc57984237a36739d6d2046e0ea6fb51ed99c113fa1d36",
+          "requested": {
+            "mode": "direct",
+            "backend": "auto",
+            "grid_sizes": [
+              17,
+              33,
+              65,
+              129
+            ],
+            "max_rgb_error": 0.002,
+            "max_delta_e00": 0.5,
+            "validation_samples": 4096,
+            "stress_grid_size": 67,
+            "random_state": 92026,
+            "chunk_pixels": 65536,
+            "allow_fallback": true
+          },
+          "selected_mode": "direct",
+          "backend": {
+            "GC": "explicit-D65-neutral-PCHIP",
+            "GC_execution": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "fallback_reason": null,
+              "precision": "float64",
+              "LUT": false,
+              "runtime_fallback": false,
+              "method": "fused-D65-neutral-PCHIP",
+              "downstream_rgb_gain_bound": 1.4480766388289743,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "runtime_fallback_occurred": false,
+              "fallback_reasons": []
+            },
+            "WB": "numpy-diagonal/matrix",
+            "CC": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "precision": "float64",
+              "method": "owned-buffer-polynomial-affine",
+              "fallback_reason": null,
+              "runtime_fallback": false,
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "feature_policy": "portable/reproducible CPU float64",
+              "polynomial_degree": 1,
+              "feature_count": 4,
+              "runtime_fallback_occurred": false,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "fallback_reasons": []
+            },
+            "pointwise_execution": "owned-buffer-bulk-direct",
+            "WB_execution": "numpy-channel-gains"
+          },
+          "qualification": {
+            "method": "sampled qualification and separate audit; not all-domain proof",
+            "reason": "direct execution requested",
+            "candidates": [],
+            "selected_mode": "direct",
+            "budgets": {
+              "max_rgb_error": 0.002,
+              "max_delta_e00": 0.5
+            },
+            "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+            "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+            "direct_backend": {
+              "GC": "explicit-D65-neutral-PCHIP",
+              "GC_execution": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "fallback_reason": null,
+                "precision": "float64",
+                "LUT": false,
+                "runtime_fallback": false,
+                "method": "fused-D65-neutral-PCHIP",
+                "downstream_rgb_gain_bound": 1.4480766388289743,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "runtime_fallback_occurred": false,
+                "fallback_reasons": []
+              },
+              "WB": "numpy-diagonal/matrix",
+              "CC": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "precision": "float64",
+                "method": "owned-buffer-polynomial-affine",
+                "fallback_reason": null,
+                "runtime_fallback": false,
+                "domain_policy": "reject",
+                "input_was_clipped": false,
+                "feature_policy": "portable/reproducible CPU float64",
+                "polynomial_degree": 1,
+                "feature_count": 4,
+                "runtime_fallback_occurred": false,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "fallback_reasons": []
+              },
+              "pointwise_execution": "owned-buffer-bulk-direct",
+              "WB_execution": "numpy-channel-gains"
+            },
+            "direct_backend_error": {
+              "samples": 4941,
+              "max_rgb_error": 4.430483757644765e-15,
+              "p95_rgb_error": 1.3322676295501878e-15,
+              "max_delta_e00": 2.3269945694747825e-13,
+              "p95_delta_e00": 7.479446806920668e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_audit": {
+              "samples": 4967,
+              "max_rgb_error": 4.433953204596719e-15,
+              "p95_rgb_error": 1.4432899320127035e-15,
+              "max_delta_e00": 2.44162194996785e-13,
+              "p95_delta_e00": 7.848359057048755e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_selected": "auto",
+            "direct_roundoff_limits": {
+              "max_rgb_error": 5e-12,
+              "max_delta_e00": 1e-08
+            },
+            "direct_GC_error": {
+              "qualification_max_encoded_rgb_error": 3.552713678800501e-15,
+              "audit_max_encoded_rgb_error": 3.552713678800501e-15,
+              "max_encoded_rgb_limit": 5e-12
+            }
+          },
+          "input_image": {
+            "version": 1,
+            "color_space": "srgb",
+            "channel_order": "RGB",
+            "shape": [
+              1080,
+              1920,
+              3
+            ],
+            "source_dtype": "uint8",
+            "source_range": [
+              0.0,
+              255.0
+            ],
+            "source_channel_order": "RGB",
+            "source_orientation": 1,
+            "orientation_applied": true,
+            "source_shape": [
+              1080,
+              1920,
+              3
+            ],
+            "provenance": {
+              "alpha_background": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "alpha_compositing_domain": "linear-light",
+              "alpha_policy": "reject",
+              "associated_alpha": false,
+              "channel_order": "BGR",
+              "declared_file_encoding": null,
+              "decode_limits": {
+                "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates",
+                "max_decoded_bytes": 1073741824,
+                "max_file_bytes": 1073741824,
+                "max_pixels": 100000000
+              },
+              "decoded_dtype": "uint8",
+              "decoded_shape": [
+                1080,
+                1920,
+                3
+              ],
+              "decoder": "OpenCV IMREAD_UNCHANGED",
+              "file_sha256": "973fed5733d635257fa60a281ed2a1da49738b84072a3b7935ffca731a25ae56",
+              "filename": "1080p.png",
+              "format": "PNG",
+              "frame_count": 1,
+              "frame_index": 0,
+              "grayscale_policy": "reject",
+              "icc_policy": "reject",
+              "icc_present": false,
+              "icc_transform": "none",
+              "mode": "RGB",
+              "orientation": 1,
+              "source_kind": "file"
+            },
+            "digest": "cb1c1e6998f7cbdfa92b0eed544f10f7fcdd0a65f9428795e8ce2090e45b9a04",
+            "pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec"
+          },
+          "seconds": {
+            "decode": 0.10626279993448406,
+            "FFC": 1.500011421740055e-06,
+            "pointwise_and_output": 0.19239139999262989,
+            "total": 0.2986558999400586
+          },
+          "FFC_spatial": false
+        }
+      },
+      "export_record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\fresh-final-fast-lossless\\direct-1080p-0.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "a5a4b9961a9f278f383ae8fb992d78a97007ff86e58e38b3669d85f6c8346ac1",
+        "source_pixel_digest": "57c088133a6050980d8133b3fe25b69a6a508136849989bee082996f47003233",
+        "sha256": "fda5cd761f24232e538300865b2d305718c6ab266fea3b6e2b06909059895dff",
+        "bytes": 6222654,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0019607805017104463,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "mode": "direct",
+      "size": "4k",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+      "input_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+      "reused_ImageData_setup_ms": null,
+      "first_file_predict_ms": 1112.6052,
+      "timings": {
+        "file_predict_ms": {
+          "n": 3,
+          "median_ms": 1020.0208,
+          "p95_ms": 1030.9558000000002,
+          "raw_ms": [
+            1032.1708,
+            1020.0208,
+            969.3166
+          ]
+        },
+        "strict_export_ms": {
+          "n": 3,
+          "median_ms": 511.8044,
+          "p95_ms": 528.2114,
+          "raw_ms": [
+            511.8044,
+            530.0344,
+            505.9543
+          ]
+        },
+        "file_total_ms": {
+          "n": 3,
+          "median_ms": 1543.9848,
+          "p95_ms": 1549.45896,
+          "raw_ms": [
+            1543.9848,
+            1550.0672,
+            1475.2807
+          ]
+        }
+      },
+      "checks": {
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "dtype": "float64",
+        "file_pixels_sha256": "6efe2f994a64a4f0e715af1bff8c581c997b67211c391f3ffababb6d0d5c6ee1",
+        "file_diagnostics": {
+          "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+          "pointwise_id": "55ec89cd6b8931fd2cbc57984237a36739d6d2046e0ea6fb51ed99c113fa1d36",
+          "requested": {
+            "mode": "direct",
+            "backend": "auto",
+            "grid_sizes": [
+              17,
+              33,
+              65,
+              129
+            ],
+            "max_rgb_error": 0.002,
+            "max_delta_e00": 0.5,
+            "validation_samples": 4096,
+            "stress_grid_size": 67,
+            "random_state": 92026,
+            "chunk_pixels": 65536,
+            "allow_fallback": true
+          },
+          "selected_mode": "direct",
+          "backend": {
+            "GC": "explicit-D65-neutral-PCHIP",
+            "GC_execution": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "fallback_reason": null,
+              "precision": "float64",
+              "LUT": false,
+              "runtime_fallback": false,
+              "method": "fused-D65-neutral-PCHIP",
+              "downstream_rgb_gain_bound": 1.4480766388289743,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "runtime_fallback_occurred": false,
+              "fallback_reasons": []
+            },
+            "WB": "numpy-diagonal/matrix",
+            "CC": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "precision": "float64",
+              "method": "owned-buffer-polynomial-affine",
+              "fallback_reason": null,
+              "runtime_fallback": false,
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "feature_policy": "portable/reproducible CPU float64",
+              "polynomial_degree": 1,
+              "feature_count": 4,
+              "runtime_fallback_occurred": false,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "fallback_reasons": []
+            },
+            "pointwise_execution": "owned-buffer-bulk-direct",
+            "WB_execution": "numpy-channel-gains"
+          },
+          "qualification": {
+            "method": "sampled qualification and separate audit; not all-domain proof",
+            "reason": "direct execution requested",
+            "candidates": [],
+            "selected_mode": "direct",
+            "budgets": {
+              "max_rgb_error": 0.002,
+              "max_delta_e00": 0.5
+            },
+            "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+            "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+            "direct_backend": {
+              "GC": "explicit-D65-neutral-PCHIP",
+              "GC_execution": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "fallback_reason": null,
+                "precision": "float64",
+                "LUT": false,
+                "runtime_fallback": false,
+                "method": "fused-D65-neutral-PCHIP",
+                "downstream_rgb_gain_bound": 1.4480766388289743,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "runtime_fallback_occurred": false,
+                "fallback_reasons": []
+              },
+              "WB": "numpy-diagonal/matrix",
+              "CC": {
+                "actual_backend": "cpu-numba",
+                "requested_backend": "auto",
+                "precision": "float64",
+                "method": "owned-buffer-polynomial-affine",
+                "fallback_reason": null,
+                "runtime_fallback": false,
+                "domain_policy": "reject",
+                "input_was_clipped": false,
+                "feature_policy": "portable/reproducible CPU float64",
+                "polynomial_degree": 1,
+                "feature_count": 4,
+                "runtime_fallback_occurred": false,
+                "backends_used": [
+                  "cpu-numba"
+                ],
+                "calls_by_backend": {
+                  "cpu-numba": 1
+                },
+                "fallback_reasons": []
+              },
+              "pointwise_execution": "owned-buffer-bulk-direct",
+              "WB_execution": "numpy-channel-gains"
+            },
+            "direct_backend_error": {
+              "samples": 4941,
+              "max_rgb_error": 4.430483757644765e-15,
+              "p95_rgb_error": 1.3322676295501878e-15,
+              "max_delta_e00": 2.3269945694747825e-13,
+              "p95_delta_e00": 7.479446806920668e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_audit": {
+              "samples": 4967,
+              "max_rgb_error": 4.433953204596719e-15,
+              "p95_rgb_error": 1.4432899320127035e-15,
+              "max_delta_e00": 2.44162194996785e-13,
+              "p95_delta_e00": 7.848359057048755e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_selected": "auto",
+            "direct_roundoff_limits": {
+              "max_rgb_error": 5e-12,
+              "max_delta_e00": 1e-08
+            },
+            "direct_GC_error": {
+              "qualification_max_encoded_rgb_error": 3.552713678800501e-15,
+              "audit_max_encoded_rgb_error": 3.552713678800501e-15,
+              "max_encoded_rgb_limit": 5e-12
+            }
+          },
+          "input_image": {
+            "version": 1,
+            "color_space": "srgb",
+            "channel_order": "RGB",
+            "shape": [
+              2160,
+              3840,
+              3
+            ],
+            "source_dtype": "uint8",
+            "source_range": [
+              0.0,
+              255.0
+            ],
+            "source_channel_order": "RGB",
+            "source_orientation": 1,
+            "orientation_applied": true,
+            "source_shape": [
+              2160,
+              3840,
+              3
+            ],
+            "provenance": {
+              "alpha_background": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "alpha_compositing_domain": "linear-light",
+              "alpha_policy": "reject",
+              "associated_alpha": false,
+              "channel_order": "BGR",
+              "declared_file_encoding": null,
+              "decode_limits": {
+                "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates",
+                "max_decoded_bytes": 1073741824,
+                "max_file_bytes": 1073741824,
+                "max_pixels": 100000000
+              },
+              "decoded_dtype": "uint8",
+              "decoded_shape": [
+                2160,
+                3840,
+                3
+              ],
+              "decoder": "OpenCV IMREAD_UNCHANGED",
+              "file_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+              "filename": "4k.png",
+              "format": "PNG",
+              "frame_count": 1,
+              "frame_index": 0,
+              "grayscale_policy": "reject",
+              "icc_policy": "reject",
+              "icc_present": false,
+              "icc_transform": "none",
+              "mode": "RGB",
+              "orientation": 1,
+              "source_kind": "file"
+            },
+            "digest": "9afecf69f467fa122670573f21567c3e350b0401f5302116b881d6a40d148ecf",
+            "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d"
+          },
+          "seconds": {
+            "decode": 0.4282948999898508,
+            "FFC": 1.600012183189392e-06,
+            "pointwise_and_output": 0.603629499906674,
+            "total": 1.0319260999094695
+          },
+          "FFC_spatial": false
+        }
+      },
+      "export_record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\fresh-final-fast-lossless\\direct-4k-0.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "5757e31a964afa0dc29164e83548fc0d9ae0f3f1a188d3fd94c06bf935c9e80a",
+        "source_pixel_digest": "cf0d79ab8249bb77867b9af276f40ccbc1d0f18638b580e6b8163c2f869a6ee3",
+        "sha256": "3d09b0b73afe3b56ba60ce9ae70900c671fc5a490914af1e78cd0a1475c0c0a8",
+        "bytes": 24887775,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0019607805017104463,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    }
+  ],
+  "preparation": {
+    "direct": {
+      "ms": 3434.6231,
+      "diagnostics": {
+        "seconds": 3.434515699977055,
+        "cache_hit": false,
+        "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+        "pointwise_id": "55ec89cd6b8931fd2cbc57984237a36739d6d2046e0ea6fb51ed99c113fa1d36",
+        "qualification": {
+          "method": "sampled qualification and separate audit; not all-domain proof",
+          "reason": "direct execution requested",
+          "candidates": [],
+          "selected_mode": "direct",
+          "budgets": {
+            "max_rgb_error": 0.002,
+            "max_delta_e00": 0.5
+          },
+          "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+          "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+          "direct_backend": {
+            "GC": "explicit-D65-neutral-PCHIP",
+            "GC_execution": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "fallback_reason": null,
+              "precision": "float64",
+              "LUT": false,
+              "runtime_fallback": false,
+              "method": "fused-D65-neutral-PCHIP",
+              "downstream_rgb_gain_bound": 1.4480766388289743,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "runtime_fallback_occurred": false,
+              "fallback_reasons": []
+            },
+            "WB": "numpy-diagonal/matrix",
+            "CC": {
+              "actual_backend": "cpu-numba",
+              "requested_backend": "auto",
+              "precision": "float64",
+              "method": "owned-buffer-polynomial-affine",
+              "fallback_reason": null,
+              "runtime_fallback": false,
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "feature_policy": "portable/reproducible CPU float64",
+              "polynomial_degree": 1,
+              "feature_count": 4,
+              "runtime_fallback_occurred": false,
+              "backends_used": [
+                "cpu-numba"
+              ],
+              "calls_by_backend": {
+                "cpu-numba": 1
+              },
+              "fallback_reasons": []
+            },
+            "pointwise_execution": "owned-buffer-bulk-direct",
+            "WB_execution": "numpy-channel-gains"
+          },
+          "direct_backend_error": {
+            "samples": 4941,
+            "max_rgb_error": 4.430483757644765e-15,
+            "p95_rgb_error": 1.3322676295501878e-15,
+            "max_delta_e00": 2.3269945694747825e-13,
+            "p95_delta_e00": 7.479446806920668e-14,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "direct_backend_audit": {
+            "samples": 4967,
+            "max_rgb_error": 4.433953204596719e-15,
+            "p95_rgb_error": 1.4432899320127035e-15,
+            "max_delta_e00": 2.44162194996785e-13,
+            "p95_delta_e00": 7.848359057048755e-14,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "direct_backend_selected": "auto",
+          "direct_roundoff_limits": {
+            "max_rgb_error": 5e-12,
+            "max_delta_e00": 1e-08
+          },
+          "direct_GC_error": {
+            "qualification_max_encoded_rgb_error": 3.552713678800501e-15,
+            "audit_max_encoded_rgb_error": 3.552713678800501e-15,
+            "max_encoded_rgb_limit": 5e-12
+          }
+        },
+        "cache": {
+          "entries": 1,
+          "bytes": 0,
+          "max_bytes": 67108864,
+          "max_entries": 16,
+          "builds": 1,
+          "hits": 0
+        }
+      }
+    }
+  },
+  "scope": "Public API; identical saved P78 portable calibration. Memory calls begin at float64 ndarray; file calls include decode and strict PNG8 atomic/fsync/byte/pixel verification. ImageData construction included unless explicitly marked reusable typed input.",
+  "host_memory": {
+    "total": 34028462080,
+    "available": 4746440704,
+    "percent": 86.1,
+    "used": 29282021376,
+    "free": 4746440704
+  },
+  "source_unchanged": true
+}

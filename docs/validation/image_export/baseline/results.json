@@ -1,0 +1,1161 @@
+{
+  "python": "3.12.10",
+  "executable": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+  "site": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\wheel-site",
+  "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\wheel-site\\ColorCorrectionPipeline\\__init__.py",
+  "threads": 8,
+  "threadpools": [
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll",
+      "version": "0.3.31.188.0",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll",
+      "version": "0.3.31.dev",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "vcomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\sklearn\\.libs\\vcomp140.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiomp5md.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 1,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiompstubs5md.dll",
+      "version": null
+    }
+  ],
+  "versions": {
+    "numpy": "2.4.6",
+    "scipy": "1.18.1",
+    "Pillow": "13.0.0",
+    "opencv-contrib-python": "4.13.0.92",
+    "colour-science": "0.4.7",
+    "torch": "2.13.0+cpu",
+    "numba": "0.65.1",
+    "tifffile": "2026.10.15"
+  },
+  "inputs": {
+    "512": {
+      "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+      "shape": [
+        512,
+        512,
+        3
+      ],
+      "bytes": 315818,
+      "sha256": "2793dfa3b54d92c79c5e0415d43bf89b9712b39b5b46748d2d7d9261792b2184"
+    },
+    "1080p": {
+      "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+      "shape": [
+        1080,
+        1920,
+        3
+      ],
+      "bytes": 2242246,
+      "sha256": "973fed5733d635257fa60a281ed2a1da49738b84072a3b7935ffca731a25ae56"
+    },
+    "4k": {
+      "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+      "shape": [
+        2160,
+        3840,
+        3
+      ],
+      "bytes": 7538731,
+      "sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec"
+    }
+  },
+  "runs": [
+    {
+      "size": "512",
+      "operation": "from_array_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 17.6462,
+        "p95_ms": 18.05921,
+        "raw_ms": [
+          18.1051,
+          17.6462,
+          17.4409
+        ]
+      },
+      "record": {
+        "digest": "de967ea81ca8a8af65eb6c29be68aefade98eca05924ad587a71595f146ab45b",
+        "pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "shape": [
+          512,
+          512,
+          3
+        ]
+      }
+    },
+    {
+      "size": "512",
+      "operation": "from_array_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 17.8444,
+        "p95_ms": 17.92036,
+        "raw_ms": [
+          17.9288,
+          17.4712,
+          17.8444
+        ]
+      },
+      "record": {
+        "digest": "9f5662f86a7241c24fdd19b32ede7e64e290c8df0d3f996b122763ad89f2fd29",
+        "pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "shape": [
+          512,
+          512,
+          3
+        ]
+      }
+    },
+    {
+      "size": "512",
+      "operation": "constructor_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 11.471,
+        "p95_ms": 11.563699999999999,
+        "raw_ms": [
+          11.574,
+          11.471,
+          11.3305
+        ]
+      },
+      "record": {
+        "digest": "de967ea81ca8a8af65eb6c29be68aefade98eca05924ad587a71595f146ab45b",
+        "pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "shape": [
+          512,
+          512,
+          3
+        ]
+      }
+    },
+    {
+      "size": "512",
+      "operation": "typed_to_srgb",
+      "timing": {
+        "n": 3,
+        "median_ms": 1.4035,
+        "p95_ms": 1.59367,
+        "raw_ms": [
+          1.6148,
+          1.3729,
+          1.4035
+        ]
+      },
+      "record": null
+    },
+    {
+      "size": "512",
+      "operation": "read_png",
+      "timing": {
+        "n": 3,
+        "median_ms": 382.3792,
+        "p95_ms": 383.92207,
+        "raw_ms": [
+          384.0935,
+          375.8055,
+          382.3792
+        ]
+      },
+      "record": {
+        "digest": "a8294871e8eea9d74cdca3f32e3bee136ad04ced93fdf3700747df9643680d04",
+        "pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "shape": [
+          512,
+          512,
+          3
+        ]
+      }
+    },
+    {
+      "size": "512",
+      "operation": "strict_png8_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 83.5318,
+        "p95_ms": 84.33055,
+        "raw_ms": [
+          77.1769,
+          84.4193,
+          83.5318
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "de967ea81ca8a8af65eb6c29be68aefade98eca05924ad587a71595f146ab45b",
+        "source_pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "sha256": "170d3fa1df1f0b930ff758990b924b2dedecbe0efcc6f7715b8c8f422207855a",
+        "bytes": 788450,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "512",
+      "operation": "strict_png8_typed_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 66.1541,
+        "p95_ms": 71.65066999999999,
+        "raw_ms": [
+          60.5731,
+          72.2614,
+          66.1541
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "de967ea81ca8a8af65eb6c29be68aefade98eca05924ad587a71595f146ab45b",
+        "source_pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "sha256": "170d3fa1df1f0b930ff758990b924b2dedecbe0efcc6f7715b8c8f422207855a",
+        "bytes": 788450,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "512",
+      "operation": "strict_png8_typed_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 67.8244,
+        "p95_ms": 71.50324,
+        "raw_ms": [
+          64.6651,
+          67.8244,
+          71.912
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint8",
+        "source_digest": "9f5662f86a7241c24fdd19b32ede7e64e290c8df0d3f996b122763ad89f2fd29",
+        "source_pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "sha256": "170d3fa1df1f0b930ff758990b924b2dedecbe0efcc6f7715b8c8f422207855a",
+        "bytes": 788450,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          255.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "512",
+      "operation": "strict_png16_uint16",
+      "timing": {
+        "n": 3,
+        "median_ms": 104.1257,
+        "p95_ms": 104.71817,
+        "raw_ms": [
+          97.6172,
+          104.784,
+          104.1257
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint16",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint16",
+        "source_digest": "be15bd5316d6656743f1c2f9bae949f87b9b9cfabede050f9b12be4cd7ec3500",
+        "source_pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "sha256": "d7f41d1fd39c011856d7c6161e99ce5071530bbdfbf6855661ad6bcd37516f73",
+        "bytes": 1576149,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          65535.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "512",
+      "operation": "strict_tiff_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 77.2149,
+        "p95_ms": 83.43102,
+        "raw_ms": [
+          84.1217,
+          73.1537,
+          77.2149
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.tiff",
+        "format": "TIFF",
+        "dtype": "float64",
+        "shape": [
+          512,
+          512,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "de967ea81ca8a8af65eb6c29be68aefade98eca05924ad587a71595f146ab45b",
+        "source_pixel_digest": "f04b31c776c0b6a1aa6ac2ee2a232c25e115de4fec7c861a57bcee43f948d138",
+        "sha256": "eb0128ff3383e07851d149ce82ac2559727a3a3369ad83f34a8295cbc6e18267",
+        "bytes": 6291792,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "from_array_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 145.2102,
+        "p95_ms": 150.8127,
+        "raw_ms": [
+          151.4352,
+          144.5194,
+          145.2102
+        ]
+      },
+      "record": {
+        "digest": "0290523f22513aed143efe696ebad826aa9cba230bfa8db4f8cc87e078a92362",
+        "pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "from_array_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 148.4361,
+        "p95_ms": 150.51024,
+        "raw_ms": [
+          148.4361,
+          150.7407,
+          145.9063
+        ]
+      },
+      "record": {
+        "digest": "30a4ac5863ad059e8e004fc7f8c00760e3c5781f92c4542ac3d2cb3b9fb62271",
+        "pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "constructor_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 92.2274,
+        "p95_ms": 92.87594,
+        "raw_ms": [
+          92.948,
+          91.3209,
+          92.2274
+        ]
+      },
+      "record": {
+        "digest": "0290523f22513aed143efe696ebad826aa9cba230bfa8db4f8cc87e078a92362",
+        "pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "typed_to_srgb",
+      "timing": {
+        "n": 3,
+        "median_ms": 10.359,
+        "p95_ms": 10.58625,
+        "raw_ms": [
+          10.2309,
+          10.6115,
+          10.359
+        ]
+      },
+      "record": null
+    },
+    {
+      "size": "1080p",
+      "operation": "read_png",
+      "timing": {
+        "n": 3,
+        "median_ms": 564.904,
+        "p95_ms": 570.51109,
+        "raw_ms": [
+          561.5315,
+          564.904,
+          571.1341
+        ]
+      },
+      "record": {
+        "digest": "cb1c1e6998f7cbdfa92b0eed544f10f7fcdd0a65f9428795e8ce2090e45b9a04",
+        "pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "strict_png8_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 513.38,
+        "p95_ms": 525.88667,
+        "raw_ms": [
+          527.2763,
+          513.38,
+          508.0391
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "0290523f22513aed143efe696ebad826aa9cba230bfa8db4f8cc87e078a92362",
+        "source_pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "sha256": "d9e0bbd7296f849faf76d6c877c279b09fa15541bcc4dbe443d00d98b7341807",
+        "bytes": 6232127,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "strict_png8_typed_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 358.8839,
+        "p95_ms": 362.97602,
+        "raw_ms": [
+          363.4307,
+          358.8839,
+          356.3967
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "0290523f22513aed143efe696ebad826aa9cba230bfa8db4f8cc87e078a92362",
+        "source_pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "sha256": "d9e0bbd7296f849faf76d6c877c279b09fa15541bcc4dbe443d00d98b7341807",
+        "bytes": 6232127,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "strict_png8_typed_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 356.6741,
+        "p95_ms": 369.12173,
+        "raw_ms": [
+          350.0623,
+          370.5048,
+          356.6741
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint8",
+        "source_digest": "30a4ac5863ad059e8e004fc7f8c00760e3c5781f92c4542ac3d2cb3b9fb62271",
+        "source_pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "sha256": "d9e0bbd7296f849faf76d6c877c279b09fa15541bcc4dbe443d00d98b7341807",
+        "bytes": 6232127,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          255.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "strict_png16_uint16",
+      "timing": {
+        "n": 3,
+        "median_ms": 620.9692,
+        "p95_ms": 624.09751,
+        "raw_ms": [
+          624.4451,
+          620.9692,
+          618.7856
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint16",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint16",
+        "source_digest": "1790796421197c4327c77ec2c460dbf0d5c44898c95fdd754d9d15501b0d4c09",
+        "source_pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "sha256": "95ad815ee6d20080c8d31bf6010b070e430d042cba3381e5d77e1bfb41a5031e",
+        "bytes": 12462947,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          65535.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "1080p",
+      "operation": "strict_tiff_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 456.845,
+        "p95_ms": 463.51076,
+        "raw_ms": [
+          455.1051,
+          464.2514,
+          456.845
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.tiff",
+        "format": "TIFF",
+        "dtype": "float64",
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "0290523f22513aed143efe696ebad826aa9cba230bfa8db4f8cc87e078a92362",
+        "source_pixel_digest": "6e90824e15a83a3b30a89fe0f48684ef5df354f562a4312b4490c28dbf5b66ec",
+        "sha256": "c24f521b80d293fefadc43365925bcfd6cb0fd523860126642f3d8ed74def778",
+        "bytes": 49766736,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "from_array_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 598.5678,
+        "p95_ms": 599.93436,
+        "raw_ms": [
+          578.7604,
+          598.5678,
+          600.0862
+        ]
+      },
+      "record": {
+        "digest": "d02c84bac60068ab203707825e347fca4ef62741a34405b2e30193e849c702b4",
+        "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "shape": [
+          2160,
+          3840,
+          3
+        ]
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "from_array_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 604.2819,
+        "p95_ms": 609.29166,
+        "raw_ms": [
+          609.8483,
+          604.2819,
+          590.0284
+        ]
+      },
+      "record": {
+        "digest": "439f8e565c6047942695775b8f631370750e40e0dd5f71552188779fcf146b1e",
+        "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "shape": [
+          2160,
+          3840,
+          3
+        ]
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "constructor_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 367.172,
+        "p95_ms": 370.12031,
+        "raw_ms": [
+          367.172,
+          366.8608,
+          370.4479
+        ]
+      },
+      "record": {
+        "digest": "d02c84bac60068ab203707825e347fca4ef62741a34405b2e30193e849c702b4",
+        "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "shape": [
+          2160,
+          3840,
+          3
+        ]
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "typed_to_srgb",
+      "timing": {
+        "n": 3,
+        "median_ms": 41.2675,
+        "p95_ms": 42.26569,
+        "raw_ms": [
+          42.3766,
+          39.8964,
+          41.2675
+        ]
+      },
+      "record": null
+    },
+    {
+      "size": "4k",
+      "operation": "read_png",
+      "timing": {
+        "n": 3,
+        "median_ms": 1385.6752,
+        "p95_ms": 1435.66939,
+        "raw_ms": [
+          1383.5972,
+          1385.6752,
+          1441.2243
+        ]
+      },
+      "record": {
+        "digest": "9afecf69f467fa122670573f21567c3e350b0401f5302116b881d6a40d148ecf",
+        "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "shape": [
+          2160,
+          3840,
+          3
+        ]
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "strict_png8_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 2110.0928,
+        "p95_ms": 2124.67955,
+        "raw_ms": [
+          2110.0928,
+          2126.3003,
+          2029.508
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "d02c84bac60068ab203707825e347fca4ef62741a34405b2e30193e849c702b4",
+        "source_pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "sha256": "da27cfe52c867d38c1b4a1d8fc772663716826591bddc79ed6f6a2aa9e5eb4b2",
+        "bytes": 24925655,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "strict_png8_typed_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 1399.3376,
+        "p95_ms": 1426.37702,
+        "raw_ms": [
+          1399.3376,
+          1429.3814,
+          1398.9288
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "d02c84bac60068ab203707825e347fca4ef62741a34405b2e30193e849c702b4",
+        "source_pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "sha256": "da27cfe52c867d38c1b4a1d8fc772663716826591bddc79ed6f6a2aa9e5eb4b2",
+        "bytes": 24925655,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "strict_png8_typed_uint8",
+      "timing": {
+        "n": 3,
+        "median_ms": 1382.2086,
+        "p95_ms": 1422.11694,
+        "raw_ms": [
+          1370.3528,
+          1382.2086,
+          1426.5512
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint8",
+        "source_digest": "439f8e565c6047942695775b8f631370750e40e0dd5f71552188779fcf146b1e",
+        "source_pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "sha256": "da27cfe52c867d38c1b4a1d8fc772663716826591bddc79ed6f6a2aa9e5eb4b2",
+        "bytes": 24925655,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          255.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "strict_png16_uint16",
+      "timing": {
+        "n": 3,
+        "median_ms": 2387.0332,
+        "p95_ms": 2422.86391,
+        "raw_ms": [
+          2369.3301,
+          2387.0332,
+          2426.8451
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.png",
+        "format": "PNG",
+        "dtype": "uint16",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "uint16",
+        "source_digest": "086d3b0600b8df433a0e865174cb22c669eeaf28a1412034cbdef008fcdbdc38",
+        "source_pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "sha256": "b084cf5297c4f7b00e71bd42cf595a27d87cf273136480bbeb28027d0bef128d",
+        "bytes": 49847269,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          65535.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    },
+    {
+      "size": "4k",
+      "operation": "strict_tiff_float64",
+      "timing": {
+        "n": 3,
+        "median_ms": 2042.5499,
+        "p95_ms": 2071.69766,
+        "raw_ms": [
+          2042.5499,
+          2074.9363,
+          1988.054
+        ]
+      },
+      "record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\baseline\\frame.tiff",
+        "format": "TIFF",
+        "dtype": "float64",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "d02c84bac60068ab203707825e347fca4ef62741a34405b2e30193e849c702b4",
+        "source_pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d",
+        "sha256": "a0c8553ccaa13331b8e77bf99b9bf4f0a46eb73db9a7907d236af8d3a048170f",
+        "bytes": 199065936,
+        "precision_loss": false,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.0,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    }
+  ],
+  "source_sha256": {
+    "acceleration.py": "e551e11e0d731a133d4dd09fa2e476e92b90c8053fd45a66f46578f9daaee4b7",
+    "batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+    "bundle.py": "8c35ae0eee500aa057c5496f0ee89d8068a2914e72544b09b052deee7b4fcb73",
+    "checker_compat.py": "bd69209d93eb8dfed262bf7e87b5e64ce26dead974d835b37a1626910d21d85d",
+    "colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+    "config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+    "constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+    "contracts.py": "d9835e1442e31ef46d2758e0706953964a9ba7cf797d3fe7ee74eee410c72aa6",
+    "conventional.py": "2217fb9561ccef70fdaf6d9e5d3cb49144c0a1e566fd60cbefa74bc72bdc61e3",
+    "evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+    "fitting.py": "530ffd4827404b48553f723cb83adc11eb5602e7c80b9f309f164dad83366645",
+    "key_functions.py": "13ea22a50963c943975d6abe5dbe2def8416dd7dd7d5d88ed543adc531ed9603",
+    "models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+    "modern.py": "34e16f87cfa1a6804cb34d074fcd85951f2ec45346f01a4fd75db65981b1e6da",
+    "observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+    "pipeline.py": "bfe329cb3ab81bca99eec57ea6ffd49bcf323d46697769ee56a43676b2d2b809",
+    "portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+    "prediction.py": "d81f5bb7753b1e8c825402793dcadd6db9549e82fe8c213cbaefc3e67fe67797",
+    "reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+    "results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+    "sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+    "stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142",
+    "__init__.py": "21653840398df3c4994f49ec182638cd21cff828a7de5de9813573699ef63732",
+    "__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+    "core\\accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+    "core\\color_spaces.py": "c847e96f517f3ac5f7b0130e83f3beb470eaeef657a7c34a7451a97d0b7db8cc",
+    "core\\correction.py": "a47729b4881e2d2bfdac434ba1fac515203f4d7441e664fa7204c5fa1541ac1e",
+    "core\\execution.py": "dfc852cdcbf0353bc0c8a0bb05d5c43d47e2b723df76259a64f71482fdddd424",
+    "core\\lut_cache.py": "f14a87b047a6a3a9528898367f03ecaef85ea7b4280ed758ed6ad66aa1c3dc84",
+    "core\\metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+    "core\\transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+    "core\\utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+    "core\\__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+    "detection\\charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+    "detection\\providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+    "detection\\__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+    "flat_field\\correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+    "flat_field\\__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+    "io\\image_data.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+    "io\\readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+    "io\\writers.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a",
+    "io\\__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+    "flat_field\\models\\__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1"
+  },
+  "scope": "Public calls including all validation/hash/persistence work; fixture creation and gc excluded. Outputs deleted after timed intervals.",
+  "profiles": {
+    "from_array_float64": "         425 function calls (350 primitive calls) in 0.574 seconds\n\n   Ordered by: cumulative time\n   List reduced from 68 to 45 due to restriction <45>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.008    0.008    0.574    0.574 bench_image_io.py:98(<lambda>)\n        1    0.158    0.158    0.566    0.566 contracts.py:265(from_array)\n        1    0.000    0.000    0.362    0.362 <string>:2(__init__)\n        1    0.033    0.033    0.362    0.362 contracts.py:226(__post_init__)\n        2    0.000    0.000    0.267    0.134 contracts.py:149(_hash_parts)\n        6    0.267    0.045    0.267    0.045 {method 'update' of '_hashlib.HASH' objects}\n        1    0.016    0.016    0.058    0.058 contracts.py:70(_readonly_array)\n        1    0.042    0.042    0.042    0.042 {method 'astype' of 'numpy.ndarray' objects}\n        1    0.040    0.040    0.040    0.040 {method 'tobytes' of 'numpy.ndarray' objects}\n        6    0.009    0.002    0.009    0.002 {method 'reduce' of 'numpy.ufunc' objects}\n        4    0.000    0.000    0.006    0.002 {method 'any' of 'numpy.ndarray' objects}\n        4    0.000    0.000    0.006    0.002 _methods.py:55(_any)\n        2    0.000    0.000    0.003    0.001 {method 'all' of 'numpy.ndarray' objects}\n        2    0.000    0.000    0.003    0.001 _methods.py:64(_all)\n     25/4    0.000    0.000    0.000    0.000 contracts.py:26(_plain)\n   122/68    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}\n        1    0.000    0.000    0.000    0.000 contracts.py:42(_metadata)\n       27    0.000    0.000    0.000    0.000 typing.py:1221(__instancecheck__)\n        3    0.000    0.000    0.000    0.000 __init__.py:183(dumps)\n       27    0.000    0.000    0.000    0.000 typing.py:1492(__subclasscheck__)\n        2    0.000    0.000    0.000    0.000 _dtype.py:342(_name_get)\n       35    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}\n        3    0.000    0.000    0.000    0.000 encoder.py:183(encode)\n        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}\n        3    0.000    0.000    0.000    0.000 encoder.py:205(iterencode)\n        1    0.000    0.000    0.000    0.000 contracts.py:305(_metadata_fields)\n        2    0.000    0.000    0.000    0.000 _dtype.py:326(_name_includes_bit_suffix)\n       27    0.000    0.000    0.000    0.000 <frozen abc>:121(__subclasscheck__)\n        2    0.000    0.000    0.000    0.000 {method 'hexdigest' of '_hashlib.HASH' objects}\n        2    0.000    0.000    0.000    0.000 {built-in method _hashlib.openssl_sha256}\n        2    0.000    0.000    0.000    0.000 numerictypes.py:475(issubdtype)\n        1    0.000    0.000    0.000    0.000 __init__.py:299(loads)\n       27    0.000    0.000    0.000    0.000 {built-in method _abc._abc_subclasscheck}\n        1    0.000    0.000    0.000    0.000 decoder.py:333(decode)\n        1    0.000    0.000    0.000    0.000 contracts.py:45(validate_keys)\n        4    0.000    0.000    0.000    0.000 numerictypes.py:293(issubclass_)\n        5    0.000    0.000    0.000    0.000 contracts.py:92(_integer)\n        1    0.000    0.000    0.000    0.000 {built-in method numpy.frombuffer}\n        2    0.000    0.000    0.000    0.000 contracts.py:81(_image_dtype)\n        2    0.000    0.000    0.000    0.000 {built-in method builtins.all}\n        2    0.000    0.000    0.000    0.000 {method 'match' of 're.Pattern' objects}\n        4    0.000    0.000    0.000    0.000 contracts.py:249(<genexpr>)\n        1    0.000    0.000    0.000    0.000 {method 'reshape' of 'numpy.ndarray' objects}\n        6    0.000    0.000    0.000    0.000 {method 'encode' of 'str' objects}\n        3    0.000    0.000    0.000    0.000 {built-in method numpy.ascontiguousarray}\n\n\n",
+    "read_png": "         3545 function calls (3054 primitive calls) in 1.293 seconds\n\n   Ordered by: cumulative time\n   List reduced from 184 to 45 due to restriction <45>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.005    0.005    1.292    1.292 bench_image_io.py:102(<lambda>)\n        1    0.022    0.022    1.287    1.287 image_data.py:168(read_image_data)\n        1    0.175    0.175    0.659    0.659 contracts.py:265(from_array)\n        1    0.000    0.000    0.439    0.439 <string>:2(__init__)\n        1    0.031    0.031    0.439    0.439 contracts.py:226(__post_init__)\n        1    0.000    0.000    0.341    0.341 image_data.py:98(_decode)\n        2    0.000    0.000    0.267    0.134 contracts.py:149(_hash_parts)\n        6    0.267    0.044    0.267    0.044 {method 'update' of '_hashlib.HASH' objects}\n        1    0.259    0.259    0.259    0.259 {method 'read' of '_io.BufferedReader' objects}\n        1    0.000    0.000    0.184    0.184 PngImagePlugin.py:1117(getexif)\n        1    0.000    0.000    0.184    0.184 ImageFile.py:296(load)\n      116    0.182    0.002    0.182    0.002 {method 'decode' of 'ImagingDecoder' objects}\n        1    0.157    0.157    0.157    0.157 {imdecode}\n        1    0.025    0.025    0.137    0.137 contracts.py:70(_readonly_array)\n        3    0.069    0.023    0.069    0.023 {built-in method numpy.ascontiguousarray}\n        1    0.041    0.041    0.041    0.041 {method 'astype' of 'numpy.ndarray' objects}\n        1    0.041    0.041    0.041    0.041 {method 'tobytes' of 'numpy.ndarray' objects}\n        8    0.008    0.001    0.008    0.001 {method 'reduce' of 'numpy.ufunc' objects}\n        4    0.000    0.000    0.006    0.001 {method 'any' of 'numpy.ndarray' objects}\n        4    0.000    0.000    0.006    0.001 _methods.py:55(_any)\n        3    0.005    0.002    0.005    0.002 {built-in method _hashlib.openssl_sha256}\n        3    0.000    0.000    0.003    0.001 {method 'all' of 'numpy.ndarray' objects}\n        3    0.000    0.000    0.003    0.001 _methods.py:64(_all)\n      116    0.000    0.000    0.001    0.000 PngImagePlugin.py:1012(load_read)\n      354    0.001    0.000    0.001    0.000 {method 'read' of '_io.BytesIO' objects}\n        1    0.000    0.000    0.000    0.000 pathlib.py:835(stat)\n        1    0.000    0.000    0.000    0.000 {built-in method nt.stat}\n    121/4    0.000    0.000    0.000    0.000 contracts.py:26(_plain)\n      118    0.000    0.000    0.000    0.000 PngImagePlugin.py:176(read)\n  755/445    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}\n        1    0.000    0.000    0.000    0.000 contracts.py:42(_metadata)\n      155    0.000    0.000    0.000    0.000 typing.py:1221(__instancecheck__)\n      155    0.000    0.000    0.000    0.000 typing.py:1492(__subclasscheck__)\n        1    0.000    0.000    0.000    0.000 contracts.py:305(_metadata_fields)\n        1    0.000    0.000    0.000    0.000 Image.py:3600(open)\n      167    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}\n     33/1    0.000    0.000    0.000    0.000 contracts.py:45(validate_keys)\n        1    0.000    0.000    0.000    0.000 Image.py:3675(_open_core)\n        1    0.000    0.000    0.000    0.000 pathlib.py:1005(open)\n        1    0.000    0.000    0.000    0.000 {built-in method _io.open}\n      120    0.000    0.000    0.000    0.000 {method 'match' of 're.Pattern' objects}\n      121    0.000    0.000    0.000    0.000 _binary.py:97(i32be)\n        1    0.000    0.000    0.000    0.000 ImageFile.py:121(__init__)\n        3    0.000    0.000    0.000    0.000 __init__.py:183(dumps)\n      155    0.000    0.000    0.000    0.000 <frozen abc>:121(__subclasscheck__)\n\n\n",
+    "strict_png8_float64": "         37672 function calls (37597 primitive calls) in 1.944 seconds\n\n   Ordered by: cumulative time\n   List reduced from 265 to 45 due to restriction <45>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.019    0.019    1.944    1.944 bench_image_io.py:103(<lambda>)\n        1    0.539    0.539    1.925    1.925 writers.py:185(write_image_data)\n        1    0.154    0.154    0.560    0.560 contracts.py:265(from_array)\n        1    0.030    0.030    0.360    0.360 contracts.py:226(__post_init__)\n        1    0.002    0.002    0.290    0.290 writers.py:164(_encode_strict)\n        2    0.000    0.000    0.269    0.134 contracts.py:149(_hash_parts)\n        6    0.268    0.045    0.268    0.045 {method 'update' of '_hashlib.HASH' objects}\n        1    0.240    0.240    0.240    0.240 {imencode}\n        1    0.000    0.000    0.221    0.221 image_data.py:98(_decode)\n        5    0.203    0.041    0.203    0.041 {method 'astype' of 'numpy.ndarray' objects}\n        1    0.000    0.000    0.147    0.147 PngImagePlugin.py:1117(getexif)\n        1    0.003    0.003    0.147    0.147 ImageFile.py:296(load)\n     3039    0.130    0.000    0.130    0.000 {method 'decode' of 'ImagingDecoder' objects}\n        1    0.074    0.074    0.074    0.074 {imdecode}\n        1    0.017    0.017    0.059    0.059 contracts.py:70(_readonly_array)\n        2    0.046    0.023    0.046    0.023 {method 'tobytes' of 'numpy.ndarray' objects}\n        1    0.041    0.041    0.041    0.041 {method 'copy' of 'numpy.ndarray' objects}\n        1    0.034    0.034    0.036    0.036 numeric.py:2535(array_equal)\n        4    0.032    0.008    0.032    0.008 {built-in method numpy.ascontiguousarray}\n        9    0.031    0.003    0.031    0.003 {method 'reduce' of 'numpy.ufunc' objects}\n        2    0.000    0.000    0.021    0.011 fromnumeric.py:3011(max)\n        2    0.000    0.000    0.021    0.011 fromnumeric.py:66(_wrapreduction)\n        1    0.000    0.000    0.017    0.017 pathlib.py:1015(read_bytes)\n        3    0.017    0.006    0.017    0.006 {built-in method _hashlib.openssl_sha256}\n     3039    0.003    0.000    0.014    0.000 PngImagePlugin.py:1012(load_read)\n        1    0.012    0.012    0.012    0.012 writers.py:147(_png_metadata)\n        3    0.000    0.000    0.011    0.004 tempfile.py:497(func_wrapper)\n        1    0.011    0.011    0.011    0.011 {method 'write' of '_io.BufferedWriter' objects}\n        1    0.009    0.009    0.009    0.009 {method 'read' of '_io.BufferedReader' objects}\n        2    0.008    0.004    0.009    0.004 {built-in method _io.open}\n        1    0.000    0.000    0.008    0.008 pathlib.py:1005(open)\n     3045    0.003    0.000    0.007    0.000 PngImagePlugin.py:176(read)\n        4    0.000    0.000    0.005    0.001 {method 'any' of 'numpy.ndarray' objects}\n        4    0.000    0.000    0.005    0.001 _methods.py:55(_any)\n        1    0.005    0.005    0.005    0.005 {built-in method nt.fsync}\n        3    0.000    0.000    0.004    0.001 {method 'all' of 'numpy.ndarray' objects}\n        3    0.000    0.000    0.004    0.001 _methods.py:64(_all)\n     9135    0.003    0.000    0.003    0.000 {method 'read' of '_io.BytesIO' objects}\n     3053    0.001    0.000    0.002    0.000 _binary.py:97(i32be)\n        1    0.001    0.001    0.001    0.001 {built-in method nt.rename}\n     3049    0.001    0.000    0.001    0.000 {method 'match' of 're.Pattern' objects}\n        5    0.000    0.000    0.001    0.000 pathlib.py:835(stat)\n        5    0.001    0.000    0.001    0.000 {built-in method nt.stat}\n     3043    0.001    0.000    0.001    0.000 {built-in method builtins.min}\n        1    0.000    0.000    0.001    0.001 tempfile.py:537(NamedTemporaryFile)\n\n\n",
+    "strict_png8_typed_uint8": "         37250 function calls in 1.361 seconds\n\n   Ordered by: cumulative time\n   List reduced from 226 to 45 due to restriction <45>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.011    0.011    1.361    1.361 bench_image_io.py:105(<lambda>)\n        1    0.526    0.526    1.349    1.349 writers.py:185(write_image_data)\n        1    0.002    0.002    0.288    0.288 writers.py:164(_encode_strict)\n        1    0.238    0.238    0.238    0.238 {imencode}\n        1    0.000    0.000    0.221    0.221 image_data.py:98(_decode)\n        4    0.159    0.040    0.159    0.040 {method 'astype' of 'numpy.ndarray' objects}\n        1    0.000    0.000    0.147    0.147 PngImagePlugin.py:1117(getexif)\n        1    0.003    0.003    0.147    0.147 ImageFile.py:296(load)\n     3039    0.130    0.000    0.130    0.000 {method 'decode' of 'ImagingDecoder' objects}\n        1    0.073    0.073    0.073    0.073 {imdecode}\n        1    0.042    0.042    0.042    0.042 {method 'copy' of 'numpy.ndarray' objects}\n        1    0.034    0.034    0.035    0.035 numeric.py:2535(array_equal)\n        1    0.031    0.031    0.031    0.031 {built-in method numpy.ascontiguousarray}\n        3    0.024    0.008    0.024    0.008 {method 'reduce' of 'numpy.ufunc' objects}\n        2    0.000    0.000    0.022    0.011 fromnumeric.py:3011(max)\n        2    0.000    0.000    0.022    0.011 fromnumeric.py:66(_wrapreduction)\n        1    0.000    0.000    0.017    0.017 pathlib.py:1015(read_bytes)\n        1    0.017    0.017    0.017    0.017 {built-in method _hashlib.openssl_sha256}\n     3039    0.003    0.000    0.014    0.000 PngImagePlugin.py:1012(load_read)\n        1    0.011    0.011    0.011    0.011 writers.py:147(_png_metadata)\n        3    0.000    0.000    0.011    0.004 tempfile.py:497(func_wrapper)\n        1    0.011    0.011    0.011    0.011 {method 'write' of '_io.BufferedWriter' objects}\n        1    0.010    0.010    0.010    0.010 {method 'read' of '_io.BufferedReader' objects}\n        2    0.007    0.004    0.008    0.004 {built-in method _io.open}\n        1    0.000    0.000    0.007    0.007 pathlib.py:1005(open)\n     3045    0.003    0.000    0.007    0.000 PngImagePlugin.py:176(read)\n        1    0.006    0.006    0.006    0.006 {built-in method nt.fsync}\n        1    0.005    0.005    0.005    0.005 {method 'tobytes' of 'numpy.ndarray' objects}\n     9135    0.003    0.000    0.003    0.000 {method 'read' of '_io.BytesIO' objects}\n     3053    0.001    0.000    0.002    0.000 _binary.py:97(i32be)\n        1    0.000    0.000    0.001    0.001 {method 'all' of 'numpy.ndarray' objects}\n        1    0.000    0.000    0.001    0.001 _methods.py:64(_all)\n        1    0.001    0.001    0.001    0.001 {built-in method nt.rename}\n     3047    0.001    0.000    0.001    0.000 {method 'match' of 're.Pattern' objects}\n        5    0.000    0.000    0.001    0.000 pathlib.py:835(stat)\n        5    0.001    0.000    0.001    0.000 {built-in method nt.stat}\n        1    0.000    0.000    0.001    0.001 tempfile.py:537(NamedTemporaryFile)\n     3041    0.001    0.000    0.001    0.000 {built-in method builtins.min}\n        1    0.000    0.000    0.001    0.001 pathlib.py:1228(resolve)\n     3053    0.001    0.000    0.001    0.000 {built-in method _struct.unpack_from}\n        1    0.000    0.000    0.001    0.001 tempfile.py:577(opener)\n        1    0.000    0.000    0.001    0.001 tempfile.py:243(_mkstemp_inner)\n        1    0.001    0.001    0.001    0.001 {built-in method nt.open}\n     3045    0.001    0.000    0.001    0.000 {method 'tell' of '_io.BytesIO' objects}\n        2    0.000    0.000    0.000    0.000 pathlib.py:852(exists)\n\n\n"
+  },
+  "memory": {
+    "from_array_float64": {
+      "python_numpy_traced_peak_bytes": 423017285,
+      "traced_live_bytes_at_return": 199069607,
+      "note": "tracemalloc includes NumPy allocations exposed to Python tracing, not every native decoder allocation"
+    },
+    "read_png": {
+      "python_numpy_traced_peak_bytes": 1073753102,
+      "traced_live_bytes_at_return": 199076329,
+      "note": "tracemalloc includes NumPy allocations exposed to Python tracing, not every native decoder allocation"
+    },
+    "strict_png8_float64": {
+      "python_numpy_traced_peak_bytes": 1094958723,
+      "traced_live_bytes_at_return": 7692,
+      "note": "tracemalloc includes NumPy allocations exposed to Python tracing, not every native decoder allocation"
+    },
+    "strict_png8_typed_uint8": {
+      "python_numpy_traced_peak_bytes": 895890960,
+      "traced_live_bytes_at_return": 6130,
+      "note": "tracemalloc includes NumPy allocations exposed to Python tracing, not every native decoder allocation"
+    }
+  },
+  "host_memory": {
+    "total": 34028462080,
+    "available": 6987640832,
+    "percent": 79.5,
+    "used": 27040821248,
+    "free": 6987640832
+  },
+  "initial_rss": 417021952,
+  "source_unchanged": true
+}

@@ -160,6 +160,7 @@ CLEANUP_SUMMARY.md
 !color_correc_optim/flat_field/models/*.pt
 !ColorCorrectionPipeline/flat_field/models/*.pt
 !ColorCorrectionPipeline/flat_field/models/*.onnx
+!ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx
 
 # GitHub Actions - only exclude logs
 .github/workflows/*.log
@@ -173,3 +174,6 @@ CLEANUP_SUMMARY.md
 
 # Validation files
 validate_install.py
+
+# Generated plotting caches are not benchmark evidence.
+docs/validation/**/mpl/

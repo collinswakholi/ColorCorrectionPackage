@@ -1,0 +1,35 @@
+{
+  "wheel": {
+    "file": "colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+    "bytes": 71420331,
+    "sha256": "c26d3e1906a3cc26e8ebef2d1d12269d6e28828efd647a799359154775740b2f",
+    "version": "1.4.6",
+    "requires_python": ">=3.8",
+    "numba_optional": true,
+    "assets": {
+      "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+        "bytes": 39354948,
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+      },
+      "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+        "bytes": 44658747,
+        "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+      }
+    }
+  },
+  "sdist": {
+    "file": "colorcorrectionpipeline-1.4.6.tar.gz",
+    "bytes": 75622552,
+    "sha256": "904e72d8b49545fd1559cabea7af009668538c773fb9e3db84bdd63aad46ce8d",
+    "assets": {
+      "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+        "bytes": 39354948,
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+      },
+      "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+        "bytes": 44658747,
+        "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+      }
+    }
+  }
+}

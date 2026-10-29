@@ -1,0 +1,158 @@
+{
+  "wheel_sha256": "d491fcdcd9ea5413663f611023eb7498b7cc0ec934d61bd1e9ae9fe1e89b0a08",
+  "sdist_sha256": "5f8ccc6b63f04c0e44c815ba2e0a817ec247046baeb7a236d289fff4e8843871",
+  "sdist_bytes": 75592263,
+  "required_files_exact": 54,
+  "python_files": 43,
+  "python38_source_built_wheel": {
+    "file": "colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+    "bytes": 71415489,
+    "sha256": "22fa738f66917bffed32e137b53e0ff9523050c1113797a8d0285b22d10aa188",
+    "version": "1.4.6",
+    "requires_python": ">=3.8",
+    "numba_optional": true,
+    "assets": {
+      "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+        "bytes": 39354948,
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+      },
+      "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+        "bytes": 44658747,
+        "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+      }
+    }
+  },
+  "commands": [
+    {
+      "label": "final-sdist",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "build",
+        "--no-isolation",
+        "--sdist",
+        "--outdir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\candidate-dist"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "final-archives",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_distribution.py",
+        "--dist-dir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\candidate-dist",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\distribution\\archive-checks.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "python38-source-build",
+      "command": [
+        "uv",
+        "build",
+        "--python",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "--wheel",
+        "--offline",
+        "--cache-dir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\uv-build-cache",
+        "--out-dir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\source-build38",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\candidate-dist\\colorcorrectionpipeline-1.4.6.tar.gz"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "python38-source-fingerprints",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\source-build38\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\distribution\\python38-source-fingerprints.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "final-twine",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\buildenv\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "twine",
+        "check",
+        "--strict",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\candidate-dist\\colorcorrectionpipeline-1.4.6.tar.gz",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-color-opt\\source-build38\\colorcorrectionpipeline-1.4.6-py3-none-any.whl"
+      ],
+      "returncode": 0
+    }
+  ],
+  "required_sha256": {
+    "ColorCorrectionPipeline/acceleration.py": "216fbace18aa56a7f96bd04219ac4b15abf3742d46856d25a32b82494fba469c",
+    "ColorCorrectionPipeline/batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+    "ColorCorrectionPipeline/bundle.py": "8c35ae0eee500aa057c5496f0ee89d8068a2914e72544b09b052deee7b4fcb73",
+    "ColorCorrectionPipeline/checker_compat.py": "bd69209d93eb8dfed262bf7e87b5e64ce26dead974d835b37a1626910d21d85d",
+    "ColorCorrectionPipeline/colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+    "ColorCorrectionPipeline/config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+    "ColorCorrectionPipeline/constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+    "ColorCorrectionPipeline/contracts.py": "e7e6b1031b43746afeb06771f67022c966f202707752d8497f53f1656249ba23",
+    "ColorCorrectionPipeline/conventional.py": "2217fb9561ccef70fdaf6d9e5d3cb49144c0a1e566fd60cbefa74bc72bdc61e3",
+    "ColorCorrectionPipeline/evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+    "ColorCorrectionPipeline/fitting.py": "530ffd4827404b48553f723cb83adc11eb5602e7c80b9f309f164dad83366645",
+    "ColorCorrectionPipeline/key_functions.py": "13ea22a50963c943975d6abe5dbe2def8416dd7dd7d5d88ed543adc531ed9603",
+    "ColorCorrectionPipeline/models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+    "ColorCorrectionPipeline/modern.py": "34e16f87cfa1a6804cb34d074fcd85951f2ec45346f01a4fd75db65981b1e6da",
+    "ColorCorrectionPipeline/observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+    "ColorCorrectionPipeline/pipeline.py": "b8c0704fad69272e983891ba5490499f5cfedac7794b3cfa314527d80f5bea16",
+    "ColorCorrectionPipeline/portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+    "ColorCorrectionPipeline/prediction.py": "d81f5bb7753b1e8c825402793dcadd6db9549e82fe8c213cbaefc3e67fe67797",
+    "ColorCorrectionPipeline/reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+    "ColorCorrectionPipeline/results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+    "ColorCorrectionPipeline/sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+    "ColorCorrectionPipeline/stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142",
+    "ColorCorrectionPipeline/__init__.py": "21653840398df3c4994f49ec182638cd21cff828a7de5de9813573699ef63732",
+    "ColorCorrectionPipeline/__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+    "ColorCorrectionPipeline/core/accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+    "ColorCorrectionPipeline/core/color_spaces.py": "c847e96f517f3ac5f7b0130e83f3beb470eaeef657a7c34a7451a97d0b7db8cc",
+    "ColorCorrectionPipeline/core/correction.py": "a47729b4881e2d2bfdac434ba1fac515203f4d7441e664fa7204c5fa1541ac1e",
+    "ColorCorrectionPipeline/core/execution.py": "b79cbec1ea78fb9635d557f490b68b075c5b98b1094dd0d55fa9690b281d5fa7",
+    "ColorCorrectionPipeline/core/lut_cache.py": "f14a87b047a6a3a9528898367f03ecaef85ea7b4280ed758ed6ad66aa1c3dc84",
+    "ColorCorrectionPipeline/core/metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+    "ColorCorrectionPipeline/core/transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+    "ColorCorrectionPipeline/core/utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+    "ColorCorrectionPipeline/core/__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+    "ColorCorrectionPipeline/detection/charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+    "ColorCorrectionPipeline/detection/providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+    "ColorCorrectionPipeline/detection/__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+    "ColorCorrectionPipeline/flat_field/correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+    "ColorCorrectionPipeline/flat_field/__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+    "ColorCorrectionPipeline/io/image_data.py": "e0293fca9a2e9eeba0b0fde382be8316a87796dfc273398120b7234c7716d7cc",
+    "ColorCorrectionPipeline/io/readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+    "ColorCorrectionPipeline/io/writers.py": "a75343a61ed02de1aa6bced730a80404afcc16b420761876946409ad6c8c3f65",
+    "ColorCorrectionPipeline/io/__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+    "ColorCorrectionPipeline/flat_field/models/__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1",
+    "tests/test_unit/test_direct_tone_execution.py": "2be7e5907ffab3080293e7cb05a947f64830e35b31befb026faa3c0639f0bac8",
+    "docs/DIRECT_COLOR_OPTIMIZATION.md": "b62ea74018af370cfc70ba143045883907b7348ace954c1b6fe8515228a76b53",
+    "benchmarks/direct_color/bench_direct.py": "7a64bed2345de2116dcd49846f32c4960f7d04dd6d391484adadf98cbc267b79",
+    "benchmarks/direct_color/bench_paired.py": "cdc411e29a9316ed06761d5af1f85ff66e6fd0e56dc0cea956dcfc7762dc8e0c",
+    "benchmarks/direct_color/bench_ui.py": "9270ded839fb990eaabb738f8cfd377716bfe2261d14db3cab14c3c5352f48f8",
+    "benchmarks/direct_color/README.md": "0e526c339753c60d914579e05984e966ce8e93d4aa8e8340d92568398e41439f",
+    "benchmarks/direct_color/run_benchmarks.py": "ace6195d1d9e7202605ba4431fe4ada0f4f54017ca22bc9d228a99424e4bdf56",
+    "benchmarks/direct_color/run_distribution.py": "c29c7921de72448b78675b41312021a66c0edf4ea5201b1523d1450b1157366e",
+    "benchmarks/direct_color/run_tests.py": "6b33047eba8f2123e192b35ae4e3315e46cfab19d3df3187f3d1dbe1b4a87019",
+    "benchmarks/direct_color/stress_direct_color.py": "ce9c4242b8e8abc5e763150f2d3e2f8263748e8791b700266a288c7123d05a30",
+    "benchmarks/direct_color/verify_installed_direct.py": "70b693817c6385f9d412533726b722fdf58bd66c3bfc512cee2cea986970c529"
+  },
+  "all_checks_passed": true
+}

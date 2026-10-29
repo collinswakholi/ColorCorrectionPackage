@@ -1,0 +1,27 @@
+{
+  "regression": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "1185",
+    "time": "232.148",
+    "timestamp": "2026-10-29T11:25:03.219092-07:00",
+    "hostname": "IAREC-8088055"
+  },
+  "categories": {
+    "test_dependencies": 17,
+    "test_distribution": 24,
+    "test_integration": 24,
+    "test_unit": 1120
+  },
+  "source_files_exact": 43,
+  "source_tree_sha256": "bd6e9d782602c5f8cd2dae5e125201dd0ffe48e40e9b4d9d0f20548c145550f6",
+  "wheel_sha256": "d491fcdcd9ea5413663f611023eb7498b7cc0ec934d61bd1e9ae9fe1e89b0a08",
+  "sdist_sha256": "5f8ccc6b63f04c0e44c815ba2e0a817ec247046baeb7a236d289fff4e8843871",
+  "final_timing_source_exact": true,
+  "final_stress_source_exact": true,
+  "baseline_artifact_unchanged": true,
+  "source_archive_required_files_exact": 54,
+  "all_checks_passed": true
+}

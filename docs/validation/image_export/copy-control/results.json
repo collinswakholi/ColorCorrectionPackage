@@ -1,0 +1,26 @@
+[
+  {
+    "size": "512",
+    "pixels_exact": true,
+    "writable": true,
+    "owns_independent_copy": true,
+    "mutation_isolated": true,
+    "pixel_payload_sha256": "497f50fb6ab9bffe8b97dd2db586ef3f747663ec63b35eee6da1d613ef8f8c4d"
+  },
+  {
+    "size": "1080p",
+    "pixels_exact": true,
+    "writable": true,
+    "owns_independent_copy": true,
+    "mutation_isolated": true,
+    "pixel_payload_sha256": "c4a44e2ebc1e22dbf3c308f823390ef6e8e0275bcd27afe9dac6f1b308cc8dc3"
+  },
+  {
+    "size": "4k",
+    "pixels_exact": true,
+    "writable": true,
+    "owns_independent_copy": true,
+    "mutation_isolated": true,
+    "pixel_payload_sha256": "fcb2c5516eb690954eac611ec88bbf1b2ed06e7b1573a5eec7a6709a079f2d97"
+  }
+]

@@ -207,12 +207,13 @@ def adapt_chart(CHART, ILLUMINANT):
             colour.xy_to_XYZ(ILLUMINANT),
         )
 
-        CHART = colour.characterisation.ColourChecker(
+        from .checker_compat import make_colour_checker
+        CHART = make_colour_checker(
             name=CHART.name + "_Adapted",
             data=dict(zip(CHART.data.keys(), colour.XYZ_to_xyY(data_xyz_adapted))),
             illuminant=ILLUMINANT,
-            rows=CHART.rows,
-            columns=CHART.columns,
+            rows=getattr(CHART, "rows", None),
+            columns=getattr(CHART, "columns", None),
         )
         return CHART
 
@@ -2113,7 +2114,8 @@ def color_correction_1(
 
     log_(f"CCM: \n{ccm}", "light_green", "italic")
 
-    img_rgb_ccm = colour.characterisation.apply_matrix_colour_correction(
+    from .conventional import apply_conventional
+    img_rgb_ccm = apply_conventional(
         RGB=img_rgb, CCM=ccm, **cc_kwargs
     )
     img_rgb_ccm = np.clip(img_rgb_ccm, 0, 1)
@@ -2133,7 +2135,8 @@ def color_correction_1(
     if show:
 
         # create corrected color card
-        corrected_color_card = colour.characterisation.ColourChecker(
+        from .checker_compat import make_colour_checker
+        corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(
@@ -2219,7 +2222,8 @@ def color_correction(
     if show:
 
         # create corrected color card
-        corrected_color_card = colour.characterisation.ColourChecker(
+        from .checker_compat import make_colour_checker
+        corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(

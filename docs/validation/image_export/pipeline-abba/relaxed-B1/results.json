@@ -1,0 +1,521 @@
+{
+  "site": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+  "package_file": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\ColorCorrectionPipeline\\__init__.py",
+  "threads": 8,
+  "source_sha256": {
+    "acceleration.py": "2476c390456bce2c4ab79aa38cdc73f2176a7e0a1da4f718f8c3d1abec29b9bd",
+    "batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+    "bundle.py": "8c35ae0eee500aa057c5496f0ee89d8068a2914e72544b09b052deee7b4fcb73",
+    "checker_compat.py": "bd69209d93eb8dfed262bf7e87b5e64ce26dead974d835b37a1626910d21d85d",
+    "colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+    "config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+    "constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+    "contracts.py": "e7e6b1031b43746afeb06771f67022c966f202707752d8497f53f1656249ba23",
+    "conventional.py": "2217fb9561ccef70fdaf6d9e5d3cb49144c0a1e566fd60cbefa74bc72bdc61e3",
+    "evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+    "fitting.py": "530ffd4827404b48553f723cb83adc11eb5602e7c80b9f309f164dad83366645",
+    "key_functions.py": "13ea22a50963c943975d6abe5dbe2def8416dd7dd7d5d88ed543adc531ed9603",
+    "models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+    "modern.py": "34e16f87cfa1a6804cb34d074fcd85951f2ec45346f01a4fd75db65981b1e6da",
+    "observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+    "pipeline.py": "b8c0704fad69272e983891ba5490499f5cfedac7794b3cfa314527d80f5bea16",
+    "portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+    "prediction.py": "d81f5bb7753b1e8c825402793dcadd6db9549e82fe8c213cbaefc3e67fe67797",
+    "reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+    "results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+    "sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+    "stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142",
+    "__init__.py": "21653840398df3c4994f49ec182638cd21cff828a7de5de9813573699ef63732",
+    "__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+    "core\\accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+    "core\\color_spaces.py": "c847e96f517f3ac5f7b0130e83f3beb470eaeef657a7c34a7451a97d0b7db8cc",
+    "core\\correction.py": "a47729b4881e2d2bfdac434ba1fac515203f4d7441e664fa7204c5fa1541ac1e",
+    "core\\execution.py": "dfc852cdcbf0353bc0c8a0bb05d5c43d47e2b723df76259a64f71482fdddd424",
+    "core\\lut_cache.py": "f14a87b047a6a3a9528898367f03ecaef85ea7b4280ed758ed6ad66aa1c3dc84",
+    "core\\metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+    "core\\transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+    "core\\utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+    "core\\__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+    "detection\\charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+    "detection\\providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+    "detection\\__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+    "flat_field\\correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+    "flat_field\\__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+    "io\\image_data.py": "e0293fca9a2e9eeba0b0fde382be8316a87796dfc273398120b7234c7716d7cc",
+    "io\\readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+    "io\\writers.py": "9f23515d28dd312faa4d8b435916adbf02059007628f359481d914d1c99ada93",
+    "io\\__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+    "flat_field\\models\\__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1"
+  },
+  "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-p78\\full.ccpb",
+  "model_sha256": "bdd98b714c9c7ca64e7e97cacff0d33df10c4ce981df41f5c7ba0e5074eab58b",
+  "kind": "full",
+  "threadpools": [
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll",
+      "version": "0.3.31.188.0",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 8,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll",
+      "version": "0.3.31.dev",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "vcomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\sklearn\\.libs\\vcomp140.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 8,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiomp5md.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 1,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiompstubs5md.dll",
+      "version": null
+    }
+  ],
+  "runs": [
+    {
+      "mode": "relaxed",
+      "size": "4k",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+      "input_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+      "reused_ImageData_setup_ms": null,
+      "timings": {
+        "file_predict_ms": {
+          "n": 3,
+          "median_ms": 704.0537,
+          "p95_ms": 709.27055,
+          "raw_ms": [
+            709.8502,
+            704.0537,
+            654.1127
+          ]
+        },
+        "strict_export_ms": {
+          "n": 3,
+          "median_ms": 1034.0057,
+          "p95_ms": 1055.00891,
+          "raw_ms": [
+            1034.0057,
+            1016.5718,
+            1057.3426
+          ]
+        },
+        "file_total_ms": {
+          "n": 3,
+          "median_ms": 1720.636,
+          "p95_ms": 1741.543,
+          "raw_ms": [
+            1743.866,
+            1720.636,
+            1711.464
+          ]
+        }
+      },
+      "checks": {
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "dtype": "float64",
+        "file_pixels_sha256": "3bd144be3ca0d7f29571d73a5bc1f8dc3239f2701a4fd6b056561a2c323e123d",
+        "file_diagnostics": {
+          "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+          "pointwise_id": "e93d50a8c96b0137ff60bd242a1d5480aa32d85ccce889964de7546a6176241d",
+          "requested": {
+            "mode": "combined-lut",
+            "backend": "auto",
+            "grid_sizes": [
+              129
+            ],
+            "max_rgb_error": 0.006,
+            "max_delta_e00": 1.0,
+            "validation_samples": 4096,
+            "stress_grid_size": 67,
+            "random_state": 92026,
+            "chunk_pixels": 65536,
+            "allow_fallback": true
+          },
+          "selected_mode": "combined-lut",
+          "backend": {
+            "requested_backend": "auto",
+            "actual_backend": "cpu-numba",
+            "fallback_reason": null,
+            "precision": "float64",
+            "domain_policy": "reject",
+            "input_was_clipped": false,
+            "method": "trilinear",
+            "grid_size": 129
+          },
+          "qualification": {
+            "method": "sampled qualification and separate audit; not all-domain proof",
+            "reason": null,
+            "candidates": [
+              {
+                "grid_size": 129,
+                "error": {
+                  "samples": 4941,
+                  "max_rgb_error": 0.002905296516019895,
+                  "p95_rgb_error": 9.020282854999007e-05,
+                  "max_delta_e00": 0.17533119925544377,
+                  "p95_delta_e00": 0.004357264951443383,
+                  "rgb_error_encoding": "srgb",
+                  "delta_e_white": "D65"
+                },
+                "application_backend": {
+                  "requested_backend": "auto",
+                  "actual_backend": "cpu-numba",
+                  "fallback_reason": null,
+                  "precision": "float64",
+                  "domain_policy": "reject",
+                  "input_was_clipped": false,
+                  "method": "trilinear",
+                  "grid_size": 129
+                }
+              }
+            ],
+            "selected_mode": "combined-lut",
+            "budgets": {
+              "max_rgb_error": 0.006,
+              "max_delta_e00": 1.0
+            },
+            "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+            "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+            "direct_backend": {
+              "GC": "explicit-D65-neutral-PCHIP",
+              "WB": "numpy-diagonal/matrix",
+              "CC": {
+                "requested_backend": "auto",
+                "precision": "float64",
+                "domain_policy": "reject",
+                "input_was_clipped": false,
+                "feature_policy": "portable/reproducible CPU float64",
+                "actual_backend": "cpu-numba",
+                "fallback_reason": null,
+                "method": "fused-polynomial-affine",
+                "polynomial_degree": 1,
+                "feature_count": 4
+              }
+            },
+            "direct_backend_error": {
+              "samples": 4941,
+              "max_rgb_error": 4.440892098500626e-16,
+              "p95_rgb_error": 2.220446049250313e-16,
+              "max_delta_e00": 1.430211552548318e-13,
+              "p95_delta_e00": 4.720443570345325e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_audit": {
+              "samples": 4967,
+              "max_rgb_error": 3.3306690738754696e-16,
+              "p95_rgb_error": 2.220446049250313e-16,
+              "max_delta_e00": 1.5522979938634126e-13,
+              "p95_delta_e00": 5.0752655223547656e-14,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "direct_backend_selected": "auto",
+            "audit": {
+              "samples": 4967,
+              "max_rgb_error": 0.0031574677189483147,
+              "p95_rgb_error": 0.00010983166652861178,
+              "max_delta_e00": 0.2602575091313599,
+              "p95_delta_e00": 0.00601888269178044,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "stress_grid_size": 67,
+            "stress_components": {
+              "center_grid": 67,
+              "center_points": 300763,
+              "dark_and_white_byte_levels": 17,
+              "dark_and_white_points": 9826,
+              "independent_random_byte_points": 262144
+            },
+            "stress_sha256": "cc2fa12c66c436f0d099529d5049cee1c0dd7cac4afc8e9a43ca413b649f6aac",
+            "stress": {
+              "samples": 572733,
+              "max_rgb_error": 0.005375547881784186,
+              "p95_rgb_error": 0.00013123826498271382,
+              "max_delta_e00": 0.868784641185331,
+              "p95_delta_e00": 0.006931817983879882,
+              "rgb_error_encoding": "srgb",
+              "delta_e_white": "D65"
+            },
+            "grid_size": 129,
+            "application_backend": {
+              "requested_backend": "auto",
+              "actual_backend": "cpu-numba",
+              "fallback_reason": null,
+              "precision": "float64",
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "method": "trilinear",
+              "grid_size": 129
+            }
+          },
+          "input_image": {
+            "version": 1,
+            "color_space": "srgb",
+            "channel_order": "RGB",
+            "shape": [
+              2160,
+              3840,
+              3
+            ],
+            "source_dtype": "uint8",
+            "source_range": [
+              0.0,
+              255.0
+            ],
+            "source_channel_order": "RGB",
+            "source_orientation": 1,
+            "orientation_applied": true,
+            "source_shape": [
+              2160,
+              3840,
+              3
+            ],
+            "provenance": {
+              "alpha_background": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "alpha_compositing_domain": "linear-light",
+              "alpha_policy": "reject",
+              "associated_alpha": false,
+              "channel_order": "BGR",
+              "declared_file_encoding": null,
+              "decode_limits": {
+                "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates",
+                "max_decoded_bytes": 1073741824,
+                "max_file_bytes": 1073741824,
+                "max_pixels": 100000000
+              },
+              "decoded_dtype": "uint8",
+              "decoded_shape": [
+                2160,
+                3840,
+                3
+              ],
+              "decoder": "OpenCV IMREAD_UNCHANGED",
+              "file_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+              "filename": "4k.png",
+              "format": "PNG",
+              "frame_count": 1,
+              "frame_index": 0,
+              "grayscale_policy": "reject",
+              "icc_policy": "reject",
+              "icc_present": false,
+              "icc_transform": "none",
+              "mode": "RGB",
+              "orientation": 1,
+              "source_kind": "file"
+            },
+            "digest": "9afecf69f467fa122670573f21567c3e350b0401f5302116b881d6a40d148ecf",
+            "pixel_digest": "a5ebebdda5021c527421926efe6f858d660c04d0add7eaf6974f385cf480d68d"
+          },
+          "seconds": {
+            "decode": 0.4882793000433594,
+            "FFC": 2.600019797682762e-06,
+            "pointwise_and_output": 0.22132139990571886,
+            "total": 0.7096035999711603
+          },
+          "FFC_spatial": false
+        }
+      },
+      "export_record": {
+        "path": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\pipeline-abba\\relaxed-B1\\relaxed-4k-0.png",
+        "format": "PNG",
+        "dtype": "uint8",
+        "shape": [
+          2160,
+          3840,
+          3
+        ],
+        "encoding": "srgb",
+        "source_encoding": "srgb",
+        "source_dtype": "float64",
+        "source_digest": "494bf792e866b308d4aa67bc0daa5c31e8c558f36c35fae985094c420cc8c0ad",
+        "source_pixel_digest": "e979c97ebbadb6cffb95b4ae335bcad121bd301e4c9c237b8484bae88829d0fe",
+        "sha256": "746e34da48ac9f2797f471177804c13855518d4b667e5717382a8168af35df19",
+        "bytes": 24925655,
+        "precision_loss": true,
+        "codec_lossy": false,
+        "maximum_quantization_error": 0.001960781353445906,
+        "maximum_codec_error": 0.0,
+        "source_range": [
+          0.0,
+          1.0
+        ],
+        "source_channel_order": "RGB",
+        "source_orientation": 1,
+        "source_file_sha256": null,
+        "orientation_applied": true,
+        "schema": 1
+      }
+    }
+  ],
+  "preparation": {
+    "relaxed": {
+      "ms": 4581.9315,
+      "diagnostics": {
+        "seconds": 4.581794400000945,
+        "cache_hit": false,
+        "calibration_id": "ebd0214164c5b9cc68de8e4f4bdfe71efb819f7f2da8ddccdb822acb98382d35",
+        "pointwise_id": "e93d50a8c96b0137ff60bd242a1d5480aa32d85ccce889964de7546a6176241d",
+        "qualification": {
+          "method": "sampled qualification and separate audit; not all-domain proof",
+          "reason": null,
+          "candidates": [
+            {
+              "grid_size": 129,
+              "error": {
+                "samples": 4941,
+                "max_rgb_error": 0.002905296516019895,
+                "p95_rgb_error": 9.020282854999007e-05,
+                "max_delta_e00": 0.17533119925544377,
+                "p95_delta_e00": 0.004357264951443383,
+                "rgb_error_encoding": "srgb",
+                "delta_e_white": "D65"
+              },
+              "application_backend": {
+                "requested_backend": "auto",
+                "actual_backend": "cpu-numba",
+                "fallback_reason": null,
+                "precision": "float64",
+                "domain_policy": "reject",
+                "input_was_clipped": false,
+                "method": "trilinear",
+                "grid_size": 129
+              }
+            }
+          ],
+          "selected_mode": "combined-lut",
+          "budgets": {
+            "max_rgb_error": 0.006,
+            "max_delta_e00": 1.0
+          },
+          "qualification_sha256": "81b1766006a6acc7cfd27901280fa31510177ffed83848162967c762f84bc824",
+          "audit_sha256": "0a5f13bb20715a70c83f016309a18458b48cf36086917cf64440627b6b291f44",
+          "direct_backend": {
+            "GC": "explicit-D65-neutral-PCHIP",
+            "WB": "numpy-diagonal/matrix",
+            "CC": {
+              "requested_backend": "auto",
+              "precision": "float64",
+              "domain_policy": "reject",
+              "input_was_clipped": false,
+              "feature_policy": "portable/reproducible CPU float64",
+              "actual_backend": "cpu-numba",
+              "fallback_reason": null,
+              "method": "fused-polynomial-affine",
+              "polynomial_degree": 1,
+              "feature_count": 4
+            }
+          },
+          "direct_backend_error": {
+            "samples": 4941,
+            "max_rgb_error": 4.440892098500626e-16,
+            "p95_rgb_error": 2.220446049250313e-16,
+            "max_delta_e00": 1.430211552548318e-13,
+            "p95_delta_e00": 4.720443570345325e-14,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "direct_backend_audit": {
+            "samples": 4967,
+            "max_rgb_error": 3.3306690738754696e-16,
+            "p95_rgb_error": 2.220446049250313e-16,
+            "max_delta_e00": 1.5522979938634126e-13,
+            "p95_delta_e00": 5.0752655223547656e-14,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "direct_backend_selected": "auto",
+          "audit": {
+            "samples": 4967,
+            "max_rgb_error": 0.0031574677189483147,
+            "p95_rgb_error": 0.00010983166652861178,
+            "max_delta_e00": 0.2602575091313599,
+            "p95_delta_e00": 0.00601888269178044,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "stress_grid_size": 67,
+          "stress_components": {
+            "center_grid": 67,
+            "center_points": 300763,
+            "dark_and_white_byte_levels": 17,
+            "dark_and_white_points": 9826,
+            "independent_random_byte_points": 262144
+          },
+          "stress_sha256": "cc2fa12c66c436f0d099529d5049cee1c0dd7cac4afc8e9a43ca413b649f6aac",
+          "stress": {
+            "samples": 572733,
+            "max_rgb_error": 0.005375547881784186,
+            "p95_rgb_error": 0.00013123826498271382,
+            "max_delta_e00": 0.868784641185331,
+            "p95_delta_e00": 0.006931817983879882,
+            "rgb_error_encoding": "srgb",
+            "delta_e_white": "D65"
+          },
+          "grid_size": 129,
+          "application_backend": {
+            "requested_backend": "auto",
+            "actual_backend": "cpu-numba",
+            "fallback_reason": null,
+            "precision": "float64",
+            "domain_policy": "reject",
+            "input_was_clipped": false,
+            "method": "trilinear",
+            "grid_size": 129
+          }
+        },
+        "cache": {
+          "entries": 1,
+          "bytes": 51520536,
+          "max_bytes": 67108864,
+          "max_entries": 16,
+          "builds": 1,
+          "hits": 0
+        }
+      }
+    }
+  },
+  "scope": "Public API; identical saved P78 portable calibration. Memory calls begin at float64 ndarray; file calls include decode and strict PNG8 atomic/fsync/byte/pixel verification. ImageData construction included unless explicitly marked reusable typed input.",
+  "host_memory": {
+    "total": 34028462080,
+    "available": 7224315904,
+    "percent": 78.8,
+    "used": 26804146176,
+    "free": 7224315904
+  },
+  "source_unchanged": true
+}

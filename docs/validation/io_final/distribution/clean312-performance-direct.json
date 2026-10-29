@@ -1,0 +1,113 @@
+{
+  "python": "3.12.10",
+  "package": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+  "numba": true,
+  "versions": {
+    "numpy": "2.4.6",
+    "scipy": "1.18.1",
+    "colour-science": "0.4.7"
+  },
+  "tone_backend": {
+    "actual_backend": "cpu-numba",
+    "requested_backend": "auto",
+    "fallback_reason": null,
+    "precision": "float64",
+    "LUT": false,
+    "runtime_fallback": false,
+    "method": "fused-D65-neutral-PCHIP"
+  },
+  "max_rgb_reference_error": 2.4980018054066022e-15,
+  "bulk_pipeline_rgb_reference_error": 1.6930901125533637e-15,
+  "bulk_execution_verified": true,
+  "bundle_sha256": "2a4ad10937aa5e666e37981052e16ca3d1d65379ccdaddb2aeb24a5ec144670d",
+  "calibration_id": "b18a558c0ed471e8b374cb08dfa988da1c3e18d6cb56209aa49c1bb87db71018",
+  "bundle_reload_exact": true,
+  "trusted_pickle_reload_exact": true,
+  "runtime_kernel_state_not_serialized": true,
+  "qualification": {
+    "method": "sampled qualification and separate audit; not all-domain proof",
+    "reason": "direct execution requested",
+    "candidates": [],
+    "selected_mode": "direct",
+    "budgets": {
+      "max_rgb_error": 0.002,
+      "max_delta_e00": 0.5
+    },
+    "qualification_sha256": "ec0699197b9a9518794155edde4d08c4eee5b2862080bb1b6f6c9f1af087361a",
+    "audit_sha256": "f3253eeaf5d58dd9498c9cb2ea63488ff6438a0ffafa1b8a03e93a66773a6698",
+    "direct_backend": {
+      "GC": "explicit-D65-neutral-PCHIP",
+      "GC_execution": {
+        "actual_backend": "cpu-numba",
+        "requested_backend": "auto",
+        "fallback_reason": null,
+        "precision": "float64",
+        "LUT": false,
+        "runtime_fallback": false,
+        "method": "fused-D65-neutral-PCHIP",
+        "downstream_rgb_gain_bound": 0.7200000000000001,
+        "backends_used": [
+          "cpu-numba"
+        ],
+        "calls_by_backend": {
+          "cpu-numba": 1
+        },
+        "runtime_fallback_occurred": false,
+        "fallback_reasons": []
+      },
+      "WB": "numpy-diagonal/matrix",
+      "CC": {
+        "actual_backend": "cpu-numba",
+        "requested_backend": "auto",
+        "precision": "float64",
+        "method": "owned-buffer-polynomial-affine",
+        "fallback_reason": null,
+        "runtime_fallback": false,
+        "domain_policy": "reject",
+        "input_was_clipped": false,
+        "feature_policy": "portable/reproducible CPU float64",
+        "polynomial_degree": 1,
+        "feature_count": 4,
+        "runtime_fallback_occurred": false,
+        "backends_used": [
+          "cpu-numba"
+        ],
+        "calls_by_backend": {
+          "cpu-numba": 1
+        },
+        "fallback_reasons": []
+      },
+      "pointwise_execution": "owned-buffer-bulk-direct",
+      "WB_execution": "numpy-channel-gains"
+    },
+    "direct_backend_error": {
+      "samples": 909,
+      "max_rgb_error": 2.525757381022231e-15,
+      "p95_rgb_error": 1.0158540675320157e-15,
+      "max_delta_e00": 1.6302185758136053e-13,
+      "p95_delta_e00": 6.460256678888946e-14,
+      "rgb_error_encoding": "srgb",
+      "delta_e_white": "D65"
+    },
+    "direct_backend_audit": {
+      "samples": 935,
+      "max_rgb_error": 3.469446951953614e-15,
+      "p95_rgb_error": 1.1463052729254729e-15,
+      "max_delta_e00": 1.4133806842355386e-13,
+      "p95_delta_e00": 5.693929350479162e-14,
+      "rgb_error_encoding": "srgb",
+      "delta_e_white": "D65"
+    },
+    "direct_backend_selected": "auto",
+    "direct_roundoff_limits": {
+      "max_rgb_error": 5e-12,
+      "max_delta_e00": 1e-08
+    },
+    "direct_GC_error": {
+      "qualification_max_encoded_rgb_error": 3.7192471324942744e-15,
+      "audit_max_encoded_rgb_error": 5.10702591327572e-15,
+      "max_encoded_rgb_limit": 5e-12
+    }
+  },
+  "all_checks_passed": true
+}

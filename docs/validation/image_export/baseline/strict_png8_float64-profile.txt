@@ -1,0 +1,53 @@
+         37672 function calls (37597 primitive calls) in 1.944 seconds
+
+   Ordered by: cumulative time
+   List reduced from 265 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.019    0.019    1.944    1.944 bench_image_io.py:103(<lambda>)
+        1    0.539    0.539    1.925    1.925 writers.py:185(write_image_data)
+        1    0.154    0.154    0.560    0.560 contracts.py:265(from_array)
+        1    0.030    0.030    0.360    0.360 contracts.py:226(__post_init__)
+        1    0.002    0.002    0.290    0.290 writers.py:164(_encode_strict)
+        2    0.000    0.000    0.269    0.134 contracts.py:149(_hash_parts)
+        6    0.268    0.045    0.268    0.045 {method 'update' of '_hashlib.HASH' objects}
+        1    0.240    0.240    0.240    0.240 {imencode}
+        1    0.000    0.000    0.221    0.221 image_data.py:98(_decode)
+        5    0.203    0.041    0.203    0.041 {method 'astype' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.147    0.147 PngImagePlugin.py:1117(getexif)
+        1    0.003    0.003    0.147    0.147 ImageFile.py:296(load)
+     3039    0.130    0.000    0.130    0.000 {method 'decode' of 'ImagingDecoder' objects}
+        1    0.074    0.074    0.074    0.074 {imdecode}
+        1    0.017    0.017    0.059    0.059 contracts.py:70(_readonly_array)
+        2    0.046    0.023    0.046    0.023 {method 'tobytes' of 'numpy.ndarray' objects}
+        1    0.041    0.041    0.041    0.041 {method 'copy' of 'numpy.ndarray' objects}
+        1    0.034    0.034    0.036    0.036 numeric.py:2535(array_equal)
+        4    0.032    0.008    0.032    0.008 {built-in method numpy.ascontiguousarray}
+        9    0.031    0.003    0.031    0.003 {method 'reduce' of 'numpy.ufunc' objects}
+        2    0.000    0.000    0.021    0.011 fromnumeric.py:3011(max)
+        2    0.000    0.000    0.021    0.011 fromnumeric.py:66(_wrapreduction)
+        1    0.000    0.000    0.017    0.017 pathlib.py:1015(read_bytes)
+        3    0.017    0.006    0.017    0.006 {built-in method _hashlib.openssl_sha256}
+     3039    0.003    0.000    0.014    0.000 PngImagePlugin.py:1012(load_read)
+        1    0.012    0.012    0.012    0.012 writers.py:147(_png_metadata)
+        3    0.000    0.000    0.011    0.004 tempfile.py:497(func_wrapper)
+        1    0.011    0.011    0.011    0.011 {method 'write' of '_io.BufferedWriter' objects}
+        1    0.009    0.009    0.009    0.009 {method 'read' of '_io.BufferedReader' objects}
+        2    0.008    0.004    0.009    0.004 {built-in method _io.open}
+        1    0.000    0.000    0.008    0.008 pathlib.py:1005(open)
+     3045    0.003    0.000    0.007    0.000 PngImagePlugin.py:176(read)
+        4    0.000    0.000    0.005    0.001 {method 'any' of 'numpy.ndarray' objects}
+        4    0.000    0.000    0.005    0.001 _methods.py:55(_any)
+        1    0.005    0.005    0.005    0.005 {built-in method nt.fsync}
+        3    0.000    0.000    0.004    0.001 {method 'all' of 'numpy.ndarray' objects}
+        3    0.000    0.000    0.004    0.001 _methods.py:64(_all)
+     9135    0.003    0.000    0.003    0.000 {method 'read' of '_io.BytesIO' objects}
+     3053    0.001    0.000    0.002    0.000 _binary.py:97(i32be)
+        1    0.001    0.001    0.001    0.001 {built-in method nt.rename}
+     3049    0.001    0.000    0.001    0.000 {method 'match' of 're.Pattern' objects}
+        5    0.000    0.000    0.001    0.000 pathlib.py:835(stat)
+        5    0.001    0.000    0.001    0.000 {built-in method nt.stat}
+     3043    0.001    0.000    0.001    0.000 {built-in method builtins.min}
+        1    0.000    0.000    0.001    0.001 tempfile.py:537(NamedTemporaryFile)
+
+

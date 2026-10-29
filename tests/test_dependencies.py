@@ -70,19 +70,20 @@ class TestOpenCV:
 # ── Numba ─────────────────────────────────────────────────────────────────
 
 class TestNumba:
-    """Verify numba (core dependency since v1.4.1) is importable."""
+    """Qualify the optional performance backend when it is installed."""
 
     def test_numba_imports(self):
-        import numba
+        numba = pytest.importorskip("numba", reason="install the performance extra for Numba acceleration")
         assert numba.__version__, "numba imported but __version__ is empty"
 
     def test_numba_njit_available(self):
+        pytest.importorskip("numba", reason="optional performance extra is not installed")
         from numba import njit
         assert callable(njit)
 
     def test_has_numba_flag(self):
         from ColorCorrectionPipeline.core.accel import HAS_NUMBA
-        assert HAS_NUMBA is True, "HAS_NUMBA should be True when numba is installed"
+        assert HAS_NUMBA is (importlib.util.find_spec("numba") is not None)
 
 
 # ── Core scientific stack ─────────────────────────────────────────────────

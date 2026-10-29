@@ -1,0 +1,20 @@
+[
+  {
+    "vulkan_index": 0,
+    "name": "Intel(R) UHD Graphics 770",
+    "api_version": "1.4.323",
+    "driver_raw": 1661872,
+    "vendor_id": 32902,
+    "device_id": 42880,
+    "device_type": 1
+  },
+  {
+    "vulkan_index": 1,
+    "name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+    "api_version": "1.4.341",
+    "driver_raw": 2559967232,
+    "vendor_id": 4318,
+    "device_id": 9989,
+    "device_type": 2
+  }
+]

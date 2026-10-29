@@ -29,6 +29,15 @@ __all__ = [
 ]
 
 
+def _adaptation_options(transform):
+    """Pin the validated legacy CAT02 instead of inheriting future defaults."""
+    if transform is None:
+        return {"transform": "CAT02"}
+    if transform not in ("Bradford", "CAT02"):
+        raise ValueError("adaptation_transform must be Bradford or CAT02")
+    return {"transform": transform}
+
+
 def convert_to_lab(
     mat: np.ndarray,
     illuminant: np.ndarray = WP_DEFAULT,
@@ -36,6 +45,10 @@ def convert_to_lab(
 ) -> np.ndarray:
     """
     Convert color values to CIE L*a*b* color space.
+
+    Compatibility behavior: the sRGB branch converts to D65 XYZ and then uses
+    the supplied Lab white without chromatic adaptation. For an explicitly
+    adapted comparison, use ColorCorrectionPipeline.colorimetry instead.
     
     Args:
         mat: Input color values
@@ -137,6 +150,8 @@ def convert_to_LCHab(
 def srgb_to_cielab_D50(
     srgb_mat: np.ndarray,
     srgb_mat_illuminant: np.ndarray,
+    *,
+    adaptation_transform: Optional[str] = None,
 ) -> np.ndarray:
     """
     Convert sRGB to CIE L*a*b* under D50 illuminant.
@@ -158,7 +173,8 @@ def srgb_to_cielab_D50(
         (1, 3)
         
     Note:
-        Uses Bradford chromatic adaptation transform.
+        The legacy path explicitly retains validated CAT02. Pass adaptation_transform
+        explicitly for Bradford/CAT02, or use colorimetry for declared encodings.
     """
     # D50 illuminant in xy chromaticity
     D50_xy = colour.CCS_ILLUMINANTS["CIE 1931 2 Degree Standard Observer"]["D50"]
@@ -177,6 +193,7 @@ def srgb_to_cielab_D50(
         source_xyz,
         dest_xyz,
         method="Von Kries",
+        **_adaptation_options(adaptation_transform),
     )
     
     # Convert to Lab under D50 (XYZ_to_Lab expects xy chromaticity)
@@ -189,6 +206,8 @@ def adapt_chart(
     color_chart: colour.characterisation.ColourChecker,
     target_illuminant: np.ndarray,
     cmfs: str = CMFS_DEFAULT,
+    *,
+    adaptation_transform: Optional[str] = None,
 ) -> colour.characterisation.ColourChecker:
     """
     Adapt ColorChecker chart to target illuminant using chromatic adaptation.
@@ -210,8 +229,10 @@ def adapt_chart(
         'ColorChecker24 - After November 2014'
         
     Note:
-        Uses CAT02 chromatic adaptation transform.
+        Legacy behavior explicitly retains CAT02. An explicit
+        adaptation_transform selects Bradford or CAT02 without changing defaults.
     """
+    options = _adaptation_options(adaptation_transform)
     # Get source illuminant from chart
     source_illuminant = color_chart.illuminant
     
@@ -232,6 +253,7 @@ def adapt_chart(
         source_xyz,
         target_xyz,
         method="Von Kries",
+        **options,
     )
     
     # Convert back to xyY
@@ -241,12 +263,13 @@ def adapt_chart(
     # Convert keys to strings to avoid numpy dtype issues
     adapted_data = {str(k): v for k, v in zip(color_chart.data.keys(), adapted_xyy)}
     
-    adapted_chart = colour.characterisation.ColourChecker(
+    from ..checker_compat import make_colour_checker
+    adapted_chart = make_colour_checker(
         name=color_chart.name,
         data=adapted_data,
         illuminant=target_illuminant,
-        rows=color_chart.rows,
-        columns=color_chart.columns,
+        rows=getattr(color_chart, "rows", None),
+        columns=getattr(color_chart, "columns", None),
     )
     
     return adapted_chart
@@ -256,6 +279,8 @@ def do_color_adaptation(
     img: np.ndarray,
     orig_illuminant: np.ndarray,
     dest_illuminant: np.ndarray,
+    *,
+    adaptation_transform: Optional[str] = None,
 ) -> np.ndarray:
     """
     Apply chromatic adaptation to image from source to destination illuminant.
@@ -277,8 +302,11 @@ def do_color_adaptation(
         (100, 100, 3)
         
     Note:
-        Uses Bradford chromatic adaptation transform.
+        The legacy path explicitly retains validated CAT02; this
+        helper does not change the image's declared RGB encoding. Explicit
+        encoding/white conversions are available in colorimetry.
     """
+    options = _adaptation_options(adaptation_transform)
     # If same illuminant, return as-is
     if np.allclose(orig_illuminant, dest_illuminant, rtol=1e-4):
         return img
@@ -306,6 +334,7 @@ def do_color_adaptation(
         orig_xyz,
         dest_xyz,
         method="Von Kries",
+        **options,
     )
     
     # Convert back to RGB

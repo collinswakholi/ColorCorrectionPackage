@@ -15,38 +15,30 @@ def test_run_validates_config_before_processing():
 
 
 def test_run_saves_models_to_expected_pickle_path(tmp_path, monkeypatch):
+    from ColorCorrectionPipeline.core.correction import fit_model
+    from ColorCorrectionPipeline.models import MyModels
+
     pipeline = ColorCorrection()
-    image = np.zeros((8, 8, 3), dtype=np.float64)
+    image = np.full((8, 8, 3), 0.4, dtype=np.float64)
 
-    monkeypatch.setattr(
-        pipeline,
-        "do_flat_field_correction",
-        lambda Image, do_ffc, ffc_kwargs: (Image, {"stage": "ffc"}, False),
-    )
-    monkeypatch.setattr(
-        pipeline,
-        "do_gamma_correction",
-        lambda Image, do_gc, gc_kwargs: (Image, {"stage": "gc"}, False),
-    )
-    monkeypatch.setattr(
-        pipeline,
-        "do_white_balance",
-        lambda Image, do_wb, wb_kwargs: (Image, {"stage": "wb"}, False),
-    )
-    monkeypatch.setattr(
-        pipeline,
-        "do_color_correction",
-        lambda Image, do_cc, cc_method, cc_kwargs: (Image, {"stage": "cc"}, False),
-    )
+    def fit_real_model(self, Image, do_cc, cc_method, cc_kwargs):
+        x = np.random.default_rng(7).random((24, 3))
+        fitted = fit_model(x, x, {"mtd": "linear", "degree": 1})
+        self.models.model_cc = (fitted, {}, "ours")
+        return Image, {}, False
 
-    pipeline.run(
-        image,
-        name_="case",
-        config=Config(save=True, save_path=str(tmp_path), check_saturation=False),
+    monkeypatch.setattr(ColorCorrection, "do_color_correction", fit_real_model)
+    _, _, error = pipeline.run(
+        image, name_="case",
+        config=Config(do_ffc=False, do_gc=False, do_wb=False, save=True,
+                      save_path=str(tmp_path), check_saturation=False),
     )
-
+    assert error is False
     assert (tmp_path / "case_models.pkl").is_file()
     assert not (tmp_path / "case_models.pkl" / "models.pkl").exists()
+    loaded = MyModels()
+    loaded.load(str(tmp_path), "case_models")
+    assert loaded.model_cc is not None
 
 
 def test_color_correction_does_not_store_missing_custom_model(monkeypatch):

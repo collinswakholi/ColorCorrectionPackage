@@ -1,0 +1,49 @@
+{
+  "case": "unavailable CUDA runtime -> CPU",
+  "charts": 1,
+  "diagnostics": {
+    "backend": "model",
+    "status": "detected",
+    "charts": 1,
+    "selected_chart_index": 0,
+    "geometry_source": "first_sampled_image",
+    "ignored_layouts": [],
+    "requested_provider": "CPUExecutionProvider",
+    "graphics_backend": null,
+    "device_id": null,
+    "runtime_version": "1.31.1",
+    "registered_providers": [
+      "CPUExecutionProvider"
+    ],
+    "provider_options": {},
+    "requested_device": "cuda",
+    "selected_device": "cpu",
+    "provider": "CPUExecutionProvider",
+    "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+    "model": "chart_detector_1280.onnx",
+    "input_size": 1280,
+    "available_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "attempts": [
+      {
+        "device": "cuda",
+        "provider": "CUDAExecutionProvider",
+        "status": "failed",
+        "type": "ProviderUnavailableError",
+        "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+      },
+      {
+        "device": "cpu",
+        "provider": "CPUExecutionProvider",
+        "status": "succeeded"
+      }
+    ],
+    "cpu_fallback": true,
+    "execution_verified": true,
+    "execution_evidence": "explicit_cpu_only_session",
+    "node_provider_counts": {},
+    "anchors": 9
+  }
+}

@@ -146,6 +146,18 @@ class FlatFieldCorrection:
         self.conf_threshold = kwargs.get("conf_threshold", 0.7)
         self.iou_threshold = kwargs.get("iou_threshold", 0.6)
         self.dnn_input_size = kwargs.get("dnn_input_size", 512)
+        self.safe_mode = kwargs.get("safe_mode", False)
+        self.min_signal = kwargs.get("min_signal", 0.02)
+        self.max_saturated_fraction = kwargs.get("max_saturated_fraction", 0.01)
+        self.min_crop_fraction = kwargs.get("min_crop_fraction", 0.1)
+        self.min_gain = kwargs.get("min_gain", 0.5)
+        self.max_gain = kwargs.get("max_gain", 1.8)
+        self.missing_plane = kwargs.get("missing_plane", "error")
+        self.quality_report = {"algorithm": "legacy-uint8-Lab-lightness", "safe_mode": self.safe_mode}
+        if not isinstance(self.safe_mode, bool):
+            raise TypeError("FFC safe_mode must be boolean")
+        if self.safe_mode:
+            self._validate_safe_configuration()
         
         self.model: Optional[Any] = None
         self.img_cropped: Optional[np.ndarray] = None
@@ -155,6 +167,65 @@ class FlatFieldCorrection:
         
         if not self.manual_crop and self.crop_rect is None:
             self.model = self._load_detection_model()
+
+    def _validate_safe_configuration(self):
+        if self.img is None or not isinstance(self.img, np.ndarray) or self.img.dtype != UINT8:
+            raise ValueError("safe FFC requires a uint8 white image; higher precision radiometric FFC is not implemented")
+        if self.img.ndim not in (2, 3) or (self.img.ndim == 3 and self.img.shape[2] != 3) or min(self.img.shape[:2]) < 4:
+            raise ValueError("safe FFC requires a nonempty grayscale or BGR white image with both dimensions >= 4")
+        for name in ("bins", "smooth_window"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < (2 if name == "bins" else 1):
+                raise ValueError("safe FFC %s must be a positive integer" % name)
+        if self.smooth_window % 2 != 1:
+            raise ValueError("safe FFC smooth_window must be odd")
+        for name in ("min_signal", "max_saturated_fraction", "min_crop_fraction", "min_gain", "max_gain"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (float, int, np.number)) or not np.isfinite(value):
+                raise ValueError("safe FFC %s must be finite numeric" % name)
+        if not 0 < self.min_signal < 1 or not 0 <= self.max_saturated_fraction <= 1 or not 0 < self.min_crop_fraction <= 1:
+            raise ValueError("safe FFC signal, saturation and coverage policies are outside their supported ranges")
+        if not 0 < self.min_gain <= self.max_gain or self.max_gain > 100:
+            raise ValueError("safe FFC requires 0 < min_gain <= max_gain <= 100")
+        if self.missing_plane not in ("error", "full-image"):
+            raise ValueError("safe FFC missing_plane must be error or full-image")
+        if self.manual_crop and self.crop_rect is None:
+            raise ValueError("safe FFC manual_crop requires an explicit crop_rect; interactive selection is not reproducible")
+        if self.crop_rect is not None:
+            self._normalize_crop_rect(tuple(self.crop_rect))
+
+    def _validate_safe_crop(self):
+        height, width = self.img.shape[:2]
+        crop_height, crop_width = self.img_cropped.shape[:2]
+        fraction = crop_height * crop_width / (height * width)
+        if fraction < self.min_crop_fraction:
+            raise ValueError("safe FFC crop has insufficient spatial coverage")
+        if self.bins > min(crop_height, crop_width):
+            raise ValueError("safe FFC bins exceed distinct crop pixel coordinates")
+        if self.smooth_window > min(crop_height, crop_width):
+            raise ValueError("safe FFC smoothing window exceeds crop dimensions")
+        raw = self.img_cropped
+        clipped = np.any(raw >= 253, axis=2) if raw.ndim == 3 else raw >= 253
+        saturated_fraction = float(np.mean(clipped))
+        raw_lightness, _ = self.get_L(raw, smooth=False)
+        self.quality_report.update({"crop_rect": list(self.crop_rect), "crop_fraction": fraction,
+                                    "source_shape": list(self.img.shape[:2]),
+                                    "saturated_pixel_fraction": saturated_fraction,
+                                    "saturation_threshold_uint8": 253,
+                                    "minimum_raw_normalized_lightness": float(raw_lightness.min()) / 255,
+                                    "min_signal": float(self.min_signal),
+                                    "gain_limits": [float(self.min_gain), float(self.max_gain)]})
+        if saturated_fraction > self.max_saturated_fraction:
+            raise ValueError("safe FFC white plane is saturated beyond max_saturated_fraction")
+        if float(raw_lightness.min()) / 255 < self.min_signal:
+            raise ValueError("safe FFC white plane has insufficient signal before smoothing")
+
+    def _validate_safe_multiplier(self, values, location):
+        values = np.asarray(values)
+        if not np.isfinite(values).all() or np.any(values <= 0):
+            raise ValueError("safe FFC %s multiplier is nonfinite or nonpositive" % location)
+        if values.min() < self.min_gain or values.max() > self.max_gain:
+            raise ValueError("safe FFC %s multiplier exceeds declared gain limits" % location)
             
     def check_color(self, img: np.ndarray) -> bool:
         """Check if image is color (3 channels) vs grayscale."""
@@ -316,6 +387,13 @@ class FlatFieldCorrection:
     def _normalize_crop_rect(self, rect: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
         """Clamp a crop rectangle to the image bounds."""
         height, width = self.img.shape[:2]
+        if self.safe_mode:
+            if len(rect) != 4 or any(isinstance(v, bool) or not isinstance(v, (int, np.integer)) for v in rect):
+                raise ValueError("safe FFC crop_rect requires four integer coordinates")
+            x1, y1, x2, y2 = rect
+            if not (0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height):
+                raise ValueError("safe FFC crop_rect must be nonempty and wholly inside the source image")
+            return tuple(int(v) for v in rect)
         x1, y1, x2, y2 = [int(v) for v in rect]
         x1 = int(np.clip(x1, 0, width - 1))
         y1 = int(np.clip(y1, 0, height - 1))
@@ -480,12 +558,18 @@ class FlatFieldCorrection:
 
         if self.crop_rect is not None:
             x1, y1, x2, y2 = self._normalize_crop_rect(tuple(self.crop_rect))
+            if self.safe_mode:
+                self.quality_report["plane_selection"] = "explicit-crop"
         elif not self.manual_crop:
             # OpenCV DNN detection
             sr = 0.95  # Shrink ratio to avoid edges
             boxes, probs = self._detect_plane_opencv_dnn(self.img)
 
             if len(boxes) == 0:
+                if self.safe_mode and self.missing_plane == "error":
+                    raise ValueError("safe FFC no white plane detected; provide crop_rect or explicitly allow missing_plane='full-image'")
+                if self.safe_mode:
+                    self.quality_report["plane_selection"] = "explicit-full-image-fallback"
                 print("Warning: no white plane detected, using full image")
                 x1 = 0
                 y1 = 0
@@ -505,6 +589,10 @@ class FlatFieldCorrection:
                     selected_box = boxes[0]
                     selected_prob = probs[0]
                     print(f"Detected white plane: BB={selected_box}, prob={selected_prob:.3f}")
+
+                if self.safe_mode:
+                    self.quality_report.update({"plane_selection": "detected-largest", "detection_count": len(boxes),
+                                                "selected_confidence": float(selected_prob)})
 
                 x1, y1, x2, y2 = selected_box
                 margin_x = int(round((1 - sr) * (x2 - x1) / 2))
@@ -537,6 +625,8 @@ class FlatFieldCorrection:
         
         self.crop_rect = [x1, y1, x2, y2]
         self.img_cropped = self.img[y1:y2, x1:x2]
+        if self.safe_mode:
+            self._validate_safe_crop()
         
         if self.show:
             img = self.img.copy()
@@ -631,7 +721,31 @@ class FlatFieldCorrection:
         # Match method name
         fit_method = method.lower()
         if fit_method not in options:
+            if self.safe_mode:
+                raise ValueError("safe FFC unknown fit_method: %s" % method)
             fit_method = "linear"
+
+        if self.safe_mode:
+            if isinstance(max_iter, bool) or not isinstance(max_iter, (int, np.integer)) or max_iter < 1:
+                raise ValueError("safe FFC max_iter must be a positive integer")
+            if isinstance(tol, bool) or not isinstance(tol, (float, int, np.number)) or not np.isfinite(tol) or tol <= 0:
+                raise ValueError("safe FFC tol must be finite and positive")
+            if isinstance(rand_seed, bool) or not isinstance(rand_seed, (int, np.integer)) or rand_seed < 0:
+                raise ValueError("safe FFC random_seed must be a nonnegative integer")
+            if not np.isfinite(X).all() or not np.isfinite(y).all() or np.linalg.matrix_rank(X) < X.shape[1]:
+                raise ValueError("safe FFC fitting design must be finite and full column rank")
+            condition = float(np.linalg.cond(X))
+            if not np.isfinite(condition) or condition > 1e10:
+                raise ValueError("safe FFC polynomial design is ill-conditioned")
+            components = kwargs.get("n_components", min(X.shape[1] - 1, X.shape[0] - 1))
+            if isinstance(components, bool) or not isinstance(components, (int, np.integer)) or not 1 <= components <= min(X.shape[1], X.shape[0] - 1):
+                raise ValueError("safe FFC n_components exceed available samples/features")
+            learning_rate = kwargs.get("learning_rate", 0.001)
+            if isinstance(learning_rate, bool) or not isinstance(learning_rate, (float, int, np.number)) or not np.isfinite(learning_rate) or learning_rate <= 0:
+                raise ValueError("safe FFC learning_rate must be finite and positive")
+            self.quality_report.update({"fit_method": fit_method, "design_rank": int(X.shape[1]),
+                                       "design_condition": condition, "sample_count": int(X.shape[0]),
+                                       "random_seed": int(rand_seed), "learning_rate": float(learning_rate)})
         
         model_dict = {
             "linear": LinearRegression(fit_intercept=True, n_jobs=8),
@@ -639,7 +753,7 @@ class FlatFieldCorrection:
                 activation="relu",
                 solver="adam",
                 learning_rate="adaptive",
-                learning_rate_init=0.001,
+                learning_rate_init=learning_rate if self.safe_mode else 0.001,
                 hidden_layer_sizes=(100,),
                 max_iter=max_iter,
                 shuffle=True,
@@ -648,11 +762,11 @@ class FlatFieldCorrection:
                 verbose=verbose,
                 nesterovs_momentum=True,
                 early_stopping=True,
-                n_iter_no_change=int(max_iter * 0.1),
+                n_iter_no_change=max(1, int(max_iter * 0.1)) if self.safe_mode else int(max_iter * 0.1),
                 validation_fraction=0.15,
             ),
             "pls": PLSRegression(
-                n_components=np.shape(X)[1] - 1, max_iter=max_iter, tol=tol
+                n_components=components if self.safe_mode else np.shape(X)[1] - 1, max_iter=max_iter, tol=tol
             ),
             "svm": SVR(
                 kernel="rbf",
@@ -707,6 +821,12 @@ class FlatFieldCorrection:
             ...     tol=1e-8
             ... )
         """
+        if self.safe_mode:
+            degree = kwargs.get("degree", 5)
+            if isinstance(degree, bool) or not isinstance(degree, (int, np.integer)) or not 1 <= degree <= 8:
+                raise ValueError("safe FFC degree must be an integer from 1 to 8")
+            if self.bins < degree + 1:
+                raise ValueError("safe FFC needs at least degree+1 distinct coordinate bins")
         # 1. Detect and crop white plane
         self.detect_and_crop()
         
@@ -719,7 +839,15 @@ class FlatFieldCorrection:
         
         # Compute cropped multiplier (inverse of normalized L)
         L_float = L_cropped.astype(FLOAT) / 255
+        if self.safe_mode:
+            minimum, maximum = float(np.min(L_float)), float(np.max(L_float))
+            self.quality_report.update({"minimum_normalized_lightness": minimum,
+                                       "maximum_normalized_lightness": maximum})
+            if not np.isfinite(L_float).all() or minimum < self.min_signal:
+                raise ValueError("safe FFC white plane has insufficient signal or invalid lightness; division was not attempted")
         self.cropped_multiplier = np.max(L_float) / L_float
+        if self.safe_mode:
+            self._validate_safe_multiplier(self.cropped_multiplier, "observed")
         
         flat_cropped = L_float * self.cropped_multiplier
         flat_cropped = (255 * flat_cropped).astype(UINT8)
@@ -787,6 +915,8 @@ class FlatFieldCorrection:
         f_multiplier = (f_multiplier * (max_z - min_z) + min_z).reshape(
             self.bins, self.bins
         )
+        if self.safe_mode:
+            self._validate_safe_multiplier(f_multiplier, "fitted-grid")
         
         # Transform extreme values to prevent over-correction
         f_multiplier = self.transform_extremity(
@@ -799,6 +929,11 @@ class FlatFieldCorrection:
             (L_full.shape[1], L_full.shape[0]),
             interpolation=cv2.INTER_CUBIC,
         )
+        if self.safe_mode:
+            self._validate_safe_multiplier(f_multiplier, "interpolated-full-image")
+            self.quality_report.update({"minimum_gain": float(f_multiplier.min()),
+                                       "maximum_gain": float(f_multiplier.max()),
+                                       "status": "validated"})
         self.final_multiplier = f_multiplier
         
         # 3. Apply FFC to the image (for visualization if requested)
@@ -839,11 +974,18 @@ class FlatFieldCorrection:
         
         if multiplier is not None:
             self.final_multiplier = multiplier
+
+        if self.safe_mode:
+            if self.final_multiplier is None or np.asarray(self.final_multiplier).ndim != 2:
+                raise ValueError("safe FFC application requires a calibrated 2D multiplier")
+            self._validate_safe_multiplier(self.final_multiplier, "application")
         
         w, h = img.shape[:2]
         w_o, h_o = self.final_multiplier.shape[:2]
         
         if (w, h) != (w_o, h_o):
+            if self.safe_mode:
+                raise ValueError("safe FFC application requires calibrated image dimensions")
             print(
                 f"Warning: Image size {w}x{h} != multiplier size {w_o}x{h_o}. "
                 f"Resizing image to match."

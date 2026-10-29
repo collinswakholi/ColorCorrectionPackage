@@ -1,0 +1,53 @@
+         616 function calls (534 primitive calls) in 0.554 seconds
+
+   Ordered by: cumulative time
+   List reduced from 152 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.554    0.554 bench_image_io.py:99(<lambda>)
+        1    0.000    0.000    0.554    0.554 contracts.py:345(from_array)
+        1    0.000    0.000    0.377    0.377 <string>:2(__init__)
+        1    0.000    0.000    0.377    0.377 contracts.py:303(__post_init__)
+        1    0.000    0.000    0.265    0.265 contracts.py:110(_image_digests)
+        1    0.000    0.000    0.265    0.265 _base.py:646(__exit__)
+        1    0.000    0.000    0.265    0.265 thread.py:220(shutdown)
+        1    0.000    0.000    0.265    0.265 threading.py:1117(join)
+    14/11    0.000    0.000    0.264    0.024 {method 'acquire' of '_thread.lock' objects}
+        1    0.000    0.000    0.264    0.264 threading.py:1155(_wait_for_tstate_lock)
+        1    0.001    0.001    0.264    0.264 _base.py:428(result)
+        3    0.000    0.000    0.263    0.088 threading.py:323(wait)
+        2    0.000    0.000    0.209    0.104 contracts.py:103(_image_bounds)
+        4    0.208    0.052    0.208    0.052 {method 'reduce' of 'numpy.ufunc' objects}
+        2    0.000    0.000    0.111    0.055 {method 'min' of 'numpy.ndarray' objects}
+        2    0.000    0.000    0.111    0.055 _methods.py:43(_amin)
+        2    0.000    0.000    0.098    0.049 {method 'max' of 'numpy.ndarray' objects}
+        2    0.000    0.000    0.098    0.049 _methods.py:39(_amax)
+        2    0.000    0.000    0.079    0.040 contracts.py:83(_immutable_image_snapshot)
+        1    0.079    0.079    0.079    0.079 {method 'tobytes' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.001    0.001 thread.py:54(run)
+      2/1    0.000    0.000    0.001    0.001 contracts.py:226(_hash_parts)
+      6/3    0.261    0.044    0.001    0.000 {method 'update' of '_hashlib.HASH' objects}
+        1    0.000    0.000    0.001    0.001 thread.py:165(submit)
+        1    0.000    0.000    0.000    0.000 thread.py:184(_adjust_thread_count)
+        1    0.000    0.000    0.000    0.000 threading.py:975(start)
+        1    0.000    0.000    0.000    0.000 threading.py:637(wait)
+     25/4    0.000    0.000    0.000    0.000 contracts.py:28(_plain)
+        1    0.000    0.000    0.000    0.000 {built-in method _thread.start_new_thread}
+   122/68    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 contracts.py:44(_metadata)
+        2    0.000    0.000    0.000    0.000 contracts.py:158(_image_dtype)
+       27    0.000    0.000    0.000    0.000 typing.py:1221(__instancecheck__)
+        3    0.000    0.000    0.000    0.000 __init__.py:183(dumps)
+        2    0.000    0.000    0.000    0.000 _dtype.py:342(_name_get)
+       27    0.000    0.000    0.000    0.000 typing.py:1492(__subclasscheck__)
+        2    0.000    0.000    0.000    0.000 threading.py:424(notify_all)
+        3    0.000    0.000    0.000    0.000 encoder.py:183(encode)
+        3    0.000    0.000    0.000    0.000 threading.py:394(notify)
+        1    0.000    0.000    0.000    0.000 threading.py:1018(_bootstrap)
+        1    0.000    0.000    0.000    0.000 threading.py:616(set)
+        1    0.000    0.000    0.000    0.000 threading.py:1058(_bootstrap_inner)
+       35    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}
+        5    0.000    0.000    0.000    0.000 {method 'release' of '_thread.lock' objects}
+        3    0.000    0.000    0.000    0.000 encoder.py:205(iterencode)
+
+

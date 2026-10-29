@@ -1,0 +1,53 @@
+         18180 function calls in 3.034 seconds
+
+   Ordered by: cumulative time
+   List reduced from 213 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.014    0.014    3.034    3.034 bench_image_io.py:106(<lambda>)
+        1    0.018    0.018    3.019    3.019 writers.py:252(write_image_data)
+        1    1.056    1.056    1.339    1.339 writers.py:190(_quantize_strict)
+        1    0.009    0.009    1.041    1.041 writers.py:164(_encode_strict)
+        1    0.986    0.986    0.986    0.986 {imencode}
+        1    0.000    0.000    0.357    0.357 image_data.py:166(_decode)
+        1    0.279    0.279    0.279    0.279 {imdecode}
+      254    0.220    0.001    0.220    0.001 {method 'astype' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.136    0.136 {built-in method builtins.any}
+      129    0.001    0.000    0.136    0.001 writers.py:344(<genexpr>)
+      128    0.126    0.001    0.133    0.001 numeric.py:2535(array_equal)
+        1    0.020    0.020    0.077    0.077 image_data.py:36(_png_metadata_snapshot)
+      255    0.064    0.000    0.064    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      127    0.002    0.000    0.061    0.000 {method 'max' of 'numpy.ndarray' objects}
+      127    0.001    0.000    0.059    0.000 _methods.py:39(_amax)
+     3059    0.049    0.000    0.049    0.000 {built-in method zlib.crc32}
+        1    0.000    0.000    0.047    0.047 pathlib.py:1015(read_bytes)
+        1    0.033    0.033    0.033    0.033 {method 'read' of '_io.BufferedReader' objects}
+        1    0.029    0.029    0.029    0.029 {built-in method _hashlib.openssl_sha256}
+        3    0.000    0.000    0.029    0.010 tempfile.py:497(func_wrapper)
+        1    0.029    0.029    0.029    0.029 {method 'write' of '_io.BufferedWriter' objects}
+        1    0.027    0.027    0.027    0.027 writers.py:147(_png_metadata)
+        2    0.013    0.007    0.016    0.008 {built-in method _io.open}
+        1    0.000    0.000    0.013    0.013 pathlib.py:1005(open)
+        1    0.013    0.013    0.013    0.013 {method 'tobytes' of 'numpy.ndarray' objects}
+        1    0.007    0.007    0.007    0.007 {built-in method nt.fsync}
+      128    0.000    0.000    0.007    0.000 {method 'all' of 'numpy.ndarray' objects}
+      128    0.000    0.000    0.006    0.000 _methods.py:64(_all)
+     6090    0.006    0.000    0.006    0.000 {built-in method from_bytes}
+        1    0.006    0.006    0.006    0.006 {cvtColor}
+        1    0.005    0.005    0.005    0.005 {built-in method nt.rename}
+        5    0.000    0.000    0.004    0.001 pathlib.py:835(stat)
+        5    0.004    0.001    0.004    0.001 {built-in method nt.stat}
+     6117    0.003    0.000    0.003    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.003    0.003 tempfile.py:537(NamedTemporaryFile)
+        1    0.000    0.000    0.002    0.002 tempfile.py:577(opener)
+        1    0.000    0.000    0.002    0.002 tempfile.py:243(_mkstemp_inner)
+        2    0.000    0.000    0.002    0.001 pathlib.py:852(exists)
+        1    0.002    0.002    0.002    0.002 {built-in method nt.open}
+        2    0.000    0.000    0.002    0.001 pathlib.py:870(is_dir)
+        1    0.000    0.000    0.002    0.002 pathlib.py:1306(mkdir)
+      129    0.001    0.000    0.001    0.000 writers.py:231(_export_regions)
+        1    0.000    0.000    0.001    0.001 pathlib.py:1336(unlink)
+        1    0.001    0.001    0.001    0.001 {built-in method nt.unlink}
+        3    0.000    0.000    0.001    0.000 pathlib.py:407(_load_parts)
+
+

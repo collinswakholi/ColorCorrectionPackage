@@ -1,0 +1,68 @@
+{
+  "auto": {
+    "passed_cases": 5,
+    "chart_cases": 4,
+    "expected_negatives": 1,
+    "face_comparisons": 5,
+    "all_canonical": true,
+    "min_same_index_fraction": 1.0,
+    "max_mean_rgb_difference": 1.2220492835336054e-06,
+    "max_channel_rgb_difference": 3.6405380053209086e-05,
+    "provider": "WebGpuExecutionProvider",
+    "graphics_backend": "D3D12",
+    "device_id": null,
+    "node_provider_counts_initial_verified_forward": {
+      "WebGpuExecutionProvider": 210
+    },
+    "runtime": "1.31.1",
+    "source_fingerprints": {
+      "charts.py": "14921d522cb1360fca85fc88b1b15a4c93243f9ff666013f29c694e571c8f461",
+      "providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268"
+    },
+    "scope": "five original-resolution public photos at rotation0; CPU same-photo equivalence, not independent physical truth"
+  },
+  "vulkan": {
+    "passed_cases": 5,
+    "chart_cases": 4,
+    "expected_negatives": 1,
+    "face_comparisons": 5,
+    "all_canonical": true,
+    "min_same_index_fraction": 1.0,
+    "max_mean_rgb_difference": 1.2220492835336054e-06,
+    "max_channel_rgb_difference": 3.6405380053209086e-05,
+    "provider": "WebGpuExecutionProvider",
+    "graphics_backend": "Vulkan",
+    "device_id": null,
+    "node_provider_counts_initial_verified_forward": {
+      "WebGpuExecutionProvider": 210
+    },
+    "runtime": "1.31.1",
+    "source_fingerprints": {
+      "charts.py": "14921d522cb1360fca85fc88b1b15a4c93243f9ff666013f29c694e571c8f461",
+      "providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268"
+    },
+    "scope": "five original-resolution public photos at rotation0; CPU same-photo equivalence, not independent physical truth"
+  },
+  "directml": {
+    "passed_cases": 5,
+    "chart_cases": 4,
+    "expected_negatives": 1,
+    "face_comparisons": 5,
+    "all_canonical": true,
+    "min_same_index_fraction": 1.0,
+    "max_mean_rgb_difference": 3.559111830614717e-07,
+    "max_channel_rgb_difference": 2.600384289554741e-06,
+    "provider": "DmlExecutionProvider",
+    "graphics_backend": null,
+    "device_id": 1,
+    "node_provider_counts_initial_verified_forward": {
+      "DmlExecutionProvider": 1
+    },
+    "runtime": "1.24.4",
+    "source_fingerprints": {
+      "charts.py": "14921d522cb1360fca85fc88b1b15a4c93243f9ff666013f29c694e571c8f461",
+      "providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268"
+    },
+    "scope": "five original-resolution public photos at rotation0; CPU same-photo equivalence, not independent physical truth"
+  }
+}

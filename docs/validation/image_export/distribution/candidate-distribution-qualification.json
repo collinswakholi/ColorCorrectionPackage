@@ -1,0 +1,1299 @@
+{
+  "wheel": {
+    "file": "colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+    "bytes": 71412290,
+    "sha256": "37851c00f7a8497442344483362fd1c9472b2e1515af3bd67db19cf0cb7a68ea",
+    "version": "1.4.6",
+    "requires_python": ">=3.8",
+    "numba_optional": true,
+    "assets": {
+      "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+        "bytes": 39354948,
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+      },
+      "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+        "bytes": 44658747,
+        "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+      }
+    }
+  },
+  "sdist": {
+    "file": "colorcorrectionpipeline-1.4.6.tar.gz",
+    "bytes": 75572192,
+    "sha256": "4d1cd74cc0e3a0cf6b0283b2899b35abcfbf073b4ba664d4c7abfd22425aa0ad",
+    "assets": {
+      "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+        "bytes": 39354948,
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+      },
+      "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+        "bytes": 44658747,
+        "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+      }
+    }
+  },
+  "python_source_files": 43,
+  "source_tree_sha256": "682a8182a45f092eee1d01f8b22ee9d774e6555d4b2a59b4ef07ac0b61e679a8",
+  "baseline_wheel_sha256_unchanged": "24b22616af3214ce1784213744340d63e46b808560227fcf7f37218eb3dcb758",
+  "changed_application_sources": [
+    "ColorCorrectionPipeline/acceleration.py",
+    "ColorCorrectionPipeline/contracts.py",
+    "ColorCorrectionPipeline/io/image_data.py",
+    "ColorCorrectionPipeline/io/writers.py",
+    "ColorCorrectionPipeline/pipeline.py"
+  ],
+  "sdist_required_source_proof": {
+    "sdist_sha256": "4d1cd74cc0e3a0cf6b0283b2899b35abcfbf073b4ba664d4c7abfd22425aa0ad",
+    "all_required_sources_exact": true,
+    "exact_python_sources": 43,
+    "required_source_and_oracle_count": 63,
+    "sha256": {
+      "pyproject.toml": "e4462c674bf0d3a5c9960855aac4089e39921aacb88fb10713473e11e8af8cde",
+      "README.md": "24130cc8f0055e9969f7aa9906c1f774b407a79b0144d6aebe2ab36d40c6630f",
+      "LICENSE": "a9f2274a4f480c14ca2b6a6cb08561c4d64f386a78e35ec3c0caf19cfa94aa82",
+      "scripts/verify_installed.py": "2b73a0bf0e6c4e326ea4dea53c6d10b724601f5f45fd9bb5f9b338225c4e852a",
+      "scripts/verify_distribution.py": "85e1601d1727b48c82885829e88eabf064ecfdd53b924c4ebdb518282312d5cf",
+      "docs/IMAGE_EXPORT_OPTIMIZATION.md": "69c1a0615033e00dfff39f8bef56ab05f805a183fa410301a9c0c562d2af979a",
+      "docs/IMAGE_EXPORT_TIMINGS.md": "78b7346e38237b390b8ea89cf10df7c985ccda80791e4d9c963683a05a61658d",
+      "benchmarks/image_export/verify_installed_image_export.py": "9ebfa9a0efc0d73f26c359bb88b25cb1bc168282b08e321bf4bc4e763313b996",
+      "benchmarks/image_export/QUALIFICATION.md": "d4faf1cfa43029914b46d96e8231c1480637cfc49c1366e27a637c567e498416",
+      "benchmarks/image_export/fingerprint_sources.py": "6324abf2bc17f6c6561cc43e0d76b7787149da6dbfe8094b85df3b4d2019df1d",
+      "benchmarks/image_export/verify_sdist_sources.py": "e15361eb3075a49fae29745fae1ad1be0e8b1b6a88ef8bd5503c7c1575fd1681",
+      "tests/test_unit/test_image_contract_optimization.py": "df2cd0f8eaf11baf49f47d515527edb3ec67f79a3cf41816e7d4ce1faed01ac7",
+      "tests/test_unit/test_image_decode_optimization.py": "3adfaa1f6559a3c2bcb34ad6e9409597f8a87602a17b0da2d46d95b5d3957253",
+      "tests/test_unit/test_strict_export_optimization.py": "d2da055defae1d955a113b7e145ac6008e97c8ab73e8bf6190f087b54cf8dbd3",
+      "tests/fixtures/image_contract_p9.py": "e2fc1beee7efebf6bfc34444fd7d57aebb63c47697422bf5d6f028d75993efd9",
+      "tests/fixtures/image_data_p9_reference.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+      "tests/fixtures/writers_p9_reference.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a",
+      "ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md": "eb1f329682caf0d6f14e8c3a2fa49d6c3d1d2d7a75e5130aae9550f08b4fc868",
+      "ColorCorrectionPipeline/detection/models/PROVENANCE.md": "edbfa3bd3d9a1ac8043701a679a5629a82046e3d4a3eb8fae9fe7804346b99b7",
+      "ColorCorrectionPipeline/detection/models/LICENSE-AGPL-3.0.txt": "0531b39424321b061df4627ba1528e69674cfd2df381fc54e9afa63d3bdbec98",
+      "ColorCorrectionPipeline/__init__.py": "21653840398df3c4994f49ec182638cd21cff828a7de5de9813573699ef63732",
+      "ColorCorrectionPipeline/__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+      "ColorCorrectionPipeline/acceleration.py": "2476c390456bce2c4ab79aa38cdc73f2176a7e0a1da4f718f8c3d1abec29b9bd",
+      "ColorCorrectionPipeline/batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+      "ColorCorrectionPipeline/bundle.py": "8c35ae0eee500aa057c5496f0ee89d8068a2914e72544b09b052deee7b4fcb73",
+      "ColorCorrectionPipeline/checker_compat.py": "bd69209d93eb8dfed262bf7e87b5e64ce26dead974d835b37a1626910d21d85d",
+      "ColorCorrectionPipeline/colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+      "ColorCorrectionPipeline/config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+      "ColorCorrectionPipeline/constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+      "ColorCorrectionPipeline/contracts.py": "e7e6b1031b43746afeb06771f67022c966f202707752d8497f53f1656249ba23",
+      "ColorCorrectionPipeline/conventional.py": "2217fb9561ccef70fdaf6d9e5d3cb49144c0a1e566fd60cbefa74bc72bdc61e3",
+      "ColorCorrectionPipeline/core/__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+      "ColorCorrectionPipeline/core/accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+      "ColorCorrectionPipeline/core/color_spaces.py": "c847e96f517f3ac5f7b0130e83f3beb470eaeef657a7c34a7451a97d0b7db8cc",
+      "ColorCorrectionPipeline/core/correction.py": "a47729b4881e2d2bfdac434ba1fac515203f4d7441e664fa7204c5fa1541ac1e",
+      "ColorCorrectionPipeline/core/execution.py": "dfc852cdcbf0353bc0c8a0bb05d5c43d47e2b723df76259a64f71482fdddd424",
+      "ColorCorrectionPipeline/core/lut_cache.py": "f14a87b047a6a3a9528898367f03ecaef85ea7b4280ed758ed6ad66aa1c3dc84",
+      "ColorCorrectionPipeline/core/metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+      "ColorCorrectionPipeline/core/transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+      "ColorCorrectionPipeline/core/utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+      "ColorCorrectionPipeline/detection/__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+      "ColorCorrectionPipeline/detection/charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+      "ColorCorrectionPipeline/detection/providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+      "ColorCorrectionPipeline/evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+      "ColorCorrectionPipeline/fitting.py": "530ffd4827404b48553f723cb83adc11eb5602e7c80b9f309f164dad83366645",
+      "ColorCorrectionPipeline/flat_field/__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+      "ColorCorrectionPipeline/flat_field/correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+      "ColorCorrectionPipeline/flat_field/models/__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1",
+      "ColorCorrectionPipeline/io/__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+      "ColorCorrectionPipeline/io/image_data.py": "e0293fca9a2e9eeba0b0fde382be8316a87796dfc273398120b7234c7716d7cc",
+      "ColorCorrectionPipeline/io/readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+      "ColorCorrectionPipeline/io/writers.py": "a75343a61ed02de1aa6bced730a80404afcc16b420761876946409ad6c8c3f65",
+      "ColorCorrectionPipeline/key_functions.py": "13ea22a50963c943975d6abe5dbe2def8416dd7dd7d5d88ed543adc531ed9603",
+      "ColorCorrectionPipeline/models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+      "ColorCorrectionPipeline/modern.py": "34e16f87cfa1a6804cb34d074fcd85951f2ec45346f01a4fd75db65981b1e6da",
+      "ColorCorrectionPipeline/observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+      "ColorCorrectionPipeline/pipeline.py": "b8c0704fad69272e983891ba5490499f5cfedac7794b3cfa314527d80f5bea16",
+      "ColorCorrectionPipeline/portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+      "ColorCorrectionPipeline/prediction.py": "d81f5bb7753b1e8c825402793dcadd6db9549e82fe8c213cbaefc3e67fe67797",
+      "ColorCorrectionPipeline/reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+      "ColorCorrectionPipeline/results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+      "ColorCorrectionPipeline/sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+      "ColorCorrectionPipeline/stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142"
+    }
+  },
+  "profiles": {
+    "clean38-base": {
+      "python": "3.8.20",
+      "prefix": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38",
+      "system_site_packages": false,
+      "user_site_enabled": false,
+      "numba_present": false,
+      "pip_check_passed": true,
+      "exact_installed_source_match": true,
+      "versions": {
+        "numpy": "1.24.4",
+        "numba": null,
+        "llvmlite": null,
+        "scikit-learn": "1.3.2",
+        "scipy": "1.10.1",
+        "colour-science": "0.4.1",
+        "torch": "2.4.1",
+        "onnxruntime": "1.19.2",
+        "pillow": "10.4.0",
+        "tifffile": "2023.7.10",
+        "opencv-contrib-python": "5.0.0.93"
+      },
+      "new_family_max_reload_difference": 0.0,
+      "prepared_execution": {
+        "numpy": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "auto": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "numba": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": "Numba unavailable",
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "strict_numba_unavailable_rejected": true
+      },
+      "legacy_gc": {
+        "source_revision": "ca1935776707e3373693941bc3b9349c57768029",
+        "fixture_sha256": "5f60963b49829abff71356747ff07c3b3e63ebf734a156efad4ae897aa0e5e9f",
+        "max_gamma_difference_from_baseline": 3.608224830031759e-16,
+        "baseline_atol": 2e-06,
+        "max_bundle_reload_difference": 0.0,
+        "legacy_gc_torch_cuda": false
+      },
+      "photo_max_reload_difference": 0.0,
+      "precision_io_passed": true,
+      "guarded_ffc_passed": true,
+      "file_mode_batch_passed": true,
+      "old_five_family_differences": {
+        "linear": 2.6645352591003757e-15,
+        "pls": 2.609024107869118e-15,
+        "nn": 4.440892098500626e-16,
+        "custom": 5.960464477539063e-08,
+        "conv": 2.4980018054066022e-15
+      },
+      "legacy_reference": {
+        "max_difference": 1.1102230246251565e-15,
+        "atol": 1e-10,
+        "names_match": true,
+        "illuminant_matches": true
+      },
+      "image_export": {
+        "python": "3.8.20",
+        "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+        "versions": {
+          "ColorCorrectionPipeline": "1.4.6",
+          "numpy": "1.24.4",
+          "Pillow": "10.4.0",
+          "opencv-python": null,
+          "tifffile": "2023.7.10",
+          "numba": null
+        },
+        "frozen_fixture_sha256": {
+          "image_contract_p9.py": "e2fc1beee7efebf6bfc34444fd7d57aebb63c47697422bf5d6f028d75993efd9",
+          "image_data_p9_reference.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+          "writers_p9_reference.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a"
+        },
+        "small_contract_identity_cases": 208,
+        "large_chunked_identity_cases": 7,
+        "mutable_readonly_owner_isolated": true,
+        "export_byte_and_record_parity": [
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "bea2a3f0e0ba602694b6871b0579e0cce6f0557a9fb6bdbc263ccf9cf7d14466"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "4eec1d7f44471e3549b5e383e186b9a1ce1c17280d75e85777874c5fa7e7bc29"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "69373011d954188288d74cc607af8a74bfdc9d6298d6fb26229a0d379215e01c"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "3079c69aa11ad643c0efaeff90ba24208c9c00a5dd8355a1aacd7103394ebc7e"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "b21e3d756294871301ca4714b9d027d56f4dac53692f41b0f81469289bff1c11"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "c6de267432391911f661d263665d9b2c54a8054997db9ca6c9363b034b9c6133"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "6f15ef050c93f467d82d7534d022eb861229b5dbc344401eaf72855cf539bce9"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "ac4d1a4c67766ae6e48d9216e700cc1f90952999eb10f07984f5a8d9feaac1c9"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2e5b87c474be9a7b15d7ec8609f6e3cac9c6d45a47bf0cf5af459231ec25c693"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "70cb26174b2e32840e4f02578c53525c993deb6eadf43f6df9fe5a54ea6d6457"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c3c3d1602c0a77820a25779c250060c45e606e034d253f5008cbad117f10606f"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2bb8e4ec70b07cbf648a3a6148751676c77276e0ad3b1687ffea4eff8e46f099"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "7cb37eb843d38db928ad2d54802702eb744eafee828037333b27b21be8d61b94"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c4913f36aa938080af8aebb1493774fa8d24f374cb589415d6330ea9018d45c6"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "5ab98e2de7e64a9a160b151793c9d663342025ccaaad5b57cb674b3e2394e72f"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "0e433030048503250d0a7e0fa0cb69f8dbf0c5b04ca761fe0797f55e1d3f22d3"
+          }
+        ],
+        "transfer_export_parity_cases": 2,
+        "static_png_single_decode_cases": 4,
+        "late_encoding_parity_cases": 3,
+        "predecode_allocation_caps": true,
+        "late_icc_predecode_rejection": true,
+        "transactional_wrong_encoding_rejections": 2,
+        "short_reads_and_growth_checks": true
+      },
+      "evidence": [
+        "clean38-base.json",
+        "clean38-base-older-bundles.json",
+        "clean38-base-source-fingerprints.json",
+        "clean38-base-image-export.json"
+      ]
+    },
+    "clean38-performance": {
+      "python": "3.8.20",
+      "prefix": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance",
+      "system_site_packages": false,
+      "user_site_enabled": false,
+      "numba_present": true,
+      "pip_check_passed": true,
+      "exact_installed_source_match": true,
+      "versions": {
+        "numpy": "1.24.4",
+        "numba": "0.58.1",
+        "llvmlite": "0.41.1",
+        "scikit-learn": "1.3.2",
+        "scipy": "1.10.1",
+        "colour-science": "0.4.1",
+        "torch": "2.4.1",
+        "onnxruntime": "1.19.2",
+        "pillow": "10.4.0",
+        "tifffile": "2023.7.10",
+        "opencv-contrib-python": "5.0.0.93"
+      },
+      "new_family_max_reload_difference": 0.0,
+      "prepared_execution": {
+        "numpy": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "auto": {
+          "actual_backend": "cpu-numba",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "numba": {
+          "actual_backend": "cpu-numba",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        }
+      },
+      "legacy_gc": {
+        "source_revision": "ca1935776707e3373693941bc3b9349c57768029",
+        "fixture_sha256": "5f60963b49829abff71356747ff07c3b3e63ebf734a156efad4ae897aa0e5e9f",
+        "max_gamma_difference_from_baseline": 6.938893903907228e-16,
+        "baseline_atol": 2e-06,
+        "max_bundle_reload_difference": 0.0,
+        "legacy_gc_torch_cuda": false
+      },
+      "photo_max_reload_difference": 0.0,
+      "precision_io_passed": true,
+      "guarded_ffc_passed": true,
+      "file_mode_batch_passed": true,
+      "old_five_family_differences": {
+        "linear": 2.6645352591003757e-15,
+        "pls": 2.609024107869118e-15,
+        "nn": 4.440892098500626e-16,
+        "custom": 5.960464477539063e-08,
+        "conv": 2.4980018054066022e-15
+      },
+      "legacy_reference": {
+        "max_difference": 1.1102230246251565e-15,
+        "atol": 1e-10,
+        "names_match": true,
+        "illuminant_matches": true
+      },
+      "image_export": {
+        "python": "3.8.20",
+        "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+        "versions": {
+          "ColorCorrectionPipeline": "1.4.6",
+          "numpy": "1.24.4",
+          "Pillow": "10.4.0",
+          "opencv-python": null,
+          "tifffile": "2023.7.10",
+          "numba": "0.58.1"
+        },
+        "frozen_fixture_sha256": {
+          "image_contract_p9.py": "e2fc1beee7efebf6bfc34444fd7d57aebb63c47697422bf5d6f028d75993efd9",
+          "image_data_p9_reference.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+          "writers_p9_reference.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a"
+        },
+        "small_contract_identity_cases": 208,
+        "large_chunked_identity_cases": 7,
+        "mutable_readonly_owner_isolated": true,
+        "export_byte_and_record_parity": [
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "bea2a3f0e0ba602694b6871b0579e0cce6f0557a9fb6bdbc263ccf9cf7d14466"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "4eec1d7f44471e3549b5e383e186b9a1ce1c17280d75e85777874c5fa7e7bc29"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "69373011d954188288d74cc607af8a74bfdc9d6298d6fb26229a0d379215e01c"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "3079c69aa11ad643c0efaeff90ba24208c9c00a5dd8355a1aacd7103394ebc7e"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "b21e3d756294871301ca4714b9d027d56f4dac53692f41b0f81469289bff1c11"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "c6de267432391911f661d263665d9b2c54a8054997db9ca6c9363b034b9c6133"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "6f15ef050c93f467d82d7534d022eb861229b5dbc344401eaf72855cf539bce9"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "ac4d1a4c67766ae6e48d9216e700cc1f90952999eb10f07984f5a8d9feaac1c9"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2e5b87c474be9a7b15d7ec8609f6e3cac9c6d45a47bf0cf5af459231ec25c693"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "70cb26174b2e32840e4f02578c53525c993deb6eadf43f6df9fe5a54ea6d6457"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c3c3d1602c0a77820a25779c250060c45e606e034d253f5008cbad117f10606f"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2bb8e4ec70b07cbf648a3a6148751676c77276e0ad3b1687ffea4eff8e46f099"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "7cb37eb843d38db928ad2d54802702eb744eafee828037333b27b21be8d61b94"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c4913f36aa938080af8aebb1493774fa8d24f374cb589415d6330ea9018d45c6"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "5ab98e2de7e64a9a160b151793c9d663342025ccaaad5b57cb674b3e2394e72f"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "0e433030048503250d0a7e0fa0cb69f8dbf0c5b04ca761fe0797f55e1d3f22d3"
+          }
+        ],
+        "transfer_export_parity_cases": 2,
+        "static_png_single_decode_cases": 4,
+        "late_encoding_parity_cases": 3,
+        "predecode_allocation_caps": true,
+        "late_icc_predecode_rejection": true,
+        "transactional_wrong_encoding_rejections": 2,
+        "short_reads_and_growth_checks": true
+      },
+      "evidence": [
+        "clean38-performance.json",
+        "clean38-performance-older-bundles.json",
+        "clean38-performance-source-fingerprints.json",
+        "clean38-performance-image-export.json"
+      ]
+    },
+    "clean312-base": {
+      "python": "3.12.10",
+      "prefix": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312",
+      "system_site_packages": false,
+      "user_site_enabled": false,
+      "numba_present": false,
+      "pip_check_passed": true,
+      "exact_installed_source_match": true,
+      "versions": {
+        "numpy": "2.5.4",
+        "numba": null,
+        "llvmlite": null,
+        "scikit-learn": "1.9.1",
+        "scipy": "1.18.1",
+        "colour-science": "0.4.7",
+        "torch": "2.15.0",
+        "onnxruntime": "1.31.1",
+        "pillow": "13.0.0",
+        "tifffile": "2026.10.15",
+        "opencv-contrib-python": "5.0.0.93"
+      },
+      "new_family_max_reload_difference": 0.0,
+      "prepared_execution": {
+        "numpy": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "auto": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "numba": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": "Numba unavailable",
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "strict_numba_unavailable_rejected": true
+      },
+      "legacy_gc": {
+        "source_revision": "ca1935776707e3373693941bc3b9349c57768029",
+        "fixture_sha256": "5f60963b49829abff71356747ff07c3b3e63ebf734a156efad4ae897aa0e5e9f",
+        "max_gamma_difference_from_baseline": 7.494005416219807e-16,
+        "baseline_atol": 2e-06,
+        "max_bundle_reload_difference": 0.0,
+        "legacy_gc_torch_cuda": false
+      },
+      "photo_max_reload_difference": 0.0,
+      "precision_io_passed": true,
+      "guarded_ffc_passed": true,
+      "file_mode_batch_passed": true,
+      "old_five_family_differences": {
+        "linear": 0.0,
+        "pls": 0.0,
+        "nn": 0.0,
+        "custom": 5.960464477539063e-08,
+        "conv": 0.0
+      },
+      "legacy_reference": {
+        "max_difference": 0.0,
+        "atol": 1e-10,
+        "names_match": true,
+        "illuminant_matches": true
+      },
+      "image_export": {
+        "python": "3.12.10",
+        "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+        "versions": {
+          "ColorCorrectionPipeline": "1.4.6",
+          "numpy": "2.5.4",
+          "Pillow": "13.0.0",
+          "opencv-python": null,
+          "tifffile": "2026.10.15",
+          "numba": null
+        },
+        "frozen_fixture_sha256": {
+          "image_contract_p9.py": "e2fc1beee7efebf6bfc34444fd7d57aebb63c47697422bf5d6f028d75993efd9",
+          "image_data_p9_reference.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+          "writers_p9_reference.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a"
+        },
+        "small_contract_identity_cases": 208,
+        "large_chunked_identity_cases": 7,
+        "mutable_readonly_owner_isolated": true,
+        "export_byte_and_record_parity": [
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "bea2a3f0e0ba602694b6871b0579e0cce6f0557a9fb6bdbc263ccf9cf7d14466"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "4eec1d7f44471e3549b5e383e186b9a1ce1c17280d75e85777874c5fa7e7bc29"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "69373011d954188288d74cc607af8a74bfdc9d6298d6fb26229a0d379215e01c"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "3079c69aa11ad643c0efaeff90ba24208c9c00a5dd8355a1aacd7103394ebc7e"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "b21e3d756294871301ca4714b9d027d56f4dac53692f41b0f81469289bff1c11"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "c6de267432391911f661d263665d9b2c54a8054997db9ca6c9363b034b9c6133"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "6f15ef050c93f467d82d7534d022eb861229b5dbc344401eaf72855cf539bce9"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "ac4d1a4c67766ae6e48d9216e700cc1f90952999eb10f07984f5a8d9feaac1c9"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2e5b87c474be9a7b15d7ec8609f6e3cac9c6d45a47bf0cf5af459231ec25c693"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "70cb26174b2e32840e4f02578c53525c993deb6eadf43f6df9fe5a54ea6d6457"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c3c3d1602c0a77820a25779c250060c45e606e034d253f5008cbad117f10606f"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2bb8e4ec70b07cbf648a3a6148751676c77276e0ad3b1687ffea4eff8e46f099"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "7cb37eb843d38db928ad2d54802702eb744eafee828037333b27b21be8d61b94"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c4913f36aa938080af8aebb1493774fa8d24f374cb589415d6330ea9018d45c6"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "5ab98e2de7e64a9a160b151793c9d663342025ccaaad5b57cb674b3e2394e72f"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "0e433030048503250d0a7e0fa0cb69f8dbf0c5b04ca761fe0797f55e1d3f22d3"
+          }
+        ],
+        "transfer_export_parity_cases": 2,
+        "static_png_single_decode_cases": 4,
+        "late_encoding_parity_cases": 3,
+        "predecode_allocation_caps": true,
+        "late_icc_predecode_rejection": true,
+        "transactional_wrong_encoding_rejections": 2,
+        "short_reads_and_growth_checks": true
+      },
+      "evidence": [
+        "clean312-base.json",
+        "clean312-base-older-bundles.json",
+        "clean312-base-source-fingerprints.json",
+        "clean312-base-image-export.json"
+      ]
+    },
+    "clean312-performance": {
+      "python": "3.12.10",
+      "prefix": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance",
+      "system_site_packages": false,
+      "user_site_enabled": false,
+      "numba_present": true,
+      "pip_check_passed": true,
+      "exact_installed_source_match": true,
+      "versions": {
+        "numpy": "2.4.6",
+        "numba": "0.65.1",
+        "llvmlite": "0.47.0",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.18.1",
+        "colour-science": "0.4.7",
+        "torch": "2.15.0",
+        "onnxruntime": "1.31.1",
+        "pillow": "13.0.0",
+        "tifffile": "2026.10.15",
+        "opencv-contrib-python": "5.0.0.93"
+      },
+      "new_family_max_reload_difference": 0.0,
+      "prepared_execution": {
+        "numpy": {
+          "actual_backend": "cpu-numpy",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "auto": {
+          "actual_backend": "cpu-numba",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        },
+        "numba": {
+          "actual_backend": "cpu-numba",
+          "fallback_reason": null,
+          "max_apply_difference": 3.3306690738754696e-16
+        }
+      },
+      "legacy_gc": {
+        "source_revision": "ca1935776707e3373693941bc3b9349c57768029",
+        "fixture_sha256": "5f60963b49829abff71356747ff07c3b3e63ebf734a156efad4ae897aa0e5e9f",
+        "max_gamma_difference_from_baseline": 0.0,
+        "baseline_atol": 2e-06,
+        "max_bundle_reload_difference": 0.0,
+        "legacy_gc_torch_cuda": false
+      },
+      "photo_max_reload_difference": 0.0,
+      "precision_io_passed": true,
+      "guarded_ffc_passed": true,
+      "file_mode_batch_passed": true,
+      "old_five_family_differences": {
+        "linear": 0.0,
+        "pls": 0.0,
+        "nn": 0.0,
+        "custom": 5.960464477539063e-08,
+        "conv": 0.0
+      },
+      "legacy_reference": {
+        "max_difference": 0.0,
+        "atol": 1e-10,
+        "names_match": true,
+        "illuminant_matches": true
+      },
+      "image_export": {
+        "python": "3.12.10",
+        "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+        "versions": {
+          "ColorCorrectionPipeline": "1.4.6",
+          "numpy": "2.4.6",
+          "Pillow": "13.0.0",
+          "opencv-python": null,
+          "tifffile": "2026.10.15",
+          "numba": "0.65.1"
+        },
+        "frozen_fixture_sha256": {
+          "image_contract_p9.py": "e2fc1beee7efebf6bfc34444fd7d57aebb63c47697422bf5d6f028d75993efd9",
+          "image_data_p9_reference.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+          "writers_p9_reference.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a"
+        },
+        "small_contract_identity_cases": 208,
+        "large_chunked_identity_cases": 7,
+        "mutable_readonly_owner_isolated": true,
+        "export_byte_and_record_parity": [
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "bea2a3f0e0ba602694b6871b0579e0cce6f0557a9fb6bdbc263ccf9cf7d14466"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "4eec1d7f44471e3549b5e383e186b9a1ce1c17280d75e85777874c5fa7e7bc29"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "f48532bae6e8324baab10f06c647e81bade9b2372c1f971f04eaae601e611746"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "69373011d954188288d74cc607af8a74bfdc9d6298d6fb26229a0d379215e01c"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "3079c69aa11ad643c0efaeff90ba24208c9c00a5dd8355a1aacd7103394ebc7e"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "b21e3d756294871301ca4714b9d027d56f4dac53692f41b0f81469289bff1c11"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "c6de267432391911f661d263665d9b2c54a8054997db9ca6c9363b034b9c6133"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "6f15ef050c93f467d82d7534d022eb861229b5dbc344401eaf72855cf539bce9"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": false,
+            "byte_and_record_exact": true,
+            "sha256": "ac4d1a4c67766ae6e48d9216e700cc1f90952999eb10f07984f5a8d9feaac1c9"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint8",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2e5b87c474be9a7b15d7ec8609f6e3cac9c6d45a47bf0cf5af459231ec25c693"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "70cb26174b2e32840e4f02578c53525c993deb6eadf43f6df9fe5a54ea6d6457"
+          },
+          {
+            "format": ".png",
+            "source_dtype": "float64",
+            "target_dtype": "uint16",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "9ab20bbc5d27051822a83f04136fa1c03012435badaa18a74a4ba1e120f85599"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c3c3d1602c0a77820a25779c250060c45e606e034d253f5008cbad117f10606f"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float32",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "2bb8e4ec70b07cbf648a3a6148751676c77276e0ad3b1687ffea4eff8e46f099"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "float64",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "7cb37eb843d38db928ad2d54802702eb744eafee828037333b27b21be8d61b94"
+          },
+          {
+            "format": ".tiff",
+            "source_dtype": "uint16",
+            "target_dtype": "preserve",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "c4913f36aa938080af8aebb1493774fa8d24f374cb589415d6330ea9018d45c6"
+          },
+          {
+            "format": ".jpg",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "5ab98e2de7e64a9a160b151793c9d663342025ccaaad5b57cb674b3e2394e72f"
+          },
+          {
+            "format": ".webp",
+            "source_dtype": "float64",
+            "target_dtype": "uint8",
+            "pending_orientation": true,
+            "byte_and_record_exact": true,
+            "sha256": "0e433030048503250d0a7e0fa0cb69f8dbf0c5b04ca761fe0797f55e1d3f22d3"
+          }
+        ],
+        "transfer_export_parity_cases": 2,
+        "static_png_single_decode_cases": 4,
+        "late_encoding_parity_cases": 3,
+        "predecode_allocation_caps": true,
+        "late_icc_predecode_rejection": true,
+        "transactional_wrong_encoding_rejections": 2,
+        "short_reads_and_growth_checks": true
+      },
+      "evidence": [
+        "clean312-performance.json",
+        "clean312-performance-older-bundles.json",
+        "clean312-performance-source-fingerprints.json",
+        "clean312-performance-image-export.json"
+      ]
+    }
+  },
+  "isolated_gpu_photo": {
+    "name": "Image_1.JPG",
+    "sha256": "3d4450764d415891fd4b2302d51df053b9b20dbf82b39170e7bcbb3dd875a51c",
+    "requested_device": "auto",
+    "detection": [
+      {
+        "backend": "model",
+        "status": "detected",
+        "charts": 1,
+        "selected_chart_index": 0,
+        "geometry_source": "source_image",
+        "ignored_layouts": [],
+        "requested_provider": "WebGpuExecutionProvider",
+        "graphics_backend": "D3D12",
+        "device_id": null,
+        "runtime_version": "1.31.1",
+        "library": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages\\onnxruntime_ep_webgpu\\onnxruntime_providers_webgpu.dll",
+        "options": {
+          "enableGraphCapture": "0",
+          "powerPreference": "high-performance",
+          "deviceId": "0",
+          "dawnBackendType": "D3D12"
+        },
+        "enumerated_gpu_devices": [
+          {
+            "type": "OrtHardwareDeviceType.GPU",
+            "vendor": "NVIDIA",
+            "device_id": 9989,
+            "metadata": {
+              "Description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+              "Discrete": "1",
+              "DxgiAdapterNumber": "1",
+              "DxgiHighPerformanceIndex": "0",
+              "DxgiVideoMemory": "16061 MB",
+              "LUID": "58194"
+            }
+          },
+          {
+            "type": "OrtHardwareDeviceType.GPU",
+            "vendor": "Intel Corporation",
+            "device_id": 42880,
+            "metadata": {
+              "Description": "Intel(R) UHD Graphics 770",
+              "Discrete": "0",
+              "DxgiAdapterNumber": "0",
+              "DxgiHighPerformanceIndex": "1",
+              "DxgiVideoMemory": "128 MB",
+              "LUID": "65837"
+            }
+          }
+        ],
+        "adapter_selection": "Dawn high-performance automatic selection or explicit adapterIndex; ORT descriptor is not independent adapter proof",
+        "registered_providers": [
+          "WebGpuExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "provider_options": {},
+        "requested_device": "auto",
+        "selected_device": "webgpu",
+        "provider": "WebGpuExecutionProvider",
+        "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+        "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages\\ColorCorrectionPipeline\\detection\\models\\chart_detector_1280.onnx",
+        "input_size": 1280,
+        "available_providers": [
+          "AzureExecutionProvider",
+          "CPUExecutionProvider",
+          "WebGpuExecutionProvider"
+        ],
+        "attempts": [
+          {
+            "device": "cuda",
+            "provider": "CUDAExecutionProvider",
+            "status": "failed",
+            "type": "ProviderUnavailableError",
+            "reason": "CUDAExecutionProvider is not advertised by installed ONNX Runtime"
+          },
+          {
+            "device": "directml",
+            "provider": "DmlExecutionProvider",
+            "status": "failed",
+            "type": "ProviderUnavailableError",
+            "reason": "DmlExecutionProvider is not advertised by installed ONNX Runtime"
+          },
+          {
+            "device": "webgpu",
+            "provider": "WebGpuExecutionProvider",
+            "status": "succeeded"
+          }
+        ],
+        "cpu_fallback": false,
+        "execution_verified": true,
+        "execution_evidence": "node_profile",
+        "node_provider_counts": {
+          "WebGpuExecutionProvider": 210
+        },
+        "anchors": 8
+      }
+    ],
+    "gpu_requirement_met": true,
+    "fit_bundle_apply": true,
+    "max_saved_reload_difference": 0.0
+  },
+  "remote_ci_executed": false,
+  "local_platform": "Windows x64",
+  "qualification_passed": true,
+  "notes": [
+    "Actual local isolated runtimes reuse the clean P9 venvs; dependencies unchanged during candidate installation.",
+    "Functional smoke iteration caps intentionally test persistence/application, not calibration convergence.",
+    "GPU node profiling proves WebGPU/D3D12 execution on this host; Radeon and Apple hardware were not tested.",
+    "Small source fixtures and installed parity scripts make no timing claims."
+  ],
+  "python38_source_build": {
+    "python": "3.8.20",
+    "command": "uv build --python <clean38/python.exe> --wheel --offline --out-dir source-build38-final <final-sdist>",
+    "source_sdist_sha256": "4d1cd74cc0e3a0cf6b0283b2899b35abcfbf073b4ba664d4c7abfd22425aa0ad",
+    "wheel": {
+      "file": "colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+      "bytes": 71412290,
+      "sha256": "926725f104f4708761a1c639dcab7e1b6adfb68206a0feaad05267a48ae894af",
+      "version": "1.4.6",
+      "requires_python": ">=3.8",
+      "numba_optional": true,
+      "assets": {
+        "ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx": {
+          "bytes": 39354948,
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240"
+        },
+        "ColorCorrectionPipeline/flat_field/models/plane_det_model_YOLO_512_n.onnx": {
+          "bytes": 44658747,
+          "sha256": "1ca8a8745f3cc9ad679a191f264a1b7ea4376f3aacf1c0702a27089a86952f54"
+        }
+      }
+    },
+    "wheel_generator": "hatchling 1.27.0",
+    "exact_application_source_match": true,
+    "python_files": 43,
+    "python_source_tree_sha256": "682a8182a45f092eee1d01f8b22ee9d774e6555d4b2a59b4ef07ac0b61e679a8",
+    "note": "The separate Python3.8-built wheel has a different metadata-generator version. The four installed profiles qualified the unchanged main wheel, not this build-provenance artifact."
+  }
+}

@@ -1,0 +1,1816 @@
+{
+  "date": "2026-10-28",
+  "backend": "cpu",
+  "requested_dtype": "float64",
+  "actual_arch": "Arch.x64",
+  "cpu_fallback_allowed": false,
+  "ti_visible_device": "1",
+  "vulkan_inventory": [
+    {
+      "vulkan_index": 0,
+      "name": "Intel(R) UHD Graphics 770",
+      "api_version": "1.4.323",
+      "driver_raw": 1661872,
+      "vendor_id": 32902,
+      "device_id": 42880,
+      "device_type": 1
+    },
+    {
+      "vulkan_index": 1,
+      "name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+      "api_version": "1.4.341",
+      "driver_raw": 2559967232,
+      "vendor_id": 4318,
+      "device_id": 9989,
+      "device_type": 2
+    }
+  ],
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.6",
+    "numba": "0.65.1",
+    "taichi": "1.7.4"
+  },
+  "cpu_threads": 32,
+  "blas_libraries": [
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 24,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll",
+      "version": "0.3.31.188.0",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 32,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiomp5md.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 1,
+      "prefix": "libiomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\lib\\libiompstubs5md.dll",
+      "version": null
+    },
+    {
+      "user_api": "openmp",
+      "internal_api": "openmp",
+      "num_threads": 32,
+      "prefix": "vcomp",
+      "filepath": "C:\\Users\\Collins\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\sklearn\\.libs\\vcomp140.dll",
+      "version": null
+    },
+    {
+      "user_api": "blas",
+      "internal_api": "openblas",
+      "num_threads": 24,
+      "prefix": "libscipy_openblas",
+      "filepath": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll",
+      "version": "0.3.31.dev",
+      "threading_layer": "pthreads",
+      "architecture": "Haswell"
+    }
+  ],
+  "init_ms": 217.4114,
+  "imports_ms": 8663.9934,
+  "original_accel_sha256": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+  "original_predict_direct_sha256": "f56e53a4cc0219d2a49488b6e112e3ac78d73b34de5188b758dd7ddb22e7434a",
+  "photo": {
+    "name": "ColorCard_Big.JPG",
+    "sha256": "f942a60763713b536fff1023b5fde6ebf1bc8f6c11c85b667b6672b8fca321bb"
+  },
+  "timing_contract": "Warmed complete function calls. Vulkan host-to-host includes per-call input float64 conversion/upload, kernel, sync, result download/float64 conversion; model parameters and matching FFC map persist. Resident is synchronized launch+compute only.",
+  "original_contract": "Original accel functions on float64. WB is the unchanged img@diag expression only, excluding detection/fit. poly3 is original _predict_direct with degree3/noLUT and fitted sklearn model, including existing feature generation and garbage collections. LUT is deployed-style 33cube color-correction inference with fixed fitted polynomial model.",
+  "repeats": 11,
+  "warmups": 3,
+  "cases": [
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "photo",
+      "operation": "lut",
+      "input_sha256": "c5bd954839bae2bf0518962323d2f66a020a0dca2954c5e1bff05cd6f9bfc611",
+      "first_original_call_ms": 1315.3419,
+      "first_taichi_call_including_jit_ms": 1001.6509,
+      "error_vs_original_float64": {
+        "max_abs": 3.3306690738754696e-16,
+        "mean_abs": 3.1338720197139166e-17,
+        "rmse": 6.049403122068845e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 1.8441,
+          "p95_ms": 1.9757500000000001,
+          "min_ms": 1.3304,
+          "max_ms": 2.0114,
+          "samples_ms": [
+            1.8441,
+            1.8569,
+            1.9401,
+            1.527,
+            1.8905,
+            1.7062,
+            1.7714,
+            1.8598,
+            2.0114,
+            1.6867,
+            1.3304
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 2.6705,
+          "p95_ms": 3.32505,
+          "min_ms": 2.6055,
+          "max_ms": 3.4162,
+          "samples_ms": [
+            2.6705,
+            2.6463,
+            2.6209,
+            3.2339,
+            2.6055,
+            3.4162,
+            2.7815,
+            2.6414,
+            2.6283,
+            2.678,
+            3.2228
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.690544841789927
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "photo",
+      "operation": "lab",
+      "input_sha256": "c5bd954839bae2bf0518962323d2f66a020a0dca2954c5e1bff05cd6f9bfc611",
+      "first_original_call_ms": 880.2128,
+      "first_taichi_call_including_jit_ms": 156.2942,
+      "error_vs_original_float64": {
+        "max_abs": 1.1368683772161603e-13,
+        "mean_abs": 9.447009423876204e-15,
+        "rmse": 1.8412304255183495e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 6.0271,
+          "p95_ms": 6.20775,
+          "min_ms": 3.4459,
+          "max_ms": 6.2545,
+          "samples_ms": [
+            6.0271,
+            6.0263,
+            4.2906,
+            4.5877,
+            6.087,
+            6.0467,
+            6.0386,
+            3.4459,
+            3.5681,
+            6.2545,
+            6.161
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 8.2854,
+          "p95_ms": 14.507150000000001,
+          "min_ms": 7.0796,
+          "max_ms": 17.1914,
+          "samples_ms": [
+            7.2023,
+            8.2854,
+            8.4663,
+            7.4073,
+            7.2156,
+            17.1914,
+            7.0796,
+            9.0799,
+            7.3547,
+            9.2585,
+            11.8229
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.7274362130977382
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "photo",
+      "operation": "ffc",
+      "input_sha256": "c5bd954839bae2bf0518962323d2f66a020a0dca2954c5e1bff05cd6f9bfc611",
+      "first_original_call_ms": 798.0115,
+      "first_taichi_call_including_jit_ms": 258.6025,
+      "error_vs_original_float64": {
+        "max_abs": 1.970645868709653e-15,
+        "mean_abs": 1.290471773664307e-16,
+        "rmse": 1.9010268259937755e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 16.4329,
+          "p95_ms": 18.782449999999997,
+          "min_ms": 12.8062,
+          "max_ms": 18.8096,
+          "samples_ms": [
+            16.4329,
+            18.8096,
+            16.1849,
+            15.1682,
+            18.7553,
+            15.5103,
+            18.728,
+            16.7852,
+            18.2326,
+            12.8062,
+            14.9178
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 10.6599,
+          "p95_ms": 22.920099999999998,
+          "min_ms": 9.8883,
+          "max_ms": 26.584,
+          "samples_ms": [
+            10.052,
+            16.3689,
+            9.9369,
+            10.202,
+            9.8883,
+            26.584,
+            10.6599,
+            11.0869,
+            19.2562,
+            10.0046,
+            12.3561
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.5415623035863375
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "photo",
+      "operation": "wb",
+      "input_sha256": "c5bd954839bae2bf0518962323d2f66a020a0dca2954c5e1bff05cd6f9bfc611",
+      "first_original_call_ms": 5.996,
+      "first_taichi_call_including_jit_ms": 123.6014,
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 2.2487,
+          "p95_ms": 2.422,
+          "min_ms": 2.1269,
+          "max_ms": 2.4315,
+          "samples_ms": [
+            2.4125,
+            2.4315,
+            2.2423,
+            2.1948,
+            2.2643,
+            2.1269,
+            2.3755,
+            2.2372,
+            2.2529,
+            2.2487,
+            2.2043
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 1.6758,
+          "p95_ms": 2.60235,
+          "min_ms": 1.3421,
+          "max_ms": 3.2256,
+          "samples_ms": [
+            1.7174,
+            1.6758,
+            1.5788,
+            1.9791,
+            1.7004,
+            1.4449,
+            1.8175,
+            3.2256,
+            1.6192,
+            1.4735,
+            1.3421
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.3418665711898794
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "photo",
+      "operation": "poly3",
+      "input_sha256": "c5bd954839bae2bf0518962323d2f66a020a0dca2954c5e1bff05cd6f9bfc611",
+      "first_original_call_ms": 260.1467,
+      "first_taichi_call_including_jit_ms": 446.4819,
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.4813366028012626e-17,
+        "rmse": 3.952545042835925e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 257.8911,
+          "p95_ms": 272.7522,
+          "min_ms": 246.1806,
+          "max_ms": 273.4403,
+          "samples_ms": [
+            253.8086,
+            262.9017,
+            273.4403,
+            255.212,
+            248.3365,
+            272.0641,
+            246.3142,
+            268.7871,
+            246.1806,
+            257.8911,
+            266.5076
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 2.1477,
+          "p95_ms": 2.2150499999999997,
+          "min_ms": 2.003,
+          "max_ms": 2.2249,
+          "samples_ms": [
+            2.003,
+            2.1477,
+            2.0313,
+            2.1527,
+            2.2249,
+            2.2052,
+            2.064,
+            2.0474,
+            2.0674,
+            2.175,
+            2.1779
+          ]
+        }
+      },
+      "host_speedup_vs_original": 120.07780416259254
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "seeded_random",
+      "operation": "lut",
+      "input_sha256": "50b73d7c7697a3bf15d1aaafc3d75d7505e4b08122db5bb2b509eca8dbe61c79",
+      "error_vs_original_float64": {
+        "max_abs": 3.3306690738754696e-16,
+        "mean_abs": 2.6421274045077737e-17,
+        "rmse": 5.187538071167007e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 1.8941,
+          "p95_ms": 2.05515,
+          "min_ms": 1.4179,
+          "max_ms": 2.1348,
+          "samples_ms": [
+            1.9755,
+            1.717,
+            1.7416,
+            1.4179,
+            2.1348,
+            1.8158,
+            1.968,
+            1.6839,
+            1.9754,
+            1.8941,
+            1.9625
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 2.92,
+          "p95_ms": 4.00535,
+          "min_ms": 2.5421,
+          "max_ms": 4.179,
+          "samples_ms": [
+            2.8615,
+            3.1696,
+            4.179,
+            2.7877,
+            2.8032,
+            3.0734,
+            2.5421,
+            2.92,
+            3.3572,
+            2.7518,
+            3.8317
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.6486643835616438
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "seeded_random",
+      "operation": "lab",
+      "input_sha256": "50b73d7c7697a3bf15d1aaafc3d75d7505e4b08122db5bb2b509eca8dbe61c79",
+      "error_vs_original_float64": {
+        "max_abs": 1.1368683772161603e-13,
+        "mean_abs": 1.2023582428986589e-14,
+        "rmse": 2.14938379364567e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 5.2261,
+          "p95_ms": 6.0131,
+          "min_ms": 4.0899,
+          "max_ms": 6.0441,
+          "samples_ms": [
+            5.9821,
+            4.8225,
+            4.0899,
+            5.2261,
+            4.6348,
+            5.4085,
+            5.3141,
+            6.0441,
+            4.8139,
+            5.2726,
+            4.4567
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 11.0572,
+          "p95_ms": 16.47375,
+          "min_ms": 6.8673,
+          "max_ms": 17.264,
+          "samples_ms": [
+            10.8875,
+            12.7317,
+            17.264,
+            6.9405,
+            11.0572,
+            7.3916,
+            15.6835,
+            9.2828,
+            12.6904,
+            6.8673,
+            12.0628
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.47264226024671707
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "seeded_random",
+      "operation": "ffc",
+      "input_sha256": "50b73d7c7697a3bf15d1aaafc3d75d7505e4b08122db5bb2b509eca8dbe61c79",
+      "error_vs_original_float64": {
+        "max_abs": 1.201816424156732e-14,
+        "mean_abs": 1.9504077815005752e-16,
+        "rmse": 3.7876079067317576e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 18.8869,
+          "p95_ms": 19.4363,
+          "min_ms": 14.2554,
+          "max_ms": 19.7187,
+          "samples_ms": [
+            16.313,
+            17.8551,
+            18.9429,
+            19.0001,
+            18.8869,
+            14.2554,
+            17.98,
+            17.293,
+            19.1539,
+            18.98,
+            19.7187
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 12.3903,
+          "p95_ms": 23.984,
+          "min_ms": 10.4471,
+          "max_ms": 27.9024,
+          "samples_ms": [
+            10.4471,
+            16.7823,
+            14.1478,
+            11.2922,
+            10.976,
+            10.5686,
+            12.6011,
+            10.7909,
+            27.9024,
+            12.3903,
+            20.0656
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.5243295158309322
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "seeded_random",
+      "operation": "wb",
+      "input_sha256": "50b73d7c7697a3bf15d1aaafc3d75d7505e4b08122db5bb2b509eca8dbe61c79",
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 2.3149,
+          "p95_ms": 3.3545,
+          "min_ms": 2.2853,
+          "max_ms": 4.306,
+          "samples_ms": [
+            4.306,
+            2.3509,
+            2.3047,
+            2.2935,
+            2.2853,
+            2.3149,
+            2.403,
+            2.3084,
+            2.3033,
+            2.3288,
+            2.3519
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 1.7014,
+          "p95_ms": 2.43095,
+          "min_ms": 1.2568,
+          "max_ms": 2.8675,
+          "samples_ms": [
+            2.8675,
+            1.9944,
+            1.9285,
+            1.5418,
+            1.6756,
+            1.2568,
+            1.4579,
+            1.7014,
+            1.9173,
+            1.7415,
+            1.5222
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.3605854002586106
+    },
+    {
+      "size": [
+        512,
+        512
+      ],
+      "pixels": 262144,
+      "dataset": "seeded_random",
+      "operation": "poly3",
+      "input_sha256": "50b73d7c7697a3bf15d1aaafc3d75d7505e4b08122db5bb2b509eca8dbe61c79",
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.2808149171064017e-17,
+        "rmse": 3.465784180414034e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 268.2087,
+          "p95_ms": 295.18185,
+          "min_ms": 250.4485,
+          "max_ms": 307.6781,
+          "samples_ms": [
+            250.4485,
+            252.9737,
+            258.2129,
+            267.5533,
+            275.2963,
+            307.6781,
+            268.2087,
+            275.6794,
+            282.3892,
+            282.6856,
+            264.4577
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 2.0325,
+          "p95_ms": 2.25765,
+          "min_ms": 1.8246,
+          "max_ms": 2.2577,
+          "samples_ms": [
+            1.8246,
+            2.0167,
+            2.1332,
+            2.0257,
+            1.9927,
+            2.2576,
+            2.2356,
+            1.9807,
+            2.0325,
+            2.2376,
+            2.2577
+          ]
+        }
+      },
+      "host_speedup_vs_original": 131.96
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "photo",
+      "operation": "lut",
+      "input_sha256": "7556dcc398d109012222c07a5aa7194e20e27c9aa8d1ffa61c8313db5b760f31",
+      "error_vs_original_float64": {
+        "max_abs": 3.3306690738754696e-16,
+        "mean_abs": 3.0753928636738656e-17,
+        "rmse": 5.986648439029713e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 6.9931,
+          "p95_ms": 8.341750000000001,
+          "min_ms": 4.8482,
+          "max_ms": 8.3497,
+          "samples_ms": [
+            5.2554,
+            5.7813,
+            8.3497,
+            7.957,
+            4.8482,
+            6.9931,
+            5.2602,
+            8.3338,
+            6.7692,
+            8.2509,
+            8.1772
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 8.5539,
+          "p95_ms": 14.932500000000001,
+          "min_ms": 6.6742,
+          "max_ms": 15.7531,
+          "samples_ms": [
+            6.743,
+            14.1119,
+            11.034,
+            8.5539,
+            7.2922,
+            8.5415,
+            11.2031,
+            6.6742,
+            15.7531,
+            7.5778,
+            11.3711
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.8175335227206303
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "photo",
+      "operation": "lab",
+      "input_sha256": "7556dcc398d109012222c07a5aa7194e20e27c9aa8d1ffa61c8313db5b760f31",
+      "error_vs_original_float64": {
+        "max_abs": 1.1368683772161603e-13,
+        "mean_abs": 9.447518766817216e-15,
+        "rmse": 1.8403596772582592e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 43.4401,
+          "p95_ms": 46.718450000000004,
+          "min_ms": 25.259,
+          "max_ms": 46.8621,
+          "samples_ms": [
+            33.7317,
+            46.5748,
+            43.4628,
+            43.4401,
+            26.2656,
+            46.8621,
+            26.0455,
+            30.9185,
+            25.259,
+            45.5811,
+            45.419
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 52.4509,
+          "p95_ms": 66.84825000000001,
+          "min_ms": 45.2614,
+          "max_ms": 75.6344,
+          "samples_ms": [
+            50.8463,
+            58.0621,
+            52.4509,
+            46.1949,
+            55.2817,
+            75.6344,
+            45.2614,
+            46.1289,
+            47.8426,
+            57.7329,
+            53.1502
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.8282050450993216
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "photo",
+      "operation": "ffc",
+      "input_sha256": "7556dcc398d109012222c07a5aa7194e20e27c9aa8d1ffa61c8313db5b760f31",
+      "error_vs_original_float64": {
+        "max_abs": 2.525757381022231e-15,
+        "mean_abs": 1.2899018189600189e-16,
+        "rmse": 1.9043905827869716e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 112.8702,
+          "p95_ms": 127.9417,
+          "min_ms": 77.5157,
+          "max_ms": 132.6646,
+          "samples_ms": [
+            123.2188,
+            105.6089,
+            112.8702,
+            132.6646,
+            122.1426,
+            115.1799,
+            88.6609,
+            77.5157,
+            107.727,
+            78.9728,
+            122.2042
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 71.6414,
+          "p95_ms": 85.2411,
+          "min_ms": 60.5572,
+          "max_ms": 85.8268,
+          "samples_ms": [
+            70.3158,
+            78.2674,
+            85.8268,
+            67.9242,
+            60.5572,
+            65.2143,
+            84.6554,
+            66.6654,
+            83.3863,
+            71.6414,
+            80.305
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.5754884745412567
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "photo",
+      "operation": "wb",
+      "input_sha256": "7556dcc398d109012222c07a5aa7194e20e27c9aa8d1ffa61c8313db5b760f31",
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 18.5264,
+          "p95_ms": 19.42085,
+          "min_ms": 18.3657,
+          "max_ms": 19.9177,
+          "samples_ms": [
+            18.924,
+            18.6397,
+            18.5264,
+            18.3657,
+            18.4807,
+            18.3689,
+            18.4614,
+            18.7606,
+            19.9177,
+            18.7224,
+            18.4172
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 3.1946,
+          "p95_ms": 3.5798,
+          "min_ms": 3.0235,
+          "max_ms": 3.6772,
+          "samples_ms": [
+            3.4824,
+            3.0235,
+            3.1521,
+            3.04,
+            3.1946,
+            3.188,
+            3.3354,
+            3.1898,
+            3.6772,
+            3.2444,
+            3.2599
+          ]
+        }
+      },
+      "host_speedup_vs_original": 5.799286295623865
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "photo",
+      "operation": "poly3",
+      "input_sha256": "7556dcc398d109012222c07a5aa7194e20e27c9aa8d1ffa61c8313db5b760f31",
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.476078152141578e-17,
+        "rmse": 3.9615473941534816e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 727.5219,
+          "p95_ms": 756.3601,
+          "min_ms": 668.7201,
+          "max_ms": 765.0801,
+          "samples_ms": [
+            731.2187,
+            735.636,
+            747.6401,
+            765.0801,
+            745.5469,
+            718.6713,
+            709.0113,
+            727.5219,
+            693.7098,
+            686.8707,
+            668.7201
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 5.3832,
+          "p95_ms": 6.00595,
+          "min_ms": 5.0604,
+          "max_ms": 6.0797,
+          "samples_ms": [
+            5.0604,
+            5.7037,
+            5.3832,
+            5.8555,
+            5.9322,
+            5.1708,
+            5.0808,
+            5.0671,
+            5.5294,
+            5.135,
+            6.0797
+          ]
+        }
+      },
+      "host_speedup_vs_original": 135.14673428444047
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "seeded_random",
+      "operation": "lut",
+      "input_sha256": "6af63798dc5f999caa4614d285ea0241cac336e94f5b88202daf6d3f4ec53a8c",
+      "error_vs_original_float64": {
+        "max_abs": 3.3306690738754696e-16,
+        "mean_abs": 2.6387664562869336e-17,
+        "rmse": 5.187222041098586e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 10.2469,
+          "p95_ms": 10.436599999999999,
+          "min_ms": 6.0291,
+          "max_ms": 10.4628,
+          "samples_ms": [
+            6.4739,
+            6.0402,
+            6.4744,
+            6.5926,
+            10.2469,
+            10.3428,
+            10.3268,
+            10.4628,
+            10.3079,
+            10.4104,
+            6.0291
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 8.7241,
+          "p95_ms": 15.56315,
+          "min_ms": 7.5117,
+          "max_ms": 16.3712,
+          "samples_ms": [
+            7.5117,
+            8.2213,
+            8.6803,
+            13.8506,
+            8.9701,
+            14.7551,
+            8.2986,
+            8.7241,
+            16.3712,
+            8.1879,
+            12.4975
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.1745509565456609
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "seeded_random",
+      "operation": "lab",
+      "input_sha256": "6af63798dc5f999caa4614d285ea0241cac336e94f5b88202daf6d3f4ec53a8c",
+      "error_vs_original_float64": {
+        "max_abs": 1.6697754290362354e-13,
+        "mean_abs": 1.1996411469515696e-14,
+        "rmse": 2.145623713139408e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 26.9878,
+          "p95_ms": 36.133449999999996,
+          "min_ms": 23.9587,
+          "max_ms": 37.1578,
+          "samples_ms": [
+            25.5069,
+            37.1578,
+            31.1965,
+            26.9878,
+            23.9918,
+            35.1091,
+            24.5533,
+            23.9587,
+            30.0858,
+            24.4215,
+            31.4018
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 52.6602,
+          "p95_ms": 75.5491,
+          "min_ms": 38.0224,
+          "max_ms": 75.9087,
+          "samples_ms": [
+            38.0224,
+            48.2223,
+            75.1895,
+            54.4535,
+            46.3825,
+            75.9087,
+            54.2921,
+            43.1485,
+            53.6833,
+            51.4085,
+            52.6602
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.5124895082054378
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "seeded_random",
+      "operation": "ffc",
+      "input_sha256": "6af63798dc5f999caa4614d285ea0241cac336e94f5b88202daf6d3f4ec53a8c",
+      "error_vs_original_float64": {
+        "max_abs": 1.663599813461758e-14,
+        "mean_abs": 1.9476099001115262e-16,
+        "rmse": 3.7832232612678587e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 113.2542,
+          "p95_ms": 125.6968,
+          "min_ms": 75.9475,
+          "max_ms": 126.1155,
+          "samples_ms": [
+            113.2542,
+            98.354,
+            117.8601,
+            126.1155,
+            96.883,
+            116.9134,
+            75.9475,
+            88.6718,
+            125.2781,
+            78.3074,
+            116.4061
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 67.2534,
+          "p95_ms": 75.2326,
+          "min_ms": 58.0139,
+          "max_ms": 76.6945,
+          "samples_ms": [
+            58.0139,
+            67.2534,
+            73.7707,
+            68.8124,
+            60.2188,
+            66.6744,
+            76.6945,
+            62.4895,
+            69.6796,
+            66.6236,
+            72.9104
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.6839921847817358
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "seeded_random",
+      "operation": "wb",
+      "input_sha256": "6af63798dc5f999caa4614d285ea0241cac336e94f5b88202daf6d3f4ec53a8c",
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 19.1095,
+          "p95_ms": 19.593049999999998,
+          "min_ms": 18.6015,
+          "max_ms": 19.7244,
+          "samples_ms": [
+            18.6219,
+            19.4617,
+            19.1095,
+            18.6015,
+            19.7244,
+            18.7407,
+            19.1077,
+            19.2691,
+            19.3648,
+            19.283,
+            18.9096
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 3.3135,
+          "p95_ms": 3.8100500000000004,
+          "min_ms": 2.7661,
+          "max_ms": 3.978,
+          "samples_ms": [
+            2.7661,
+            3.1522,
+            3.2661,
+            3.3559,
+            3.2247,
+            3.3135,
+            3.3002,
+            3.5867,
+            3.978,
+            3.6421,
+            3.3888
+          ]
+        }
+      },
+      "host_speedup_vs_original": 5.767164629545798
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "pixels": 2073600,
+      "dataset": "seeded_random",
+      "operation": "poly3",
+      "input_sha256": "6af63798dc5f999caa4614d285ea0241cac336e94f5b88202daf6d3f4ec53a8c",
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.2801984608321256e-17,
+        "rmse": 3.464806891663896e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 683.5683,
+          "p95_ms": 723.1155,
+          "min_ms": 656.0717,
+          "max_ms": 730.229,
+          "samples_ms": [
+            699.9664,
+            656.0717,
+            689.9153,
+            730.229,
+            683.5683,
+            665.9444,
+            689.4764,
+            716.002,
+            666.5718,
+            668.8431,
+            673.4972
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 5.1506,
+          "p95_ms": 5.52965,
+          "min_ms": 4.9761,
+          "max_ms": 5.7119,
+          "samples_ms": [
+            4.99,
+            5.2049,
+            5.0334,
+            5.048,
+            4.9761,
+            5.3474,
+            5.7119,
+            5.2436,
+            5.0155,
+            5.1506,
+            5.1969
+          ]
+        }
+      },
+      "host_speedup_vs_original": 132.71624665087563
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "photo",
+      "operation": "lut",
+      "input_sha256": "a02be1914fb801deeb498d8b902afebfae1cf01233dbd0e5b60e5c4931b5dbac",
+      "error_vs_original_float64": {
+        "max_abs": 3.3306690738754696e-16,
+        "mean_abs": 3.0228905218872004e-17,
+        "rmse": 5.925305655094873e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 21.5192,
+          "p95_ms": 35.1317,
+          "min_ms": 18.4802,
+          "max_ms": 36.3205,
+          "samples_ms": [
+            28.9163,
+            25.2997,
+            33.9429,
+            19.0288,
+            20.4465,
+            23.7223,
+            21.5192,
+            18.4802,
+            36.3205,
+            19.2452,
+            19.8842
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 28.1169,
+          "p95_ms": 42.46065,
+          "min_ms": 23.3392,
+          "max_ms": 43.5194,
+          "samples_ms": [
+            28.815,
+            27.8053,
+            41.4019,
+            23.3392,
+            34.0718,
+            26.0675,
+            31.7856,
+            26.0147,
+            28.1169,
+            43.5194,
+            26.2257
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.7653475312000968
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "photo",
+      "operation": "lab",
+      "input_sha256": "a02be1914fb801deeb498d8b902afebfae1cf01233dbd0e5b60e5c4931b5dbac",
+      "error_vs_original_float64": {
+        "max_abs": 1.1368683772161603e-13,
+        "mean_abs": 9.341458844312955e-15,
+        "rmse": 1.8280421367423988e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 114.9741,
+          "p95_ms": 127.6893,
+          "min_ms": 97.1413,
+          "max_ms": 129.4893,
+          "samples_ms": [
+            97.1413,
+            99.5268,
+            98.8487,
+            118.2934,
+            129.4893,
+            116.6037,
+            107.7715,
+            125.8893,
+            114.9741,
+            102.9946,
+            117.0076
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 151.3119,
+          "p95_ms": 159.45645000000002,
+          "min_ms": 138.9164,
+          "max_ms": 162.1065,
+          "samples_ms": [
+            138.9164,
+            150.6846,
+            154.322,
+            151.3119,
+            140.574,
+            150.2209,
+            162.1065,
+            152.3112,
+            144.9725,
+            154.6695,
+            156.8064
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.7598483661893083
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "photo",
+      "operation": "ffc",
+      "input_sha256": "a02be1914fb801deeb498d8b902afebfae1cf01233dbd0e5b60e5c4931b5dbac",
+      "error_vs_original_float64": {
+        "max_abs": 2.4424906541753444e-15,
+        "mean_abs": 1.2820308817646886e-16,
+        "rmse": 1.897576091385708e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 392.1322,
+          "p95_ms": 428.6778,
+          "min_ms": 349.1486,
+          "max_ms": 437.0136,
+          "samples_ms": [
+            349.1486,
+            405.6915,
+            406.8236,
+            437.0136,
+            377.7072,
+            392.1322,
+            379.8238,
+            408.427,
+            351.0574,
+            385.9058,
+            420.342
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 219.8426,
+          "p95_ms": 227.73935,
+          "min_ms": 216.6183,
+          "max_ms": 229.5234,
+          "samples_ms": [
+            216.6183,
+            225.9553,
+            229.5234,
+            222.7461,
+            219.8426,
+            219.0127,
+            218.3895,
+            222.8342,
+            216.6554,
+            224.5676,
+            218.7014
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.7836952437789582
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "photo",
+      "operation": "wb",
+      "input_sha256": "a02be1914fb801deeb498d8b902afebfae1cf01233dbd0e5b60e5c4931b5dbac",
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 77.4362,
+          "p95_ms": 78.68545,
+          "min_ms": 76.0104,
+          "max_ms": 78.8431,
+          "samples_ms": [
+            77.0328,
+            78.5278,
+            77.4362,
+            78.0855,
+            78.8431,
+            76.3449,
+            77.0546,
+            76.0104,
+            77.5148,
+            78.1817,
+            76.3267
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 11.1674,
+          "p95_ms": 12.83125,
+          "min_ms": 10.177,
+          "max_ms": 13.0532,
+          "samples_ms": [
+            11.7208,
+            11.0523,
+            10.3719,
+            11.0643,
+            12.6093,
+            11.1802,
+            10.7278,
+            10.177,
+            12.5452,
+            13.0532,
+            11.1674
+          ]
+        }
+      },
+      "host_speedup_vs_original": 6.934129698945143
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "photo",
+      "operation": "poly3",
+      "input_sha256": "a02be1914fb801deeb498d8b902afebfae1cf01233dbd0e5b60e5c4931b5dbac",
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.488480126156495e-17,
+        "rmse": 3.989704150226904e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 2122.7746,
+          "p95_ms": 2228.0048500000003,
+          "min_ms": 2058.9582,
+          "max_ms": 2239.5175,
+          "samples_ms": [
+            2116.6326,
+            2239.5175,
+            2157.4895,
+            2108.9968,
+            2151.2142,
+            2128.6167,
+            2119.097,
+            2122.7746,
+            2058.9582,
+            2095.001,
+            2216.4922
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 18.4774,
+          "p95_ms": 21.633200000000002,
+          "min_ms": 16.3245,
+          "max_ms": 22.8519,
+          "samples_ms": [
+            18.7208,
+            18.4774,
+            22.8519,
+            18.6495,
+            20.4145,
+            17.4954,
+            16.7182,
+            16.6513,
+            19.1092,
+            17.2281,
+            16.3245
+          ]
+        }
+      },
+      "host_speedup_vs_original": 114.88491887386755
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "seeded_random",
+      "operation": "lut",
+      "input_sha256": "369ad28c7c317dd531b05bdd99f86061d616d3baa3da0307eca7591177a6e905",
+      "error_vs_original_float64": {
+        "max_abs": 4.440892098500626e-16,
+        "mean_abs": 2.643090855994578e-17,
+        "rmse": 5.191560232450109e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 27.0721,
+          "p95_ms": 37.9011,
+          "min_ms": 23.0084,
+          "max_ms": 37.9193,
+          "samples_ms": [
+            23.684,
+            26.6745,
+            37.9193,
+            36.9941,
+            27.0721,
+            31.9082,
+            23.3782,
+            23.0084,
+            23.5101,
+            37.8829,
+            35.2188
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 41.0722,
+          "p95_ms": 53.199,
+          "min_ms": 26.9187,
+          "max_ms": 55.8723,
+          "samples_ms": [
+            50.5257,
+            32.4401,
+            45.1353,
+            29.0193,
+            41.0722,
+            26.9187,
+            45.0437,
+            26.9837,
+            55.8723,
+            48.5507,
+            34.6522
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.6591344023451385
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "seeded_random",
+      "operation": "lab",
+      "input_sha256": "369ad28c7c317dd531b05bdd99f86061d616d3baa3da0307eca7591177a6e905",
+      "error_vs_original_float64": {
+        "max_abs": 1.6697754290362354e-13,
+        "mean_abs": 1.2015145372083649e-14,
+        "rmse": 2.1471293114566032e-14,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 113.184,
+          "p95_ms": 123.768,
+          "min_ms": 96.0429,
+          "max_ms": 124.3348,
+          "samples_ms": [
+            98.1542,
+            102.4102,
+            97.2927,
+            108.2837,
+            119.6532,
+            115.6457,
+            124.3348,
+            123.2012,
+            116.5668,
+            96.0429,
+            113.184
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 152.4671,
+          "p95_ms": 166.6277,
+          "min_ms": 143.9006,
+          "max_ms": 170.8379,
+          "samples_ms": [
+            146.9171,
+            162.4175,
+            155.766,
+            148.5366,
+            152.4671,
+            159.95,
+            143.9006,
+            146.9574,
+            147.9285,
+            153.5454,
+            170.8379
+          ]
+        }
+      },
+      "host_speedup_vs_original": 0.7423503168880369
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "seeded_random",
+      "operation": "ffc",
+      "input_sha256": "369ad28c7c317dd531b05bdd99f86061d616d3baa3da0307eca7591177a6e905",
+      "error_vs_original_float64": {
+        "max_abs": 1.7180701306074297e-14,
+        "mean_abs": 1.9514601114226756e-16,
+        "rmse": 3.7924936843789627e-16,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 385.0742,
+          "p95_ms": 417.7127,
+          "min_ms": 343.3021,
+          "max_ms": 428.32,
+          "samples_ms": [
+            353.5529,
+            385.3072,
+            343.3021,
+            385.8498,
+            380.9936,
+            398.4517,
+            385.0742,
+            349.6261,
+            407.1054,
+            375.8857,
+            428.32
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 227.7979,
+          "p95_ms": 234.47095,
+          "min_ms": 221.8455,
+          "max_ms": 234.9825,
+          "samples_ms": [
+            221.8455,
+            228.6556,
+            222.1686,
+            227.5249,
+            226.8642,
+            234.9825,
+            227.7979,
+            223.692,
+            233.9594,
+            231.0777,
+            232.3624
+          ]
+        }
+      },
+      "host_speedup_vs_original": 1.6904203243313483
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "seeded_random",
+      "operation": "wb",
+      "input_sha256": "369ad28c7c317dd531b05bdd99f86061d616d3baa3da0307eca7591177a6e905",
+      "error_vs_original_float64": {
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "rmse": 0.0,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 79.9559,
+          "p95_ms": 83.54634999999999,
+          "min_ms": 76.6468,
+          "max_ms": 84.3611,
+          "samples_ms": [
+            78.0597,
+            78.5244,
+            84.3611,
+            78.4574,
+            82.7316,
+            76.6468,
+            80.2749,
+            79.9559,
+            80.9337,
+            80.4866,
+            79.2994
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 11.8305,
+          "p95_ms": 13.2415,
+          "min_ms": 10.8768,
+          "max_ms": 13.6849,
+          "samples_ms": [
+            10.8768,
+            12.2465,
+            11.7612,
+            12.7981,
+            11.5804,
+            11.6804,
+            12.5838,
+            12.5911,
+            13.6849,
+            10.9378,
+            11.8305
+          ]
+        }
+      },
+      "host_speedup_vs_original": 6.758454841300029
+    },
+    {
+      "size": [
+        3840,
+        2160
+      ],
+      "pixels": 8294400,
+      "dataset": "seeded_random",
+      "operation": "poly3",
+      "input_sha256": "369ad28c7c317dd531b05bdd99f86061d616d3baa3da0307eca7591177a6e905",
+      "error_vs_original_float64": {
+        "max_abs": 2.220446049250313e-16,
+        "mean_abs": 1.2803743346983043e-17,
+        "rmse": 3.465973495926632e-17,
+        "all_finite": true
+      },
+      "timings": {
+        "original": {
+          "median_ms": 2093.9137,
+          "p95_ms": 2114.93385,
+          "min_ms": 2059.3904,
+          "max_ms": 2120.8091,
+          "samples_ms": [
+            2120.8091,
+            2096.4802,
+            2093.9137,
+            2083.3716,
+            2059.3904,
+            2084.6648,
+            2096.218,
+            2109.0586,
+            2088.6144,
+            2085.1095,
+            2098.3191
+          ]
+        },
+        "taichi_host_to_host": {
+          "median_ms": 19.5917,
+          "p95_ms": 21.398899999999998,
+          "min_ms": 17.1297,
+          "max_ms": 21.4198,
+          "samples_ms": [
+            18.0316,
+            21.4198,
+            21.1539,
+            18.5523,
+            17.1297,
+            19.9179,
+            21.378,
+            19.9575,
+            17.8083,
+            19.5917,
+            18.186
+          ]
+        }
+      },
+      "host_speedup_vs_original": 106.87759102068733
+    }
+  ],
+  "failures": []
+}

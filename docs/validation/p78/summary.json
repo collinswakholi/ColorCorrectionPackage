@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-28",
+  "branch": "codex/reliability-model-detection",
+  "scope": "patches7-8 local/uncommitted/no push; no patch9 production backend change",
+  "tests": {
+    "dependency": 17,
+    "real_photograph_integration": 24,
+    "unit": 831
+  },
+  "total": 872,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "warnings": 23,
+  "pytest_elapsed_seconds": 255.9,
+  "new_test_modules": {
+    "test_calibration_bundle": 107,
+    "test_explicit_image_io": 89,
+    "test_bounded_batch": 40,
+    "test_prediction_workflows": 30,
+    "test_portable_batch_photographs": 5
+  },
+  "installed_validation": {
+    "installed_sources_match_clone": true,
+    "final_python_fingerprints": {
+      "ColorCorrectionPipeline/batch.py": "8b2931c7350f31e45eca3533093ac346b97ef4889814013e356c3d7647fade62",
+      "ColorCorrectionPipeline/bundle.py": "b4a8c607b0f24f823a8adb4af0f7d0541e8f03c63cf62f40888f9132a053e4b7",
+      "ColorCorrectionPipeline/colorimetry.py": "56c6b48c3d788bb346dba00620c729165301adc472a644434679014d9bb7c33f",
+      "ColorCorrectionPipeline/config.py": "d4ee5abbd93614300dbb99c1c8c7ee3a033c4315b64db302580c44f0e9fe2fc4",
+      "ColorCorrectionPipeline/constants.py": "9ff295abd586e992ebc4927099bd8ea22de3ac6595786695fa917c72e475e239",
+      "ColorCorrectionPipeline/contracts.py": "d9835e1442e31ef46d2758e0706953964a9ba7cf797d3fe7ee74eee410c72aa6",
+      "ColorCorrectionPipeline/evaluation.py": "6066c1bd7068cb7204966e4149e59684357ea2328d12253c3b38479f526b60b0",
+      "ColorCorrectionPipeline/fitting.py": "e2b1d27c3857b2b639c4fa6f2e7354c9edca496aa80390ca55404af455f59cce",
+      "ColorCorrectionPipeline/key_functions.py": "a1686d45f64460e6cd39392301e9db22b666e2e2a91de2dd3fec097d2c9cb391",
+      "ColorCorrectionPipeline/models.py": "85871bc50f7db9bdc91b32830372ed52fe9978c81c002b5aa38e152bfd368a45",
+      "ColorCorrectionPipeline/modern.py": "b1bc909d44d5a26bd4f749894de93203b48af1b487246ce223f97f85b6e0bf5f",
+      "ColorCorrectionPipeline/observations.py": "c476116c0208a424112889f03ea1b533f6f1e250cb44ae2dcc71ee2d5b5b2e55",
+      "ColorCorrectionPipeline/pipeline.py": "c270624e036ceda9f61522ff74c12876cacd04b270fb0f3d556847ef075837e8",
+      "ColorCorrectionPipeline/portable_inference.py": "6abba43e398f33c12ae93e54884fee2a3f6fea6dbbe63815cbc546a7df4bf0bb",
+      "ColorCorrectionPipeline/prediction.py": "6f209455b6cae37576d7edc11fe9f81b3668684ee698a1d0745b0e4e6fda51ad",
+      "ColorCorrectionPipeline/reporting.py": "cb73d890970e5d2d62f23d733579f8e16de09138977553b6bfcb57f2a726fcd2",
+      "ColorCorrectionPipeline/results.py": "835fc0779180bdc9efc71a5cb645906d49ad8fa361020bf447cd98bd54e94abd",
+      "ColorCorrectionPipeline/sampling.py": "c900c8f966033f2a969ae1107d9e6e0e8855c97c0a355615c8622cc168eea73f",
+      "ColorCorrectionPipeline/stage_policies.py": "fb7a1a4810fe16fb60e19915b8d2dc9c972f46ebfc79e471ded4eb9d7ccaa142",
+      "ColorCorrectionPipeline/__init__.py": "0d7e0a0f5a0c96ecd0117485b5b156cb05be9e3a49c4f07a979f1e6f3af37841",
+      "ColorCorrectionPipeline/__version__.py": "2c7853c90a7a3887d0c6861bfe16c8f8b2f4c41a2bf579ce282dd9ee1175ca67",
+      "ColorCorrectionPipeline/core/accel.py": "35f33e86c3c45f2342f4111c4c7f6b755c59ecbf794510208569c8bee0eef90e",
+      "ColorCorrectionPipeline/core/color_spaces.py": "ff94dc43c76ce4112dcec4a60a78d70f1d3198fc71a38e7c13c910fe8ac4747c",
+      "ColorCorrectionPipeline/core/correction.py": "e1649c27011bdc4a2ef1e26e3722ff784f4a64364c48fc0eb8157571dcb0c53d",
+      "ColorCorrectionPipeline/core/metrics.py": "9320db18160b5b98a4bf3e2ffc7b6cb77b1f2c65d8d785be1846e880f32cabcd",
+      "ColorCorrectionPipeline/core/transforms.py": "cba4e9156763eed08cc1b36aa8e2c9a2a959735a926969f082ef872b50c8e8e3",
+      "ColorCorrectionPipeline/core/utils.py": "36364607ec45618a3e729b33c191afc7f907e6db73952cf02c723e0c4c558977",
+      "ColorCorrectionPipeline/core/__init__.py": "73d1b36d8b1b027ce5b27cf35a1d64ed623f3f873190a2d7ba6ccc70e30fd372",
+      "ColorCorrectionPipeline/detection/charts.py": "2b147e9dee2f07a77354be4096ecfb17291c7a0f8dc80defeea8ea648a6e5c41",
+      "ColorCorrectionPipeline/detection/providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268",
+      "ColorCorrectionPipeline/detection/__init__.py": "6b22b271ea02876a775cba1eb12ec0b1cfe25d7897ba19ceb3d21458dca9ffd4",
+      "ColorCorrectionPipeline/flat_field/correction.py": "1642af464e1a2f0c2b7b708764315752137e73fdc54df4f8a6c9ee4c60f575c9",
+      "ColorCorrectionPipeline/flat_field/__init__.py": "435cd4297a79cdb6c634c6bc26422782fdaf1c3578c9f53fefc11923249a657b",
+      "ColorCorrectionPipeline/io/image_data.py": "95953afde0dc5a34c64f7d3e4fea0629fc580474be224b810acf211da663446b",
+      "ColorCorrectionPipeline/io/readers.py": "23cce40b147efb76e36d0c1d86c99d93b2a8cfefa46b98859cd4af087acf4bc1",
+      "ColorCorrectionPipeline/io/writers.py": "6fc0cbb328baa607f78dd901b781c5a46eace9ddd6318c9d926da900d8d88f3a",
+      "ColorCorrectionPipeline/io/__init__.py": "0fca424a0deaf49957b6ee9a72ffab53e624cce4c531ec02579ae03672ea86e9",
+      "ColorCorrectionPipeline/flat_field/models/__init__.py": "3679d233f9f76a105faf09f898db4ec144a4ef64f2204daf507d022394c997c1"
+    },
+    "families": {
+      "linear": {
+        "p56_pickle_predictions_bitwise_unchanged": true,
+        "portable_reload_equal": true,
+        "portable_reload_max_difference": 0.0,
+        "portable_reload_tolerance": 2e-12,
+        "mixed_batch_passed": true,
+        "chunked_tolerance": 2e-12,
+        "fresh_process_bundle_predictions_bitwise_equal": true
+      },
+      "pls": {
+        "p56_pickle_predictions_bitwise_unchanged": true,
+        "portable_reload_equal": true,
+        "portable_reload_max_difference": 0.0,
+        "portable_reload_tolerance": 2e-12,
+        "mixed_batch_passed": true,
+        "chunked_tolerance": 2e-12,
+        "fresh_process_bundle_predictions_bitwise_equal": true
+      },
+      "nn": {
+        "p56_pickle_predictions_bitwise_unchanged": true,
+        "portable_reload_equal": true,
+        "portable_reload_max_difference": 0.0,
+        "portable_reload_tolerance": 2e-12,
+        "mixed_batch_passed": true,
+        "chunked_tolerance": 2e-12,
+        "fresh_process_bundle_predictions_bitwise_equal": true
+      },
+      "custom": {
+        "p56_pickle_predictions_bitwise_unchanged": true,
+        "portable_reload_equal": true,
+        "portable_reload_max_difference": 0.0,
+        "portable_reload_tolerance": 2e-12,
+        "mixed_batch_passed": true,
+        "chunked_tolerance": 2e-06,
+        "fresh_process_bundle_predictions_bitwise_equal": true
+      },
+      "conv": {
+        "p56_pickle_predictions_bitwise_unchanged": true,
+        "portable_reload_equal": true,
+        "portable_reload_max_difference": 0.0,
+        "portable_reload_tolerance": 2e-12,
+        "mixed_batch_passed": true,
+        "chunked_tolerance": 2e-12,
+        "fresh_process_bundle_predictions_bitwise_equal": true
+      }
+    },
+    "actual_new_gpu_fit_bundle_reload_and_file_batch_passed": true,
+    "gpu_execution": {
+      "provider": "WebGpuExecutionProvider",
+      "graphics_backend": "D3D12",
+      "execution_verified": true,
+      "node_provider_counts": {
+        "WebGpuExecutionProvider": 210
+      }
+    },
+    "uint16_png_exact_sample_roundtrip": true,
+    "legacy_p02_saved_model_predictions_bitwise_equal": true,
+    "model_sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+    "wheel": {
+      "bytes": 92084288,
+      "sha256": "1e63b86dedcbf1686d2d3d5a13a21eb7bda99ce1c619779eefcfc2cca885242b"
+    },
+    "sdist": {
+      "bytes": 96326818,
+      "sha256": "00a6cdbefe63f8bf51082851185e6b6b15f58a4a4a4fcdf895c80992ad71c84f"
+    },
+    "qualification": "Windows installed target with audited scientific dependencies; not clean OS/dependency install or cross-platform qualification"
+  },
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.6",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.9.1",
+    "torch": "2.13.0+cpu",
+    "Pillow": "13.0.0",
+    "tifffile": "2026.10.15",
+    "onnxruntime": "1.31.1",
+    "onnxruntime-ep-webgpu": "0.4.0"
+  },
+  "qualification": "Windows x64 audited environment; no clean OS, minimum-version, cross-GPU or cross-platform qualification"
+}

@@ -1,0 +1,383 @@
+{
+  "threads": 8,
+  "sdk": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\CCP_New_UI\\api",
+  "kind": "full",
+  "worker": "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\CCP_New_UI\\_implementation\\ui-docs-20261026\\sandbox\\harness\\candidate-win-x64-v3\\ccp-engine.exe",
+  "worker_sha256": "123cb49377f0729e1c542dfbcdc096fff2a75f1cb6fea61f020cf7db7377a4fd",
+  "scope": "Real UI persistent worker SDK file-to-PNG8; no refit, no package strict publication guarantees.",
+  "fast_mode": false,
+  "runs": [
+    {
+      "backend": "cpu",
+      "size": "512",
+      "first_ms": 29.9492,
+      "timing": {
+        "n": 7,
+        "median_ms": 22.4646,
+        "p95_ms": 23.04205,
+        "raw_ms": [
+          21.5766,
+          22.81,
+          22.2729,
+          22.3118,
+          23.1415,
+          22.5081,
+          22.4646
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-19pym9xz\\model.json",
+      "model_sha256": "589f0cee58fd223b9f2c86200add7004e0b73c50df6c685f97c59bdd946a918e",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+      "input_sha256": "2793dfa3b54d92c79c5e0415d43bf89b9712b39b5b46748d2d7d9261792b2184",
+      "reply": {
+        "apply_backend": "cpu",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 0,
+          "backend": "cpu",
+          "cpu_pixels": 262144,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33",
+          "selection_reason": "cpu_requested"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "cpu",
+            "execution": {
+              "accelerated_pixels": 0,
+              "backend": "cpu",
+              "cpu_pixels": 262144,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33",
+              "selection_reason": "cpu_requested"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-4njrzx9h\\512_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "1697c4019fcc31cbaa0d23f59701a79be5bef02c500438c1fdf2992fba3c5cff",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    },
+    {
+      "backend": "cpu",
+      "size": "1080p",
+      "first_ms": 137.6409,
+      "timing": {
+        "n": 7,
+        "median_ms": 137.4814,
+        "p95_ms": 141.05141999999998,
+        "raw_ms": [
+          136.9645,
+          137.4814,
+          134.4866,
+          139.6851,
+          139.8953,
+          137.2311,
+          141.5469
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-19pym9xz\\model.json",
+      "model_sha256": "589f0cee58fd223b9f2c86200add7004e0b73c50df6c685f97c59bdd946a918e",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+      "input_sha256": "973fed5733d635257fa60a281ed2a1da49738b84072a3b7935ffca731a25ae56",
+      "reply": {
+        "apply_backend": "cpu",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 0,
+          "backend": "cpu",
+          "cpu_pixels": 2073600,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33",
+          "selection_reason": "cpu_requested"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "cpu",
+            "execution": {
+              "accelerated_pixels": 0,
+              "backend": "cpu",
+              "cpu_pixels": 2073600,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33",
+              "selection_reason": "cpu_requested"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-w9jmxydq\\1080p_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "9ea7ab5bcff186b88f77ab9036d23677c7af9905580dee21138c016fe99d165f",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    },
+    {
+      "backend": "cpu",
+      "size": "4k",
+      "first_ms": 525.5325,
+      "timing": {
+        "n": 7,
+        "median_ms": 551.397,
+        "p95_ms": 611.0625299999999,
+        "raw_ms": [
+          516.8199,
+          515.1065,
+          615.9171,
+          599.7352,
+          527.2964,
+          551.397,
+          588.5479
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-19pym9xz\\model.json",
+      "model_sha256": "589f0cee58fd223b9f2c86200add7004e0b73c50df6c685f97c59bdd946a918e",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+      "input_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+      "reply": {
+        "apply_backend": "cpu",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 0,
+          "backend": "cpu",
+          "cpu_pixels": 8294400,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33",
+          "selection_reason": "cpu_requested"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "cpu",
+            "execution": {
+              "accelerated_pixels": 0,
+              "backend": "cpu",
+              "cpu_pixels": 8294400,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33",
+              "selection_reason": "cpu_requested"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-iaqwfnin\\4k_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "84af15bcbe78764a8ecb72d572a0761d33309c936302b477e068ced4f43e8ea5",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    },
+    {
+      "backend": "auto",
+      "size": "512",
+      "first_ms": 1070.8984,
+      "timing": {
+        "n": 7,
+        "median_ms": 23.2431,
+        "p95_ms": 25.481389999999998,
+        "raw_ms": [
+          24.4169,
+          23.9322,
+          23.2431,
+          22.5279,
+          25.9376,
+          23.0352,
+          22.8538
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-who_jvpw\\model.json",
+      "model_sha256": "f8b383a2a54919619be4656fd13a4e2ba7d704d96eb887f9702288ad35eb5667",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+      "input_sha256": "2793dfa3b54d92c79c5e0415d43bf89b9712b39b5b46748d2d7d9261792b2184",
+      "reply": {
+        "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 262144,
+          "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+          "cpu_pixels": 0,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+            "execution": {
+              "accelerated_pixels": 262144,
+              "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+              "cpu_pixels": 0,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\512.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-w1a4g7l1\\512_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "d6829db9fb91d46793df857af2925dfc6a217151d5af2f48e44c85f4aab53432",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    },
+    {
+      "backend": "auto",
+      "size": "1080p",
+      "first_ms": 135.2519,
+      "timing": {
+        "n": 7,
+        "median_ms": 135.5104,
+        "p95_ms": 140.06297,
+        "raw_ms": [
+          135.187,
+          140.6603,
+          138.6692,
+          135.5104,
+          137.581,
+          133.777,
+          134.5604
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-who_jvpw\\model.json",
+      "model_sha256": "f8b383a2a54919619be4656fd13a4e2ba7d704d96eb887f9702288ad35eb5667",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+      "input_sha256": "973fed5733d635257fa60a281ed2a1da49738b84072a3b7935ffca731a25ae56",
+      "reply": {
+        "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 2073600,
+          "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+          "cpu_pixels": 0,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+            "execution": {
+              "accelerated_pixels": 2073600,
+              "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+              "cpu_pixels": 0,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\1080p.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-qb4yumgk\\1080p_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "66bfaf5d13e889de52c1af4d46f7c67e7a6f2153092374c817ff980f30230b8b",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    },
+    {
+      "backend": "auto",
+      "size": "4k",
+      "first_ms": 506.598,
+      "timing": {
+        "n": 7,
+        "median_ms": 606.9245,
+        "p95_ms": 635.6902699999999,
+        "raw_ms": [
+          581.3024,
+          536.7322,
+          606.9245,
+          626.7492,
+          628.2345,
+          602.1186,
+          638.8856
+        ]
+      },
+      "model": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-ui\\calibration-who_jvpw\\model.json",
+      "model_sha256": "f8b383a2a54919619be4656fd13a4e2ba7d704d96eb887f9702288ad35eb5667",
+      "input": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+      "input_sha256": "a3af13f6673130a2ccd022b259844a1c86a21b3bd1a1ca2018c060b5d78903ec",
+      "reply": {
+        "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+        "error": null,
+        "execution": {
+          "accelerated_pixels": 8294400,
+          "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+          "cpu_pixels": 0,
+          "fallback_reason": null,
+          "grid": 33,
+          "method": "cc-lut33"
+        },
+        "metrics_hidden": true,
+        "ok": true,
+        "results": [
+          {
+            "apply_backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+            "execution": {
+              "accelerated_pixels": 8294400,
+              "backend": "wgpu:dx12:NVIDIA GeForce RTX 4070 Ti SUPER",
+              "cpu_pixels": 0,
+              "fallback_reason": null,
+              "grid": 33,
+              "method": "cc-lut33"
+            },
+            "image": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs\\4k.png",
+            "metrics_hidden": true,
+            "ok": true,
+            "output": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-direct-next\\ui-standard\\applied-osxlx1cm\\4k_corrected.png",
+            "preview_dir": null
+          }
+        ]
+      },
+      "output_sha256": "0b1e0413ca355a30364fe4ba42b9b55e696118e4d88564e1a3d2e9d5f883b6b6",
+      "capabilities": [
+        "chart_identity_v1",
+        "combined_lut65_v1",
+        "custom_references_v1"
+      ]
+    }
+  ]
+}

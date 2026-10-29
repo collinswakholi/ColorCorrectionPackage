@@ -1,0 +1,30 @@
+{
+  "tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "1124",
+    "time": "253.750",
+    "timestamp": "2026-10-29T10:16:43.344926-07:00",
+    "hostname": "IAREC-8088055"
+  },
+  "categories": {
+    "test_dependencies": 17,
+    "test_distribution": 24,
+    "test_integration": 24,
+    "test_unit": 1059
+  },
+  "wheel_sha256": "37851c00f7a8497442344483362fd1c9472b2e1515af3bd67db19cf0cb7a68ea",
+  "source_tree_sha256": "682a8182a45f092eee1d01f8b22ee9d774e6555d4b2a59b4ef07ac0b61e679a8",
+  "python_files": 43,
+  "changed_application_files_vs_p9": [
+    "ColorCorrectionPipeline/acceleration.py",
+    "ColorCorrectionPipeline/contracts.py",
+    "ColorCorrectionPipeline/io/image_data.py",
+    "ColorCorrectionPipeline/io/writers.py",
+    "ColorCorrectionPipeline/pipeline.py"
+  ],
+  "timing_evidence_inventory_files": 69,
+  "all_checks_passed": true
+}

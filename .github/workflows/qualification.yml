@@ -1,0 +1,137 @@
+name: Qualify source and distributions
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-tests:
+    name: Source tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.8', '3.12']
+        include:
+          - {os: ubuntu-latest, python: '3.9'}
+          - {os: ubuntu-latest, python: '3.10'}
+          - {os: ubuntu-latest, python: '3.11'}
+    env:
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pip
+      - name: Install CPU Torch on Linux and Windows qualification runners
+        if: runner.os != 'macOS'
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install and test the source with the performance extra
+        run: |
+          python -m pip install ".[dev,performance]"
+          python -m pip check
+          python -m pytest tests --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.python }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  build:
+    name: Build and inspect wheel and sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade build twine
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - run: python scripts/verify_distribution.py --output evidence/artifacts.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-inspection
+          path: evidence/artifacts.json
+          if-no-files-found: error
+
+  installed-wheel:
+    name: Isolated wheel (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.8', '3.12']
+    env:
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: ${{ runner.temp }}/ccp-dist
+      - name: Install the wheel and qualify base and performance environments
+        shell: python
+        run: |
+          import os, pathlib, subprocess, sys, venv
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          temporary = pathlib.Path(os.environ['RUNNER_TEMP'])
+          environment = temporary / 'ccp-installed'
+          venv.create(environment, with_pip=True, system_site_packages=False)
+          python = environment / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          wheel, = (temporary / 'ccp-dist').glob('*.whl')
+          evidence = temporary / 'ccp-evidence'
+          evidence.mkdir()
+          def run(*args):
+              subprocess.run([str(python), *map(str, args)], cwd=temporary, check=True)
+          run('-m', 'pip', 'install', '--upgrade', 'pip')
+          if sys.platform != 'darwin':
+              run('-m', 'pip', 'install', 'torch', '--index-url', 'https://download.pytorch.org/whl/cpu')
+          run('-m', 'pip', 'install', wheel)
+          run('-m', 'pip', 'check')
+          common = ['-I', root / 'scripts/verify_installed.py', '--forbid-source', root,
+                    '--photo', root / 'Images/Image_1.JPG',
+                    '--legacy-baseline', root / 'tests/fixtures/legacy_numeric_baseline.json']
+          run(*common, '--expect-numba', 'no', '--output', evidence / 'base.json')
+          direct = ['-I', root / 'benchmarks/bulk_direct/verify_installed.py']
+          run(*direct, '--expect-numba', 'no', '--output', evidence / 'base-direct.json')
+          image_io = ['-I', root / 'benchmarks/io_final/verify_installed.py', '--fixtures', root / 'tests/fixtures']
+          run(*image_io, '--expect-numba', 'no', '--output', evidence / 'base-io.json')
+          run('-m', 'pip', 'install', str(wheel) + '[performance]')
+          run('-m', 'pip', 'check')
+          run(*common, '--expect-numba', 'yes', '--output', evidence / 'performance.json')
+          run(*direct, '--expect-numba', 'yes', '--output', evidence / 'performance-direct.json')
+          run(*image_io, '--expect-numba', 'yes', '--output', evidence / 'performance-io.json')
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-wheel-${{ matrix.os }}-${{ matrix.python }}
+          path: ${{ runner.temp }}/ccp-evidence/*.json
+          if-no-files-found: error
+
+  qualified:
+    name: Source and installed distributions qualified
+    needs: [source-tests, build, installed-wheel]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Source tests, artifact inspection and isolated wheel workflows passed."

@@ -1,0 +1,93 @@
+Info: Prediction done in 0.33s
+Info: Prediction done in 0.32s
+Info: Prediction done in 0.33s
+Info: Prediction done in 0.46s
+Info: Prediction done in 0.40s
+{
+  "python": "3.8.20",
+  "executable": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+  "package_file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+  "system_site_packages": false,
+  "user_site_enabled": false,
+  "numba_present": false,
+  "input_sha256": "52b73e05c2028cd712c803cd4d27a131d6cf408ee84c5e6129f3341cfb4ba747",
+  "source_validation_sha256": "12d48d119d68eb88748bd2508797304098f531b5f798df088aececee5e0e267d",
+  "versions": {
+    "ColorCorrectionPipeline": "1.4.6",
+    "numpy": "1.24.4",
+    "scikit-learn": "1.3.2",
+    "scipy": "1.10.1",
+    "torch": "2.4.1",
+    "colour-science": "0.4.1",
+    "onnxruntime": "1.19.2",
+    "numba": null
+  },
+  "families": {
+    "linear": {
+      "max_difference": 2.6645352591003757e-15,
+      "atol": 2e-12,
+      "bundle_sha256": "47d2644698e39bc47b97d793300432912310ef35fb8bfa10bc90f6fe34f0e348",
+      "expected_sha256": "bae1c715e7f7911f56991f1e7e51e98190f3759377aaa1b4b04c1e61e1936a38",
+      "output_shape": [
+        533,
+        800,
+        3
+      ],
+      "output_dtype": "float64"
+    },
+    "pls": {
+      "max_difference": 2.609024107869118e-15,
+      "atol": 2e-12,
+      "bundle_sha256": "6c0499c9ab657b28c67aa40ccd7738addeb2d70b5a03a45b5b8a6011edd81454",
+      "expected_sha256": "4cf6845064a6bd995a29945cd942d4a8c8dd7691d1a68a6601cda5546094ce8e",
+      "output_shape": [
+        533,
+        800,
+        3
+      ],
+      "output_dtype": "float64"
+    },
+    "nn": {
+      "max_difference": 4.440892098500626e-16,
+      "atol": 2e-12,
+      "bundle_sha256": "7f0a0cabbdf9acf0b4e754527eff023b68643bb02fc32cb2d9a1e6ca068a47b9",
+      "expected_sha256": "bedbc42ffe2f6bbe44c52f8f9a0e8dc2d494d9cc493b4c15408c32248db9879a",
+      "output_shape": [
+        533,
+        800,
+        3
+      ],
+      "output_dtype": "float64"
+    },
+    "custom": {
+      "max_difference": 5.960464477539063e-08,
+      "atol": 2e-06,
+      "bundle_sha256": "aeb1005f7e344eb4cc5bbcfe49ba798f3b27b51517b40efce1f85e94a3603c72",
+      "expected_sha256": "378f2896c576ca8c80cf3b7c2a6aac10fa4b3024f54d2055f09122680bf78d44",
+      "output_shape": [
+        533,
+        800,
+        3
+      ],
+      "output_dtype": "float32"
+    },
+    "conv": {
+      "max_difference": 2.4980018054066022e-15,
+      "atol": 2e-12,
+      "bundle_sha256": "7f05fad5eefa5426b8a584d94c5ac9fe830155820e52356c0d376eba3ec68069",
+      "expected_sha256": "fbe8c43b3965ebe8d92ac33ef87729da7c1df50abb6204ce989c0e76495dbcca",
+      "output_shape": [
+        533,
+        800,
+        3
+      ],
+      "output_dtype": "float64"
+    }
+  },
+  "legacy_reference": {
+    "max_difference": 1.1102230246251565e-15,
+    "atol": 1e-10,
+    "names_match": true,
+    "illuminant_matches": true
+  }
+}

@@ -47,12 +47,9 @@ class _ChartCache:
 
     @staticmethod
     def _hash(img: np.ndarray) -> str:
-        """Fast content hash using md5 of downsampled image."""
-        # Downsample to 128px wide for fast hashing (content won't change)
-        h, w = img.shape[:2]
-        scale = 128 / max(w, 1)
-        small = cv2.resize(img, (128, max(1, int(h * scale))), interpolation=cv2.INTER_NEAREST)
-        return hashlib.md5(small.tobytes()).hexdigest()
+        """Identify all pixels, shape and dtype; unsampled changes matter."""
+        digest = hashlib.sha256(np.ascontiguousarray(img).tobytes()).hexdigest()
+        return "%s|%s|%s" % (img.shape, img.dtype, digest)
 
     def get(self, img: np.ndarray):
         """Return cached (src_patches, img_draw, dims) or None."""
@@ -218,7 +215,7 @@ def detect_refine_charts(detector, img, n_charts, params=None):
         list_ = detector.getListColorChecker()
         if len(list_) < 1:
             print("Warning: No color chart found in Image")
-            assert False
+            return None
         return detector
 
     try:
@@ -227,6 +224,12 @@ def detect_refine_charts(detector, img, n_charts, params=None):
         print("Warning: Retrying with Adjusted parameters...")
         adjusted = _make_adjusted_params()
         det_ = run_detection(adjusted)
+
+    if det_ is None:
+        print("Warning: Retrying with Adjusted parameters...")
+        det_ = run_detection(_make_adjusted_params())
+    if det_ is None:
+        return []
 
     if n_charts == 1:
         return [det_.getBestColorChecker()]
@@ -243,7 +246,7 @@ def detect_refine_charts(detector, img, n_charts, params=None):
     else:
         return None
 
-def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
+def _extract_color_chart_mcc(img: np.ndarray, get_patch_size: bool = False):
     """
     Extract color patches from a ColorChecker chart in the image (from v1_2_01).
     
@@ -271,7 +274,8 @@ def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
     # ── Full detection (expensive) ──
     img_blur = cv2.medianBlur(img, 5)
     detector = _create_detector()
-    best_checker = detect_refine_charts(detector, img_blur, n_charts=1, params=CDP)[0]
+    checkers = detect_refine_charts(detector, img_blur, n_charts=1, params=CDP)
+    best_checker = checkers[0] if checkers else None
 
     if best_checker is None:
         print("Warning: No color chart found in Image")
@@ -303,7 +307,7 @@ def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
 
     return np.array(src), img_draw, dims
 
-def extract_color_charts(img: np.ndarray, n_charts: int = 1):
+def _extract_color_charts_mcc(img: np.ndarray, n_charts: int = 1):
     """
     Extract multiple color charts from image (from v1_2_01).
     
@@ -356,7 +360,34 @@ def extract_color_charts(img: np.ndarray, n_charts: int = 1):
 
     return charts, img_draw
 
-def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool = False):
+
+def extract_color_chart(img: np.ndarray, get_patch_size: bool = False):
+    """Extract Classic24 RGB values in [0,255] using the selected detector.
+
+    The default uses the bundled model. Select ``backend='mcc'`` inside a
+    ``detection_context`` for legacy MCC behavior. Model errors raise a specific
+    ChartDetectionError unless MCC fallback was explicitly enabled.
+    """
+    from ..detection import model_extract_color_charts
+
+    detected = model_extract_color_charts(img, n_charts=1)
+    if detected is None:
+        return _extract_color_chart_mcc(img, get_patch_size=get_patch_size)
+    samples, drawing, dimensions = detected
+    return samples[0], drawing, dimensions if get_patch_size else []
+
+
+def extract_color_charts(img: np.ndarray, n_charts: int = 1):
+    """Extract multiple Classic24 charts with an explicit detector policy."""
+    from ..detection import model_extract_color_charts
+
+    detected = model_extract_color_charts(img, n_charts=n_charts)
+    if detected is None:
+        return _extract_color_charts_mcc(img, n_charts=n_charts)
+    samples, drawing, _ = detected
+    return samples, drawing
+
+def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool = False, neutral_indices=None):
     """
     Extract neutral (gray) patches from a ColorChecker chart (from v1_2_01).
     
@@ -374,7 +405,15 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
     patch_names = list(
         colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"].data.keys()
     )
-    names_rows = patch_names[-6:]
+    from ..detection.charts import _scope
+    scope = _scope.get()
+    profile = getattr(scope, "reference_profile", None)
+    if profile is not None:
+        patch_names = list(profile.names)
+    neutral_indices = (list(profile.neutral_indices) if profile is not None else list(range(18, 24))) if neutral_indices is None else list(neutral_indices)
+    if len(set(neutral_indices)) != len(neutral_indices) or any(isinstance(i, bool) or not isinstance(i, (int, np.integer)) or not 0 <= i < 24 for i in neutral_indices):
+        raise ValueError("neutral_indices must be unique Classic24 cell positions")
+    names_rows = [patch_names[index] for index in neutral_indices]
     names_columns = ["R", "G", "B"]
 
     if return_one:
@@ -398,8 +437,9 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
 
     if return_one:
         # will return only the first chart as DataFrame
-        srgb_chart = to_float64(src_charts)
-        n_patch = srgb_chart[-6:, :]
+        srgb_chart = (np.asarray(src_charts, dtype=np.float64) / 255.0
+                      if getattr(scope, "measurement_image", None) is not None else to_float64(src_charts))
+        n_patch = srgb_chart[neutral_indices, :]
         n_patch_df = pd.DataFrame(n_patch, columns=names_columns, index=names_rows)
         n_patch_all = pd.DataFrame(srgb_chart, columns=names_columns, index=patch_names)
 
@@ -411,9 +451,10 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
         All_Patches = []
 
         for chart in src_charts:
-            srgb_chart = to_float64(chart)
+            srgb_chart = (np.asarray(chart, dtype=np.float64) / 255.0
+                          if getattr(scope, "measurement_image", None) is not None else to_float64(chart))
 
-            n_patch = srgb_chart[-6:, :]
+            n_patch = srgb_chart[neutral_indices, :]
             n_patch_df = pd.DataFrame(n_patch, columns=names_columns, index=names_rows)
             n_patch_all = pd.DataFrame(
                 srgb_chart, columns=names_columns, index=patch_names

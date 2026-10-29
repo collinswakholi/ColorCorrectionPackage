@@ -1,0 +1,365 @@
+{
+  "mode": "directml",
+  "strict_gpu": true,
+  "rotation": 0,
+  "resolution": "original",
+  "source_fingerprints": {
+    "charts.py": "14921d522cb1360fca85fc88b1b15a4c93243f9ff666013f29c694e571c8f461",
+    "providers.py": "26a635ce990301b7152f2e0b9c02101cda5723412b0bef92d1dd04f38fa24268"
+  },
+  "cases": [
+    {
+      "image": "ColorCard_Big.JPG",
+      "sha256": "f942a60763713b536fff1023b5fde6ebf1bc8f6c11c85b667b6672b8fca321bb",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "DmlExecutionProvider",
+          "graphics_backend": null,
+          "device_id": 1,
+          "runtime_version": "1.24.4",
+          "automatic_adapter": {
+            "index": 1,
+            "description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+            "vendor_id": 4318,
+            "device_id": 9989,
+            "dedicated_video_bytes": 16841179136
+          },
+          "registered_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {
+            "device_id": "1"
+          },
+          "requested_device": "directml",
+          "selected_device": "directml",
+          "provider": "DmlExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "DmlExecutionProvider": 1
+          },
+          "anchors": 9
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 3.559111830614717e-07,
+          "maximum_absolute_normalized_rgb_difference": 2.600384289554741e-06
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 12.627522099995986
+    },
+    {
+      "image": "ColorCard_Combo.JPG",
+      "sha256": "7d666664b018e544a43d986184a6520bc27479cbf5a739b5da6da064316d3740",
+      "expected_charts": 2,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 2,
+      "gpu_charts": 2,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 2,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "DmlExecutionProvider",
+          "graphics_backend": null,
+          "device_id": 1,
+          "runtime_version": "1.24.4",
+          "automatic_adapter": {
+            "index": 1,
+            "description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+            "vendor_id": 4318,
+            "device_id": 9989,
+            "dedicated_video_bytes": 16841179136
+          },
+          "registered_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {
+            "device_id": "1"
+          },
+          "requested_device": "directml",
+          "selected_device": "directml",
+          "provider": "DmlExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "DmlExecutionProvider": 1
+          },
+          "anchors": 16
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 2.1210205189984368e-07,
+          "maximum_absolute_normalized_rgb_difference": 1.5129508593712244e-06
+        },
+        {
+          "cpu_face": 1,
+          "gpu_face": 1,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 0.0,
+          "maximum_absolute_normalized_rgb_difference": 0.0
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 4.886681400006637
+    },
+    {
+      "image": "Sample_3572.JPG",
+      "sha256": "3d6f8a5d5de5390bc6348fb416118ff9cbfc4fd41153792ae5e7134c825c8d87",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "DmlExecutionProvider",
+          "graphics_backend": null,
+          "device_id": 1,
+          "runtime_version": "1.24.4",
+          "automatic_adapter": {
+            "index": 1,
+            "description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+            "vendor_id": 4318,
+            "device_id": 9989,
+            "dedicated_video_bytes": 16841179136
+          },
+          "registered_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {
+            "device_id": "1"
+          },
+          "requested_device": "directml",
+          "selected_device": "directml",
+          "provider": "DmlExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "DmlExecutionProvider": 1
+          },
+          "anchors": 8
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 0.0,
+          "maximum_absolute_normalized_rgb_difference": 0.0
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 3.8145069000311196
+    },
+    {
+      "image": "Sample_3573.JPG",
+      "sha256": "70a08fdd115a058f5b0119b60dfcb0ef799809d27d78bd87e5e47c56bb4d2ef1",
+      "expected_charts": 1,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "detected",
+      "cpu_charts": 1,
+      "gpu_charts": 1,
+      "cpu_error": null,
+      "gpu_error": null,
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "detected",
+          "charts": 1,
+          "selected_chart_index": 0,
+          "geometry_source": "first_sampled_image",
+          "ignored_layouts": [],
+          "requested_provider": "DmlExecutionProvider",
+          "graphics_backend": null,
+          "device_id": 1,
+          "runtime_version": "1.24.4",
+          "automatic_adapter": {
+            "index": 1,
+            "description": "NVIDIA GeForce RTX 4070 Ti SUPER",
+            "vendor_id": 4318,
+            "device_id": 9989,
+            "dedicated_video_bytes": 16841179136
+          },
+          "registered_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "provider_options": {
+            "device_id": "1"
+          },
+          "requested_device": "directml",
+          "selected_device": "directml",
+          "provider": "DmlExecutionProvider",
+          "sha256": "1d2e9cfca6c13922ad16abeb196b0ad3071778c0067bc9ea95c83b0e76ef2240",
+          "model": "chart_detector_1280.onnx",
+          "input_size": 1280,
+          "available_providers": [
+            "DmlExecutionProvider",
+            "CPUExecutionProvider"
+          ],
+          "attempts": [
+            {
+              "device": "directml",
+              "provider": "DmlExecutionProvider",
+              "status": "succeeded"
+            }
+          ],
+          "cpu_fallback": false,
+          "execution_verified": true,
+          "execution_evidence": "node_profile",
+          "node_provider_counts": {
+            "DmlExecutionProvider": 1
+          },
+          "anchors": 8
+        }
+      ],
+      "cell_correspondence": [
+        {
+          "cpu_face": 0,
+          "gpu_face": 0,
+          "canonical_order_has_lowest_error": true,
+          "nearest_measured_color_same_index_fraction": 1.0,
+          "mean_absolute_normalized_rgb_difference": 0.0,
+          "maximum_absolute_normalized_rgb_difference": 0.0
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 3.782894799951464
+    },
+    {
+      "image": "Blank.JPG",
+      "sha256": "95d7dd22b165fa5304247241c541886c466b2ae35774e7a757a2347e18ebaada",
+      "expected_charts": 0,
+      "shape": [
+        4000,
+        6000,
+        3
+      ],
+      "status": "expected_negative",
+      "cpu_charts": 0,
+      "gpu_charts": 0,
+      "cpu_error": "NoChartDetectedError",
+      "gpu_error": "NoChartDetectedError",
+      "gpu_diagnostics": [
+        {
+          "backend": "model",
+          "status": "failed",
+          "reason": "model inference found no valid chart lattice",
+          "error_type": "NoChartDetectedError",
+          "provider_attempts": []
+        }
+      ],
+      "passed": true,
+      "elapsed_seconds": 2.493716700002551
+    }
+  ],
+  "note": "CPU comparison is same-photo equivalence, not independent physical color truth. GPU node counts verify the cached session's initial forward.",
+  "passed": true,
+  "elapsed_seconds": 29.824025699985214
+}

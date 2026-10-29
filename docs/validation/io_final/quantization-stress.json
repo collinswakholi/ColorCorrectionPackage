@@ -1,0 +1,40 @@
+{
+  "samples": 3277506,
+  "source_sha256": "584f5d8becb6f2b1bd4c9ac332303bc5ae634dd24bfe48f209e3ae8fc3841b9b",
+  "scope": "All nonnegative float16 representations through 1, 2M finite float64 bit patterns in [0,1], 1M uniform values, all uint16 levels/half-bin boundaries and adjacent floats, endpoints/signed zero. Exact reference bytes and maximum error facts.",
+  "cases": [
+    {
+      "dtype": "uint8",
+      "route": "main-parallel",
+      "values_exact": true,
+      "maximum_error_exact": true,
+      "maximum_quantization_error": 0.0019607843137255943,
+      "sha256": "d96f3887f338d943b0865550e6a891bd49e880fb37d1768e4022debdf66496b0"
+    },
+    {
+      "dtype": "uint8",
+      "route": "worker-serial",
+      "values_exact": true,
+      "maximum_error_exact": true,
+      "maximum_quantization_error": 0.0019607843137255943,
+      "sha256": "d96f3887f338d943b0865550e6a891bd49e880fb37d1768e4022debdf66496b0"
+    },
+    {
+      "dtype": "uint16",
+      "route": "main-parallel",
+      "values_exact": true,
+      "maximum_error_exact": true,
+      "maximum_quantization_error": 7.629510948459206e-06,
+      "sha256": "2daac77259df60276c6d80b8794b1083ac760e7093a3e81eb0d1766b1a1ac273"
+    },
+    {
+      "dtype": "uint16",
+      "route": "worker-serial",
+      "values_exact": true,
+      "maximum_error_exact": true,
+      "maximum_quantization_error": 7.629510948459206e-06,
+      "sha256": "2daac77259df60276c6d80b8794b1083ac760e7093a3e81eb0d1766b1a1ac273"
+    }
+  ],
+  "all_checks_passed": true
+}

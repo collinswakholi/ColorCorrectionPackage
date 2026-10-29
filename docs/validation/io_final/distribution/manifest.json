@@ -1,0 +1,565 @@
+{
+  "started_utc": "2026-10-29T20:32:13.221979+00:00",
+  "steps": [
+    {
+      "label": "build",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "build",
+        "--no-isolation",
+        "--wheel",
+        "--sdist",
+        "--outdir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "twine",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\buildenv\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "twine",
+        "check",
+        "--strict",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6.tar.gz"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "archives",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_distribution.py",
+        "--dist-dir",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\archive-checks.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "sources",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\source-fingerprints.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-install",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "install",
+        "--no-index",
+        "--no-deps",
+        "--force-reinstall",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-dependencies",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-sources",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Lib\\site-packages",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-sources.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-full",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-full.json",
+        "--forbid-source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--expect-numba",
+        "no",
+        "--photo",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\images\\Image_1.JPG",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-older",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\scripts\\verify_older_bundles.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-older.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches78\\installed-smoke",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-direct",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\verify_installed_direct.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-direct.json",
+        "--expect-numba",
+        "no"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-image-export",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\verify_installed_image_export.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-image-export.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-base-io",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\io_final\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-base-io.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures",
+        "--expect-numba",
+        "no"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-install",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "install",
+        "--no-index",
+        "--no-deps",
+        "--force-reinstall",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-dependencies",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-sources",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Lib\\site-packages",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-sources.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-full",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-full.json",
+        "--forbid-source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--expect-numba",
+        "yes",
+        "--photo",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\images\\Image_1.JPG",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-older",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\scripts\\verify_older_bundles.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-older.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches78\\installed-smoke",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-direct",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\verify_installed_direct.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-direct.json",
+        "--expect-numba",
+        "yes"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-image-export",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\verify_installed_image_export.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-image-export.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean38-performance-io",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean38-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\io_final\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean38-performance-io.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures",
+        "--expect-numba",
+        "yes"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-install",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "install",
+        "--no-index",
+        "--no-deps",
+        "--force-reinstall",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-dependencies",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-sources",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-sources.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-full",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-full.json",
+        "--forbid-source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--expect-numba",
+        "no",
+        "--photo",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\images\\Image_1.JPG",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-older",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\scripts\\verify_older_bundles.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-older.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches78\\installed-smoke",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-direct",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\verify_installed_direct.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-direct.json",
+        "--expect-numba",
+        "no"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-image-export",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\verify_installed_image_export.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-image-export.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-base-io",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\io_final\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-base-io.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures",
+        "--expect-numba",
+        "no"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-install",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "install",
+        "--no-index",
+        "--no-deps",
+        "--force-reinstall",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-dependencies",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-sources",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\fingerprint_sources.py",
+        "--wheel",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+        "--source",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Lib\\site-packages",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-sources.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-full",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-full.json",
+        "--forbid-source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--expect-numba",
+        "yes",
+        "--photo",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\images\\Image_1.JPG",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-older",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\scripts\\verify_older_bundles.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-older.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches78\\installed-smoke",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-direct",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\verify_installed_direct.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-direct.json",
+        "--expect-numba",
+        "yes"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-image-export",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\image_export\\verify_installed_image_export.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-image-export.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "clean312-performance-io",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312-performance\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\benchmarks\\io_final\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\clean312-performance-io.json",
+        "--fixtures",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures",
+        "--expect-numba",
+        "yes"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "gpu",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Scripts\\python.exe",
+        "-I",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\scripts\\verify_installed.py",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\distribution\\gpu.json",
+        "--forbid-source",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--expect-numba",
+        "no",
+        "--photo",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\images\\Image_1.JPG",
+        "--photo-device",
+        "auto",
+        "--require-photo-gpu",
+        "--legacy-baseline",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage\\tests\\fixtures\\legacy_numeric_baseline.json"
+      ],
+      "returncode": 0
+    }
+  ],
+  "completed_utc": "2026-10-29T20:37:04.340244+00:00",
+  "wheel": {
+    "file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6-py3-none-any.whl",
+    "bytes": 71420331,
+    "sha256": "c26d3e1906a3cc26e8ebef2d1d12269d6e28828efd647a799359154775740b2f"
+  },
+  "sdist": {
+    "file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6.tar.gz",
+    "bytes": 75622552,
+    "sha256": "904e72d8b49545fd1559cabea7af009668538c773fb9e3db84bdd63aad46ce8d"
+  },
+  "initial_sdist": {
+    "file": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-io-final\\candidate-dist\\colorcorrectionpipeline-1.4.6.tar.gz",
+    "bytes": 75617434,
+    "sha256": "c2cfdc2cec8ab9062c4e5afa8c49384e6e016f27493996264afe037fd4529eda"
+  },
+  "sdist_refresh_evidence": "final-archive-and-source-build.json"
+}

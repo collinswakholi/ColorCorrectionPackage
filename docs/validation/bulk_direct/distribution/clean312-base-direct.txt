@@ -1,0 +1,28 @@
+{
+  "python": "3.12.10",
+  "package": "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\distribution\\clean312\\Lib\\site-packages\\ColorCorrectionPipeline\\__init__.py",
+  "numba": false,
+  "versions": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "colour-science": "0.4.7"
+  },
+  "tone_backend": {
+    "actual_backend": "cpu-numpy",
+    "requested_backend": "auto",
+    "fallback_reason": null,
+    "precision": "float64",
+    "LUT": false,
+    "runtime_fallback": false,
+    "method": "reference-D65-neutral-PCHIP"
+  },
+  "max_rgb_reference_error": 0.0,
+  "bulk_pipeline_rgb_reference_error": 0.0,
+  "bulk_execution_verified": false,
+  "bundle_sha256": "1b966c5868a56c00937e541dd4c188aaaabcc01e697672f750e5ebb5b8c45563",
+  "calibration_id": "4892c9ebafe75fed4d411e26ab2ed8e827f220a611a41b635468f9af2e30f3b0",
+  "bundle_reload_exact": true,
+  "trusted_pickle_reload_exact": true,
+  "runtime_kernel_state_not_serialized": true,
+  "all_checks_passed": true
+}

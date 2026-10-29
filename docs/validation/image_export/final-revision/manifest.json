@@ -1,0 +1,99 @@
+{
+  "started_utc": "2026-10-29T17:12:51.569511+00:00",
+  "order": [
+    {
+      "label": "components",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-u",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\bench_image_io.py",
+        "--site",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--inputs",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\final-revision\\components",
+        "--profile",
+        "--memory"
+      ],
+      "seconds": 57.16744650003966,
+      "returncode": 0
+    },
+    {
+      "label": "candidate-direct",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-u",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\bench_pipeline_io.py",
+        "--site",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--models",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-p78",
+        "--inputs",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\final-revision\\candidate-direct",
+        "--sizes",
+        "4k",
+        "--modes",
+        "direct",
+        "--repetitions",
+        "3",
+        "--file-only"
+      ],
+      "seconds": 41.82455750007648,
+      "returncode": 0
+    },
+    {
+      "label": "candidate-relaxed",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-u",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\bench_pipeline_io.py",
+        "--site",
+        "C:\\Users\\Collins\\Desktop\\Projects\\Speedy_CC\\ColorCorrectionPackage",
+        "--models",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-p78",
+        "--inputs",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\final-revision\\candidate-relaxed",
+        "--sizes",
+        "4k",
+        "--modes",
+        "relaxed",
+        "--repetitions",
+        "3",
+        "--file-only"
+      ],
+      "seconds": 24.572540699969977,
+      "returncode": 0
+    },
+    {
+      "label": "control-relaxed",
+      "command": [
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-plan-audit\\venv\\Scripts\\python.exe",
+        "-u",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\bench_pipeline_io.py",
+        "--site",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\wheel-site",
+        "--models",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\benchmark-p78",
+        "--inputs",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-patches9\\ui\\inputs",
+        "--output",
+        "C:\\Users\\Collins\\.codex\\visualizations\\2026\\10\\28\\01a18389-1bf4-7a42-adb4-3ef59b58e5ce\\ccp-image-export-opt\\bench\\final-revision\\control-relaxed",
+        "--sizes",
+        "4k",
+        "--modes",
+        "relaxed",
+        "--repetitions",
+        "3",
+        "--file-only"
+      ],
+      "seconds": 31.000833500060253,
+      "returncode": 0
+    }
+  ],
+  "completed_utc": "2026-10-29T17:15:26.137168+00:00"
+}
