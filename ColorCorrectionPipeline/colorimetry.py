@@ -324,8 +324,8 @@ class ColorSemantics:
     def __post_init__(self):
         if self.version not in ("legacy-v1", "explicit-v1"):
             raise ValueError("color semantics version must be legacy-v1 or explicit-v1")
-        if self.primaries != "srgb" or self.fitting_domain != "encoded-rgb":
-            raise ValueError("only sRGB primaries and encoded-rgb fitting are implemented")
+        if self.primaries != "srgb" or self.fitting_domain not in ("encoded-rgb", "linear-rgb"):
+            raise ValueError("only sRGB primaries and encoded-rgb/linear-rgb fitting domains are supported")
         for field in ("input_encoding", "output_encoding"):
             if getattr(self, field) not in ("srgb", "linear-srgb"):
                 raise ValueError("%s must be srgb or linear-srgb" % field)
@@ -341,7 +341,7 @@ class ColorSemantics:
         object.__setattr__(self, "adaptation", transform)
         if self.output_policy not in ("clip", "preserve", "raise"):
             raise ValueError("output policy must be clip, preserve, or raise")
-        if self.version == "legacy-v1" and (self.input_encoding != "srgb" or self.output_encoding != "srgb" or self.adaptation != "CAT02" or self.output_policy != "clip"):
+        if self.version == "legacy-v1" and (self.fitting_domain != "encoded-rgb" or self.input_encoding != "srgb" or self.output_encoding != "srgb" or self.adaptation != "CAT02" or self.output_policy != "clip"):
             raise ValueError("legacy-v1 retains encoded sRGB, CAT02, and clipping; use explicit-v1 for new semantics")
 
     @classmethod

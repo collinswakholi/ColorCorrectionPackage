@@ -8,6 +8,10 @@ under the same conditions.
 The package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
 A desktop interface is available in [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
 
+The opt-in [UI-compatible fitting policy](docs/ui-compatible-fitting.md) adds
+linear-light CCM, RPCC2/RPCC3, polynomial, PLS and residual NN algorithms while
+retaining the existing fitting defaults.
+
 ## Installation
 
 Python 3.8 or later is required. The qualification matrix covers Python

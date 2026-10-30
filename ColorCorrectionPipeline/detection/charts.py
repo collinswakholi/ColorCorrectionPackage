@@ -60,8 +60,16 @@ class DetectionOptions:
     allow_cpu_fallback: bool = True
     cpu_threads: int = 4
     webgpu_library: Optional[str] = None
+    sampling_policy: str = "default"
+    samples_per_axis: int = 9
 
     def __post_init__(self):
+        if self.sampling_policy not in ("default", "ui-compatible-v1"):
+            raise ValueError("unsupported chart sampling policy")
+        if type(self.samples_per_axis) is not int or not 1 <= self.samples_per_axis <= 63:
+            raise ValueError("samples_per_axis must be an integer in [1,63]")
+        if self.sampling_policy == "default" and self.samples_per_axis != 9:
+            raise ValueError("samples_per_axis requires ui-compatible-v1 sampling")
         validate_device_options(self.device, self.device_id, self.allow_cpu_fallback,
                                 self.cpu_threads, self.webgpu_library)
         if isinstance(self.chart_index, bool) or not isinstance(self.chart_index, int) or not 0 <= self.chart_index <= 63:
@@ -258,7 +266,7 @@ def _aabb_iou(a, b):
     return float(inter / union) if union > 0 else 0
 
 
-def _assemble_one(cluster, chart_type, inset, width, height):
+def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False):
     rows, cols = _LAYOUTS[chart_type]
     best = {}
     for det in cluster:
@@ -275,8 +283,12 @@ def _assemble_one(cluster, chart_type, inset, width, height):
         src = anchors[list(ids)]
         if abs(cv2.contourArea(cv2.convexHull(src.astype(np.float32)))) < .03:
             continue
-        dst = np.array([best[i]["center"] for i in ids], dtype=np.float32)
-        candidate = cv2.getPerspectiveTransform(src.astype(np.float32), dst)
+        dst = np.array([best[i]["center"] for i in ids], dtype=np.float64 if ui_precision else np.float32)
+        if ui_precision:
+            from ..ui_fitting import homography as solve_homography
+            candidate = solve_homography(src, dst)
+        else:
+            candidate = cv2.getPerspectiveTransform(src.astype(np.float32), dst)
         if not np.isfinite(candidate).all() or abs(np.linalg.det(candidate)) < 1e-10:
             continue
         errors = np.linalg.norm(_warp(anchors[list(best)], candidate) - np.array([d["center"] for d in best.values()]), axis=1)
@@ -352,7 +364,7 @@ def _assemble(detections, options, width, height):
                     if i not in refined or (det["score"] >= .85 and det["score"] > refined[i]["score"] + .12):
                         refined[i] = det
                 bucket = refined
-            chart = _assemble_one(list(bucket.values()), chart_type, options.sampling_inset, width, height)
+            chart = _assemble_one(list(bucket.values()), chart_type, options.sampling_inset, width, height, options.sampling_policy == "ui-compatible-v1")
             if chart is not None:
                 charts.append(chart)
                 used = {id(d) for d in bucket.values()}

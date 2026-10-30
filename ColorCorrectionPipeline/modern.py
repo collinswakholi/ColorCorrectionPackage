@@ -29,7 +29,11 @@ def prepare_source(owner, *, required):
         return
     face = selected_face(owner, owner.Image, "source")
     owner._source_face = face
-    samples = sample_quadrilaterals(owner.Image, face.quadrilaterals, face.sample_count)
+    if owner.fitting_policy.version == "ui-compatible-v1":
+        from .ui_fitting import sample_regions
+        samples = sample_regions(owner.Image, face.quadrilaterals, int(np.sqrt(face.sample_count)))
+    else:
+        samples = sample_quadrilaterals(owner.Image, face.quadrilaterals, face.sample_count)
     per_channel = np.mean(samples >= face.clipping_threshold, axis=1)
     owner.numerical_report["source_clipping"] = {
         "basis": "original sampled pixels at encoded RGB threshold; not sensor RAW evidence",
@@ -65,7 +69,11 @@ def fit_gamma(owner, image):
                                      clipped_fractions=clipping(owner, face), policy=owner.stage_policy)
     owner.models.model_gc = model
     owner.numerical_report["GC"] = report
-    return apply_tone(image, model), {}, False
+    result = apply_tone(image, model)
+    if owner.fitting_policy.version == "ui-compatible-v1":
+        from .ui_fitting import round_image
+        result = round_image(result)
+    return result, {}, False
 
 
 def fit_wb(owner, image):
@@ -75,7 +83,11 @@ def fit_wb(owner, image):
                                   clipped_fractions=clipping(owner, face), policy=owner.stage_policy)
     owner.models.model_wb = np.frombuffer(matrix.tobytes(), dtype=matrix.dtype).reshape(matrix.shape)
     owner.numerical_report["WB"] = report
-    return np.clip(image @ matrix, 0, 1), {}, False
+    result = np.clip(image @ matrix, 0, 1)
+    if owner.fitting_policy.version == "ui-compatible-v1":
+        from .ui_fitting import round_image
+        result = round_image(result)
+    return result, {}, False
 
 
 def report_saturation(owner, image):
@@ -87,6 +99,9 @@ def report_saturation(owner, image):
 
 
 def fit_cc(owner, image, method, parameters):
+    if owner.fitting_policy.version == "ui-compatible-v1":
+        from .ui_fitting import fit_stage
+        return fit_stage(owner, image, method, parameters)
     from .fitting import fit_observations, fit_conventional_observations
     from .evaluation import grouped_cc_validation
     from .core.correction import predict_

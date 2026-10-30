@@ -86,6 +86,7 @@ def inference_identity(model):
     from . import transforms
     from ..portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
     from ..fitting import DeterministicTorchRegressor
+    from ..ui_fitting import UIPredictor
     from sklearn.linear_model import LinearRegression
     from sklearn.cross_decomposition import PLSRegression
     from sklearn.neural_network import MLPRegressor
@@ -96,9 +97,12 @@ def inference_identity(model):
     try:
         if estimator is None:
             return None,"no estimator; producer identity unavailable"
-        if any(name in vars(estimator) for name in ("predict", "_decision_function", "_forward_pass_fast")):
+        if any(name in vars(estimator) for name in ("predict", "_decision_function", "_forward_pass_fast")) or (type(estimator) is UIPredictor and "predict_rgb" in vars(estimator)):
             return None,"instance prediction override; reuse disabled"
-        if type(estimator) in (AffinePredictor,MLPPredictor,TorchPredictor):
+        if type(estimator) is UIPredictor:
+            state = {"settings": dict(estimator.settings), "coefficients": estimator.coefficients,
+                     "intercept": estimator.intercept, "weights": estimator.weights, "biases": estimator.biases}
+        elif type(estimator) in (AffinePredictor,MLPPredictor,TorchPredictor):
             state = vars(estimator)
         elif type(estimator) is LinearRegression:
             state = {"coef":estimator.coef_,"intercept":estimator.intercept_}

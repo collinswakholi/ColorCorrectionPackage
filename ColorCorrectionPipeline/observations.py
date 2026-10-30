@@ -37,7 +37,11 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
         "execution_verified", "execution_evidence", "node_provider_counts", "geometry_source") if key in last_detection}
     for index, geometry in enumerate(state.geometry):
         if explicit:
-            samples = sample_quadrilaterals(rgb, geometry["patches"], 81)
+            if state.options.sampling_policy == "ui-compatible-v1":
+                from .ui_fitting import sample_regions
+                samples = sample_regions(rgb, geometry["patches"], state.options.samples_per_axis)
+            else:
+                samples = sample_quadrilaterals(rgb, geometry["patches"], 81)
         else:
             samples = _sample(bgr8, geometry["patches"], 81) / 255
         face = ChartObservation.from_samples(
@@ -46,7 +50,7 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
             quadrilaterals=geometry["patches"], confidence=geometry["score"], image_shape=rgb.shape[:2],
             stage=stage, template_id="classic_4x6", layout=(4, 6),
             provenance={"identity_scope": "one source capture and fixed geometry; not physical chart serial identity",
-                        "measurement_policy": "float64-bilinear" if explicit else "legacy-uint8-opencv-grid",
+                        "measurement_policy": ("ui-compatible-v1" if state.options.sampling_policy == "ui-compatible-v1" else "float64-bilinear") if explicit else "legacy-uint8-opencv-grid",
                         "detector": detector_provenance,
                         "detector_face_index": index})
         faces.append(face.validate_reference(reference))

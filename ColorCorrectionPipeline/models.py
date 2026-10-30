@@ -73,6 +73,9 @@ class MyModels:
         metadata = deepcopy(vars(loaded).get("metadata", {}))
         if not isinstance(metadata, dict):
             raise ValueError("model metadata must be a dictionary")
+        cc = state["model_cc"]
+        if not metadata and isinstance(cc, tuple) and len(cc) == 3 and getattr(cc[0], "fitting_version", None) == "ui-compatible-v1":
+            raise ValueError("UI-compatible calibration requires its fitting and color metadata")
         if metadata:
             from .colorimetry import ColorSemantics, D65, white_xy
             from .contracts import ReferenceProfile, ObservationSet
@@ -140,7 +143,31 @@ class MyModels:
             elif isinstance(state["model_gc"], MonotonicToneModel):
                 raise ValueError("neutral-pchip-v1 requires modern stage metadata")
             cc = state["model_cc"]
-            if fitting.version == "reproducible-v1" and cc is not None:
+            if fitting.version == "ui-compatible-v1" and cc is not None:
+                from .core.correction import Regressor_Model, _predict_direct
+                from .ui_fitting import UIPredictor, options
+                if not isinstance(cc, tuple) or len(cc) != 3 or cc[2] != "ours" or type(cc[0]) is not Regressor_Model or type(cc[0].model) is not UIPredictor:
+                    raise ValueError("UI CC requires its known numerical predictor")
+                model = cc[0]
+                recorded = metadata.get("numerical_report", {}).get("CC", {}).get("fit", {})
+                settings = {k:list(v) if isinstance(v,tuple) else v for k,v in model.model.settings.items()}
+                if (options(cc[1]) != cc[1] or settings != cc[1] or recorded.get("effective_parameters") != cc[1]
+                        or recorded.get("version") != fitting.version or getattr(model,"fitting_version",None) != fitting.version
+                        or getattr(model,"fit_report",None) != recorded or model.degree != cc[1]["degree"] or model.mtd != cc[1]["mtd"]
+                        or semantics.fitting_domain != "linear-rgb" or recorded.get("fitting_domain") != "linear-rgb"
+                        or recorded.get("target_domain") != "unclipped-linear-srgb"):
+                    raise ValueError("UI estimator contradicts recorded settings or fitting semantics")
+                for key in ("use_lut", "lazy_lut", "lut_min_pixels"):
+                    if getattr(model,key) != cc[1][key]:
+                        raise ValueError("UI estimator contradicts recorded LUT settings")
+                if model._lut_grid_size != cc[1]["lut_grid_size"]:
+                    raise ValueError("UI estimator contradicts recorded LUT grid")
+                predictor = model.model
+                UIPredictor(settings,predictor.coefficients,predictor.intercept,predictor.weights,predictor.biases)
+                prediction = _predict_direct(np.array([[.1,.2,.3],[.4,.5,.6]]),model)
+                if prediction.shape != (2,3) or not np.isfinite(prediction).all():
+                    raise ValueError("invalid UI prediction")
+            elif fitting.version == "reproducible-v1" and cc is not None:
                 import numpy as np
                 if not isinstance(cc, tuple) or len(cc) != 3 or cc[2] not in ("ours", "conv") or not isinstance(cc[1], dict):
                     raise ValueError("reproducible CC requires a known model/options/method tuple")
@@ -164,8 +191,8 @@ class MyModels:
                     matrix = np.asarray(cc[0])
                     if matrix.shape != (3, features.shape[1]) or not np.isfinite(matrix).all():
                         raise ValueError("reproducible conventional CC matrix contradicts feature dimensions")
-            elif cc is not None and isinstance(cc, tuple) and len(cc) == 3 and getattr(cc[0], "fitting_version", None) == "reproducible-v1":
-                raise ValueError("reproducible CC requires matching fitting policy metadata")
+            elif cc is not None and isinstance(cc, tuple) and len(cc) == 3 and getattr(cc[0], "fitting_version", None) in ("reproducible-v1", "ui-compatible-v1"):
+                raise ValueError("versioned CC requires matching fitting policy metadata")
             if semantics.version == "explicit-v1" and switches["do_wb"] and len(profile.neutral_indices) < 2:
                 raise ValueError("saved WB calibration requires at least two declared neutral cells")
             for switch, name in (("do_ffc", "model_ffc"), ("do_gc", "model_gc"),

@@ -106,6 +106,18 @@ class Config:
         self.fitting_policy = FittingPolicy.from_value(fitting_policy).to_dict()
         self.validation_options = deepcopy(validation_options) if validation_options is not None else {}
         self.model_format = model_format
+        if self.fitting_policy["version"] == "ui-compatible-v1":
+            from .ui_fitting import default_reference
+            if isinstance(color_semantics, dict) and "fitting_domain" not in color_semantics:
+                self.color_semantics = ColorSemantics.from_value(dict(color_semantics, fitting_domain="linear-rgb")).to_dict()
+            if color_semantics is None:
+                self.color_semantics = ColorSemantics(version="explicit-v1", fitting_domain="linear-rgb").to_dict()
+            if stage_policy is None:
+                self.stage_policy = StagePolicy(version="modern-v1", saturation="report").to_dict()
+            if reference_profile is None:
+                self.reference_profile = default_reference()
+            self.chart_detection.setdefault("sampling_policy", "ui-compatible-v1")
+            self.chart_detection.setdefault("samples_per_axis", 9)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -191,6 +203,13 @@ class Config:
         semantics = ColorSemantics.from_value(self.color_semantics)
         stages = StagePolicy.from_value(self.stage_policy)
         fitting = FittingPolicy.from_value(self.fitting_policy)
+        if fitting.version == "ui-compatible-v1":
+            if semantics.adaptation != "Bradford" or semantics.fitting_domain != "linear-rgb" or self.chart_detection.get("sampling_policy") != "ui-compatible-v1":
+                raise ValueError("ui-compatible-v1 requires Bradford adaptation, linear-rgb fitting and UI sampling")
+            if self.check_saturation or stages.saturation != "report" or fitting.anchor_weight or fitting.random_state != 42 or fitting.condition_limit != 1e12:
+                raise ValueError("ui-compatible-v1 requires check_saturation=False, report saturation, no anchors, seed 42 and the default condition_limit")
+        elif semantics.fitting_domain != "encoded-rgb":
+            raise ValueError("linear-rgb fitting requires ui-compatible-v1")
         if (stages.version != "legacy-v1" or fitting.version != "legacy-v1") and semantics.version != "explicit-v1":
             raise ValueError("modern stage and reproducible fitting policies require explicit-v1 color semantics")
         if stages.version == "modern-v1" and self.do_cc and fitting.version == "legacy-v1":

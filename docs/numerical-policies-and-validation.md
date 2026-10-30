@@ -24,7 +24,9 @@ report = pipeline.last_run["numerical_report"]
 `image` may use the existing supported path/array/ImageData contract. Configurations
 are copied, and candidate calibration state is committed only after success. The
 new policies require explicit-v1 color interpretation and model detector geometry.
-Modern CC requires reproducible fitting. A failed new calibration preserves the
+Modern CC requires reproducible fitting or the opt-in
+[UI-compatible policy](ui-compatible-fitting.md). The latter has its own explicit
+linear-light fitting, sampling and FFC semantics. A failed new calibration preserves the
 previous active models. `show=True` for modern GC/WB/CC is rejected; inspect saved
 observations and reports instead. Legacy plotting remains available.
 

@@ -180,7 +180,34 @@ def main():
             "gpu_requirement_met": all(row.get("selected_device") != "cpu" for row in successful),
             "fit_bundle_apply": True,
             "max_saved_reload_difference": float(np.max(np.abs(restored_pixels - stages["photo_CC"])))}
-    report = {"python": platform.python_version(), "executable": sys.executable,
+    # Exercise the additive UI numerical contract without any native UI runtime.
+    from ColorCorrectionPipeline.ui_fitting import fit_ui
+    from ColorCorrectionPipeline.colorimetry import srgb_to_linear
+    ui_families = {}
+    for name in ("ccm", "rpcc2", "rpcc3", "linear", "pls", "nn"):
+        params = {"model": name, "degree": 2}
+        if name == "nn":
+            params.update(hidden_layers=[4], max_iterations=4, patience=2)
+        if name == "pls":
+            params["ncomp"] = 3
+        model, fitted_report = fit_ui(x, srgb_to_linear(target), params)
+        prediction = model.predict_rgb(x)
+        assert prediction.shape == x.shape and np.isfinite(prediction).all()
+        assert fitted_report["version"] == "ui-compatible-v1"
+        assert not model.weights or all(not w.flags.writeable for w in model.weights)
+        ui_families[name] = {"fit_predict": True, "fitting_domain": fitted_report["fitting_domain"]}
+    if args.photo:
+        config = Config(do_ffc=False, do_gc=False, do_wb=False, check_saturation=False,
+            fitting_policy="ui-compatible-v1", CC_kwargs={"model":"rpcc2"},
+            chart_detection={"device":args.photo_device}, validation_options={"enabled":False},
+            save=True, model_format="bundle", save_path=str(work))
+        _, stages, failed = calibration.run(ImageData.from_array(bgr, channel_order="BGR"), name_="ui-photo", config=config)
+        assert not failed, calibration.last_run
+        restored = ColorCorrection().load_bundle(work / "ui-photo_models.ccpb")
+        pixels = restored.predict_image(ImageData.from_array(bgr, channel_order="BGR"), stages="final")["CC"]
+        np.testing.assert_array_equal(pixels, stages["ui-photo_CC"])
+        ui_families["photo_bundle_reload_exact"] = True
+    report = {"ui_compatible_families": ui_families, "python": platform.python_version(), "executable": sys.executable,
         "prefix": str(prefix), "base_prefix": sys.base_prefix, "package_file": str(package_file),
         "system_site_packages": False, "user_site_enabled": site.ENABLE_USER_SITE, "sys_path": list(sys.path),
         "numba_present": numba_present, "backend_info": backend_info(), "prepared_execution": execution,

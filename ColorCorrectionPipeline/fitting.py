@@ -37,7 +37,7 @@ class FittingPolicy:
     condition_limit: float = 1e12
 
     def __post_init__(self):
-        if self.version not in ("legacy-v1", "reproducible-v1"):
+        if self.version not in ("legacy-v1", "reproducible-v1", "ui-compatible-v1"):
             raise ValueError("unknown fitting policy version")
         if isinstance(self.random_state, bool) or not isinstance(self.random_state, (int, np.integer)) or not 0 <= self.random_state < 2**32:
             raise ValueError("random_state must be an integer in [0, 2**32)")

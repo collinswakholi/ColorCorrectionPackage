@@ -25,6 +25,8 @@ the existing file and active model set intact.
 - Linear coefficients/intercept; explicit PLS centering/scaling equation; dense
   sklearn MLP weights, biases and known activation functions; package Torch NN
   weights/biases and eval-time Linear/BatchNorm/activation/dropout semantics.
+- UI-compatible linear-light feature order, ridge/PLS affine parameters and
+  residual NN arrays, with matching versioned fitting/color metadata.
 - Calibration policies, reference/observation contracts, capture assumptions,
   algorithm versions, detector identities, fitting/evaluation records and existing
   dependency provenance. Export runtime versions are recorded separately.

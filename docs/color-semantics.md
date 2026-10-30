@@ -6,7 +6,7 @@ paths. Opt in with `ColorSemantics(version="explicit-v1")` for the declared
 conversion/reference/evaluation contract. This version defaults to Bradford
 adaptation; `legacy-v1` records the existing CAT02 convention.
 
-The current correction engine fits **encoded sRGB**, including when a typed
+The legacy and reproducible fitting policies fit **encoded sRGB**, including when a typed
 linear-sRGB image is converted at its input boundary. An encoding choice does
 not silently replace CC with a linear-light estimator. Input/output encoding
 support is separate from the fitting domain. The pipeline must reject an
@@ -95,3 +95,7 @@ This validates the numerical formula and units, not a physical chart or camera.
 
 No independent physical color-accuracy improvement is claimed by these software
 checks. A later full-pipeline validation and capture protocol is still required.
+
+The opt-in [UI-compatible fitting policy](ui-compatible-fitting.md) explicitly
+selects `fitting_domain="linear-rgb"`. An input encoding alone does not select
+that algorithm. Other fitting policies continue to reject that domain.

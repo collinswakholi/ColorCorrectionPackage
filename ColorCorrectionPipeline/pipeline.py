@@ -315,6 +315,9 @@ class ColorCorrection:
             return Image, None, True
         
         try:
+            if self.fitting_policy.version == "ui-compatible-v1":
+                from .ui_stages import fit_ffc
+                return fit_ffc(self, Image, ffc_kwargs)
             # Convert to uint8 BGR for FFC
             img_bgr8 = to_uint8(Image[:, :, ::-1])
             assert (
@@ -582,7 +585,7 @@ class ColorCorrection:
             return Image, None, False
         
         try:
-            if self.fitting_policy.version == "reproducible-v1":
+            if self.fitting_policy.version in ("reproducible-v1", "ui-compatible-v1"):
                 from .modern import fit_cc
                 return fit_cc(self, Image, cc_method, cc_kwargs)
             if cc_method.lower() == "conv":
@@ -837,6 +840,9 @@ class ColorCorrection:
     def _run_stages(self, Image, White_Image, name_, config):
         clear_chart_cache()
         self.image_data, self.Image = self._prepare_input(Image, self.color_semantics, config.image_options)
+        if self.fitting_policy.version == "ui-compatible-v1":
+            from .ui_fitting import round_image
+            self.Image = round_image(self.Image)
         self.White_Image = None
         self.white_image_data = None
         if config.do_ffc:
@@ -878,7 +884,12 @@ class ColorCorrection:
         self.get_reference_values(config.REF_ILLUMINANT)
         # Geometry always comes from the original source, even if the first
         # extraction occurs after FFC. Optional metric switches cannot change it.
-        bind_detection_source(to_uint8(self.Image[:, :, ::-1]))
+        if self.fitting_policy.version == "ui-compatible-v1":
+            # Geometry must use the original quantized capture, not a float32
+            # round trip that could truncate an exact code value one unit low.
+            bind_detection_source(np.rint(self.image_data.to_srgb()[:, :, ::-1] * 255).astype(np.uint8))
+        else:
+            bind_detection_source(to_uint8(self.Image[:, :, ::-1]))
         from .detection.charts import _scope
         if self.color_semantics.version == "explicit-v1":
             _scope.get().reference_profile = self.reference_profile
@@ -981,6 +992,9 @@ class ColorCorrection:
                 "FFC": "guarded-legacy-uint8-Lab-lightness-v1", "saturation": "sampled-pixel-report-or-exclude-v1; identity image transform"})
         if self.fitting_policy.version == "reproducible-v1":
             self.models.metadata["algorithms"]["CC"] = "encoded-rgb-reproducible-v1; unique cell means"
+        if self.fitting_policy.version == "ui-compatible-v1":
+            self.models.metadata["algorithms"]["CC"] = "ui-compatible-v1; linear-light fit; float32 stage boundaries"
+            self.models.metadata["algorithms"]["FFC"] = "ui-compatible-v1; float32 Lab-D65 gain; plane/poly surface"
         self.last_run["contracts"] = copy.deepcopy(self.models.metadata)
         return metrics, images, False
 
@@ -1126,6 +1140,10 @@ class ColorCorrection:
         metadata = getattr(self.models, "metadata", {})
         started = time.perf_counter()
         data, current = self._prepare_input(Image, semantics, metadata.get("image_options", {}))
+        from .ui_fitting import is_ui, round_image
+        ui_policy = is_ui(self.models)
+        if ui_policy:
+            current = round_image(current)
         expected_shape = current.shape
         input_metadata = data.to_metadata() if _return_context else None
         del data
@@ -1140,7 +1158,11 @@ class ColorCorrection:
             if stage == "FFC" and self.models.model_ffc is not None:
                 if semantics.version == "explicit-v1" and np.shape(self.models.model_ffc) != current.shape[:2]:
                     raise ValueError("explicit-v1 FFC requires the calibrated image dimensions; spatial gain maps are not implicitly resized")
-                current = apply_ffc_float(current, self.models.model_ffc)
+                if ui_policy:
+                    from .ui_stages import apply_ffc
+                    current = apply_ffc(current, self.models.model_ffc)
+                else:
+                    current = apply_ffc_float(current, self.models.model_ffc)
             elif stage == "GC" and self.models.model_gc is not None:
                 if isinstance(self.models.model_gc, MonotonicToneModel):
                     from .modern import apply_tone
@@ -1164,6 +1186,8 @@ class ColorCorrection:
                 else:
                     raise ValueError("unsupported saved CC method: %s" % method)
                 current = np.clip(current, 0.0, 1.0)
+            if ui_policy:
+                current = round_image(current)
             if _return_context and (not isinstance(current, np.ndarray) or current.shape != expected_shape or not np.isfinite(current).all() or np.any(current < 0) or np.any(current > 1)):
                 raise FloatingPointError("%s produced invalid/nonfinite image data during batch prediction" % stage)
             timings[stage + "_seconds"] = time.perf_counter() - stage_started

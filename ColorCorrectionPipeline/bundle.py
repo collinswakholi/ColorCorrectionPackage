@@ -21,6 +21,7 @@ import zipfile
 import numpy as np
 
 from .portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
+from .ui_fitting import UIPredictor
 
 FORMAT = "ColorCorrectionPipeline.calibration"
 VERSION = 1
@@ -216,8 +217,13 @@ def _estimator_export(model, arrays):
     from sklearn.linear_model import LinearRegression
     from sklearn.cross_decomposition import PLSRegression
     from sklearn.neural_network import MLPRegressor
-    if any(name in vars(model) for name in ("predict", "_decision_function", "_forward_pass_fast")):
+    if any(name in vars(model) for name in ("predict", "_decision_function", "_forward_pass_fast")) or (type(model) is UIPredictor and "predict_rgb" in vars(model)):
         raise BundleError("custom estimator inference overrides cannot be represented in a non-executable bundle")
+    if type(model) is UIPredictor:
+        return {"kind": "ui-compatible-v1", "settings": _plain(dict(model.settings)),
+                "coefficients": None if model.coefficients is None else arrays.add(model.coefficients),
+                "intercept": None if model.intercept is None else arrays.add(model.intercept),
+                "weights": [arrays.add(w) for w in model.weights], "biases": [arrays.add(b) for b in model.biases]}
     if type(model) is AffinePredictor:
         return {"kind": model.kind, "coefficients": arrays.add(model.coefficients), "intercept": arrays.add(model.intercept),
                 "center": None if model.center is None else arrays.add(model.center),
@@ -274,7 +280,7 @@ def _validate_attrs(attrs):
             raise BundleError("LUT controls must be boolean")
     _integer(attrs["lut_min_pixels"], "LUT threshold")
     _integer(attrs["_lut_grid_size"], "LUT grid", low=2, high=129)
-    if attrs.get("fitting_version", "legacy-v1") not in ("legacy-v1", "reproducible-v1"):
+    if attrs.get("fitting_version", "legacy-v1") not in ("legacy-v1", "reproducible-v1", "ui-compatible-v1"):
         raise BundleError("unsupported fitting version")
 
 
@@ -310,7 +316,7 @@ def _encode(models, limits):
             from .core.lut_cache import persistence_lut
             table = persistence_lut(fitted)
             stages["CC"] = {"kind": "regressor-v1", "options": _plain(cc[1]), "attributes": _attrs(fitted),
-                            "feature_order": "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1",
+                            "feature_order": "ui-compatible-v1/linear-rgb/cpu-f64" if getattr(fitted, "fitting_version", None) == "ui-compatible-v1" else "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1",
                             "estimator": _estimator_export(fitted.model, arrays),
                             "lut": None if table is None else arrays.add(table)}
         else:
@@ -340,6 +346,21 @@ def _estimator_load(record, arrays, features, limits):
     if not isinstance(record, dict):
         raise BundleError("invalid estimator record")
     kind = record.get("kind")
+    if kind == "ui-compatible-v1":
+        _keys(record, {"kind", "settings", "coefficients", "intercept", "weights", "biases"}, "UI estimator")
+        weights, biases = record["weights"], record["biases"]
+        if not isinstance(weights, list) or not isinstance(biases, list) or len(weights) != len(biases) or len(weights) > min(5, limits.max_network_layers):
+            raise BundleError("invalid UI network layer count")
+        ws = [_reference(w, arrays) for w in weights]
+        bs = [_reference(b, arrays) for b in biases]
+        if any(w.ndim != 2 or max(w.shape) > limits.max_network_width for w in ws) or sum(w.size+b.size for w,b in zip(ws,bs)) > limits.max_network_parameters:
+            raise BundleError("UI network exceeds resource limits")
+        try:
+            return UIPredictor(record["settings"],
+                None if record["coefficients"] is None else _reference(record["coefficients"], arrays),
+                None if record["intercept"] is None else _reference(record["intercept"], arrays), ws, bs)
+        except (TypeError, ValueError, KeyError) as exc:
+            raise BundleError("invalid UI estimator: %s" % exc) from exc
     if kind in ("linear", "pls"):
         _keys(record, {"kind", "coefficients", "intercept", "center", "scale"}, "affine estimator")
         coef = _array(_reference(record["coefficients"], arrays), (3, features), "coefficients")
@@ -490,7 +511,9 @@ def _decode(manifest, arrays, limits):
             result.model_cc = (matrix, deepcopy(cc["options"]), "conv")
         elif cc.get("kind") == "regressor-v1":
             _keys(cc, {"kind", "options", "attributes", "feature_order", "estimator", "lut"}, "regressor CC")
-            if cc["feature_order"] != "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1" or not isinstance(cc["options"], dict):
+            ui_policy = cc["attributes"].get("fitting_version") == "ui-compatible-v1" if isinstance(cc["attributes"], dict) else False
+            expected_order = "ui-compatible-v1/linear-rgb/cpu-f64" if ui_policy else "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1"
+            if cc["feature_order"] != expected_order or not isinstance(cc["options"], dict):
                 raise BundleError("unsupported polynomial feature order/options")
             attrs = cc["attributes"]
             _validate_attrs(attrs)
@@ -499,7 +522,7 @@ def _decode(manifest, arrays, limits):
             model.portable_inference = True
             features = math.comb(model.degree + 3, 3)
             model.model = _estimator_load(cc["estimator"], arrays, features, limits)
-            expected_kind = {"linear": "linear", "linearcc": "linear", "pls": "pls", "nn": "mlp", "custom": "torch-eval"}[model.mtd.lower()]
+            expected_kind = "ui-compatible-v1" if ui_policy else {"linear": "linear", "linearcc": "linear", "pls": "pls", "nn": "mlp", "custom": "torch-eval"}[model.mtd.lower()]
             if cc["estimator"].get("kind") != expected_kind:
                 raise BundleError("estimator contradicts recorded method")
             model._lut = None
@@ -507,7 +530,7 @@ def _decode(manifest, arrays, limits):
                 model._lut = _array(_reference(cc["lut"], arrays), (model._lut_grid_size,) * 3 + (3,), "LUT")
             model._lut_predict_fn = None
             with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-                probe = model.model.predict(np.vstack((np.zeros(features), np.ones(features), np.full(features, .5))))
+                probe = model.model.predict_rgb(np.array([[0.,0.,0.],[1.,1.,1.],[.5,.5,.5]])) if ui_policy else model.model.predict(np.vstack((np.zeros(features), np.ones(features), np.full(features, .5))))
             if np.shape(probe) != (3, 3) or not np.isfinite(probe).all():
                 raise BundleError("estimator has invalid inference shape or nonfinite probe output")
             result.model_cc = (model, deepcopy(cc["options"]), "ours")

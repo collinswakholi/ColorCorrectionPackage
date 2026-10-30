@@ -40,12 +40,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python: ['3.8', '3.12']
+        exclude:
+          - {os: ubuntu-latest, python: '3.8'}
         include:
           # Python 3.8 needs an Intel macOS runner; newer Python also covers ARM.
           # https://github.com/actions/setup-python/issues/808
           - {os: macos-15-intel, python: '3.8'}
           - {os: macos-latest, python: '3.12'}
-          - {os: ubuntu-latest, python: '3.9'}
+          # Ubuntu 26.04 has no setup-python builds for these older minors.
+          - {os: ubuntu-22.04, python: '3.8'}
+          - {os: ubuntu-22.04, python: '3.9'}
           - {os: ubuntu-latest, python: '3.10'}
           - {os: ubuntu-latest, python: '3.11'}
     env:

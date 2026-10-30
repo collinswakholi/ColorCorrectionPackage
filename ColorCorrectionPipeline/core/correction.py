@@ -228,7 +228,8 @@ class Regressor_Model:
             prime_lut_identity(self)
 
     def _predict_for_lut(self, rgb_n3):
-        return _predict_direct(rgb_n3, self)
+        result = _predict_direct(rgb_n3, self)
+        return result.astype(np.float32) if getattr(self, "fitting_version", None) == "ui-compatible-v1" else result
 
     def clear_lut_cache(self):
         from .lut_cache import clear_lut_cache
@@ -688,6 +689,11 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
 
 def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     """Predict RGB values without 3D LUT interpolation."""
+    if getattr(M, "fitting_version", None) == "ui-compatible-v1":
+        from ..ui_fitting import UIPredictor
+        if type(M.model) is not UIPredictor:
+            raise ValueError("UI fitting requires its validated numerical predictor")
+        return M.model.predict_rgb(RGB)
     orig_shape = RGB.shape
     if len(RGB.shape) == 3:
         X = RGB.reshape(-1, 3)

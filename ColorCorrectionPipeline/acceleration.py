@@ -219,7 +219,11 @@ class PreparedExecution:
             pointwise.model_cc = isolated, deepcopy(params), method
             original.clear_lut_cache()
             original._lut_predict_fn = None
-        point_identity = digest_models(pointwise)
+        # UI predictors require their complete versioned metadata. Retain the
+        # validated calibration identity instead of inventing a metadata-free
+        # model for this cache key; this conservatively scopes reuse to one fit.
+        from .ui_fitting import is_ui
+        point_identity = models.bundle_digest if is_ui(models) else digest_models(pointwise)
         policy = {"pointwise": point_identity, "semantics": self.semantics.to_dict(),
                   "reference_illuminant": list(illuminant),
                   "options": self.options.to_dict(), "numpy": np.__version__,
@@ -247,7 +251,7 @@ class PreparedExecution:
         from .stage_policies import MonotonicToneModel
         import colour
         models = self._pipeline.models
-        if backend is not None:
+        if backend is not None and models.metadata.get("fitting_policy",{}).get("version") != "ui-compatible-v1":
             from .core.execution import bulk_direct_plan, execute_bulk_direct
             plan = bulk_direct_plan(models, backend=backend, stop=stop)
             if plan is not None:
@@ -268,7 +272,9 @@ class PreparedExecution:
                         "backends_used":["reference-direct"],"calls_by_backend":{"reference-direct":1}}
                     info["pointwise_execution"] = "reference-after-bulk-runtime-failure"
                     return result, stages, info
-        current = np.asarray(rgb, dtype=np.float64)
+        from .ui_fitting import is_ui, round_image
+        ui_policy = is_ui(models)
+        current = round_image(rgb) if ui_policy else np.asarray(rgb, dtype=np.float64)
         shape = current.shape
         flat = current.reshape(-1, 3)
         out = np.empty(flat.shape, dtype=np.float64)
@@ -304,6 +310,8 @@ class PreparedExecution:
                         explicit_color=self.semantics.version == "explicit-v1").reshape(-1, 3)
                     diagnostics["GC"] = "saved-polynomial-stage"
                 block = np.clip(block, 0, 1)
+            if ui_policy:
+                block = round_image(block)
             if "GC" in stages:
                 stages["GC"][start:start+len(block)] = block
             if stop != "GC" and models.model_wb is not None:
@@ -315,6 +323,8 @@ class PreparedExecution:
                 else:
                     block = np.clip(block @ models.model_wb, 0, 1)
                 diagnostics["WB"] = "numpy-diagonal/matrix"
+            if ui_policy:
+                block = round_image(block)
             if "WB" in stages:
                 stages["WB"][start:start+len(block)] = block
             if stop == "CC" and models.model_cc is not None:
@@ -334,6 +344,8 @@ class PreparedExecution:
                 block = np.clip(block, 0, 1)
             if not np.isfinite(block).all():
                 raise FloatingPointError("pointwise stages produced nonfinite output")
+            if ui_policy:
+                block = round_image(block)
             for name, aggregate in usage.items():
                 info = diagnostics.get(name)
                 if isinstance(info, dict):
@@ -456,13 +468,23 @@ class PreparedExecution:
             pipeline = self._pipeline
             data, current = pipeline._prepare_input(image, self.semantics, pipeline.models.metadata.get("image_options", {}),
                                                     _borrow_readonly=selected == ("CC",))
+            from .ui_fitting import is_ui, round_image
+            ui_policy = is_ui(pipeline.models)
+            if ui_policy:
+                current = round_image(current)
             source = data.to_metadata()
             del data
             decode = time.perf_counter()
             if pipeline.models.model_ffc is not None:
                 if self.semantics.version == "explicit-v1" and current.shape[:2] != pipeline.models.model_ffc.shape:
                     raise ValueError("FFC requires the calibrated image dimensions")
-                current = apply_ffc_float(current, pipeline.models.model_ffc)
+                if ui_policy:
+                    from .ui_stages import apply_ffc
+                    current = apply_ffc(current, pipeline.models.model_ffc)
+                else:
+                    current = apply_ffc_float(current, pipeline.models.model_ffc)
+            if ui_policy:
+                current = round_image(current)
             ffc = time.perf_counter()
             outputs = {"FFC": current} if "FFC" in selected else {}
             if self._lut is not None:
