@@ -576,6 +576,8 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     if "fitting_policy" in kwargs:
         from ..fitting import FittingPolicy, fit_observations
         policy = FittingPolicy.from_value(kwargs["fitting_policy"])
+        if policy.version == "ui-compatible-v1":
+            raise ValueError("ui-compatible-v1 requires pipeline Config with explicit reference and sampling contracts")
         if policy.version == "reproducible-v1":
             modern = dict(kwargs)
             modern.pop("fitting_policy")

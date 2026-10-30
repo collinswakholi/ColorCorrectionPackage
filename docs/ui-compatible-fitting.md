@@ -4,6 +4,8 @@
 of the UI engine's CCM, root-polynomial, polynomial, PLS and residual NN fits.
 It does not change the default `legacy-v1` or existing `reproducible-v1` fits,
 their feature domains, or previously saved calibrations.
+Select it through the pipeline `Config`. The legacy `fit_model` adapter rejects
+this policy because it has no reference or observation contract to interpret it.
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, Config
