@@ -37,7 +37,7 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
         "execution_verified", "execution_evidence", "node_provider_counts", "geometry_source") if key in last_detection}
     for index, geometry in enumerate(state.geometry):
         if explicit:
-            if state.options.sampling_policy == "ui-compatible-v1":
+            if state.options.sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
                 from .ui_fitting import sample_regions
                 samples = sample_regions(rgb, geometry["patches"], state.options.samples_per_axis)
             else:
@@ -53,5 +53,10 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
                         "measurement_policy": ("ui-compatible-v1" if state.options.sampling_policy == "ui-compatible-v1" else "float64-bilinear") if explicit else "legacy-uint8-opencv-grid",
                         "detector": detector_provenance,
                         "detector_face_index": index})
+        if explicit and state.options.sampling_policy == "ui-native-v1":
+            from dataclasses import replace
+            from .ui_native import ordered_mean
+            face = replace(face, measured_rgb=ordered_mean(samples), provenance={**dict(face.provenance),
+                "measurement_policy":"ui-native-v1", "sample_reduction":"row-order-f64"})
         faces.append(face.validate_reference(reference))
     return ObservationSet(tuple(faces), image_data.digest).validate_reference(reference)

@@ -196,6 +196,26 @@ def main():
         assert fitted_report["version"] == "ui-compatible-v1"
         assert not model.weights or all(not w.flags.writeable for w in model.weights)
         ui_families[name] = {"fit_predict": True, "fitting_domain": fitted_report["fitting_domain"]}
+        if name == "nn":
+            from ColorCorrectionPipeline import ui_nn
+            actual_backend = fitted_report["details"]["backend"]
+            assert actual_backend == ("cpu-numba-ordered-f64" if numba_present else "cpu-numpy-ordered-f64")
+            assert fitted_report["details"]["arithmetic"] == "native-ordered-f64-v1"
+            # Exercise the fallback too; allow platform libm roundoff rather
+            # than promising cross-platform bit identity from a short smoke fit.
+            enabled = ui_nn._enabled
+            try:
+                ui_nn._enabled = False
+                reference_nn, _ = fit_ui(x, srgb_to_linear(target), params)
+            finally:
+                ui_nn._enabled = enabled
+            maximum = 0.0
+            for left, right in zip(model.weights + model.biases, reference_nn.weights + reference_nn.biases):
+                np.testing.assert_allclose(left, right, rtol=0, atol=2e-12)
+                maximum = max(maximum, float(np.max(np.abs(left - right))))
+            ui_families[name].update(arithmetic_backend=actual_backend,
+                max_numpy_parameter_difference=maximum)
+    native_ui = None
     if args.photo:
         config = Config(do_ffc=False, do_gc=False, do_wb=False, check_saturation=False,
             fitting_policy="ui-compatible-v1", CC_kwargs={"model":"rpcc2"},
@@ -207,7 +227,47 @@ def main():
         pixels = restored.predict_image(ImageData.from_array(bgr, channel_order="BGR"), stages="final")["CC"]
         np.testing.assert_array_equal(pixels, stages["ui-photo_CC"])
         ui_families["photo_bundle_reload_exact"] = True
-    report = {"ui_compatible_families": ui_families, "python": platform.python_version(), "executable": sys.executable,
+
+        # Qualify the new runtime from bytes, without depending on the UI app.
+        native_input = ImageData.from_array(bgr, channel_order="BGR")
+        config = Config(do_ffc=False, do_gc=False, do_wb=False, check_saturation=False,
+            fitting_policy="ui-native-v1", CC_kwargs={"model": "rpcc2"},
+            chart_detection={"device": args.photo_device}, validation_options={"enabled": False},
+            save=True, model_format="bundle", save_path=str(work))
+        _, _, failed = calibration.run(native_input, name_="native-photo", config=config)
+        assert not failed, calibration.last_run
+        before = calibration.predict_image(native_input, stages="final")["CC"]
+        restored = ColorCorrection().load_bundle(work / "native-photo_models.ccpb")
+        after = restored.predict_image(native_input, stages="final")["CC"]
+        np.testing.assert_array_equal(before, after)
+        assert restored.models.metadata["fitting_policy"]["ui_runtime"] == "native-v1"
+        from ColorCorrectionPipeline import ui_execution
+        candidate = ui_execution.try_execute(native_input.pixels, restored.models, ("CC",), native_codes=True)
+        if numba_present:
+            assert candidate is not None and ui_execution._enabled
+            assert ui_execution._run_into.signatures, "native image kernel did not execute"
+            np.testing.assert_array_equal(candidate["CC"], after)
+        else:
+            assert candidate is None
+        for operation, message in (
+            (lambda: restored.predict_image(np.zeros(native_input.shape, dtype=np.float64), stages="final"), "uint8 sRGB"),
+            (restored.prepare_execution, "recorded fusion"),
+        ):
+            try:
+                operation()
+            except ValueError as error:
+                assert message in str(error), str(error)
+            else:
+                raise AssertionError("native byte/fusion contract was not enforced")
+        exported = write_image_data(work / "native-photo.png", after, dtype="uint8",
+            allow_precision_loss=True, overwrite=True)
+        assert exported.maximum_codec_error == 0
+        native_ui = {"runtime": "native-v1", "photo_fit_bundle_reload_exact": True,
+            "max_saved_reload_difference": float(np.max(np.abs(before - after))),
+            "image_kernel_executed": numba_present, "byte_and_prepared_contracts_enforced": True,
+            "strict_png_export_passed": True}
+    report = {"ui_compatible_families": ui_families, "native_ui": native_ui,
+        "python": platform.python_version(), "executable": sys.executable,
         "prefix": str(prefix), "base_prefix": sys.base_prefix, "package_file": str(package_file),
         "system_site_packages": False, "user_site_enabled": site.ENABLE_USER_SITE, "sys_path": list(sys.path),
         "numba_present": numba_present, "backend_info": backend_info(), "prepared_execution": execution,

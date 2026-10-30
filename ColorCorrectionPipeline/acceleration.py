@@ -186,6 +186,9 @@ def _within(error, options):
 class PreparedExecution:
     """Owned calibration with a reusable direct or qualified combined LUT path."""
     def __init__(self, owner, options=None, *, cache=None):
+        from .ui_native import enabled as native_enabled
+        if native_enabled(owner.models):
+            raise ValueError("native UI models use predict_image/predict_batch; prepared execution cannot change their recorded fusion rules")
         from .bundle import digest_models, snapshot_models
         from .models import MyModels
         from .pipeline import ColorCorrection

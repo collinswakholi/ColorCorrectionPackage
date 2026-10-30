@@ -10,7 +10,11 @@ A desktop interface is available in [ColorCorrectionPackage_UI](https://github.c
 
 The opt-in [UI-compatible fitting policy](docs/ui-compatible-fitting.md) adds
 linear-light CCM, RPCC2/RPCC3, polynomial, PLS and residual NN algorithms while
-retaining the existing fitting defaults.
+retaining the existing fitting defaults. `fitting_policy="ui-native-v1"` adds
+the native byte-image and FFC/GC fusion rules for new uint8 sRGB calibrations.
+Apply that mode with `predict_image` or `predict_batch`; its
+[documented limits](docs/ui-compatible-fitting.md#matching-the-native-ui-image-pipeline)
+include prepared execution. Existing calibrations keep their recorded rules.
 
 ## Installation
 
@@ -102,6 +106,8 @@ The runtime is organized around `pipeline.py` and `config.py`; `contracts.py`,
 `colorimetry.py` and `observations.py` define the interpretation boundaries.
 `detection/` supplies model geometry and provider policy. `core/`, `modern.py`,
 `stage_policies.py` and `fitting.py` implement stage execution and fitting.
+`ui_fitting.py` and `ui_nn.py` contain UI numerical fits; `ui_native.py` records
+native image semantics and `ui_execution.py` supplies optional CPU execution.
 `bundle.py` handles safe inference artifacts; `acceleration.py` prepares execution;
 `batch.py`, `prediction.py`, `reporting.py` and `io/` handle application and output.
 `key_functions.py` retains historical utility imports for compatibility.

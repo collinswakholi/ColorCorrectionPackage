@@ -543,10 +543,24 @@ class ReferenceProfile(_ImmutableContract):
 
     @classmethod
     def from_values(cls, values, *, color_space, white, scale, profile_id, revision, names, neutral_ids,
-                    adaptation="Bradford", **kwargs):
+                    adaptation="Bradford", retain_source=False, **kwargs):
+        """Build canonical Lab D50 truth, optionally retaining owned source values.
+
+        Native conversion validates retained coordinates against that truth;
+        retaining provenance does not replace the canonical reference.
+        """
         from .colorimetry import reference_values_to_lab_d50
         canonical = reference_values_to_lab_d50(values, color_space=color_space, white=white,
                                                scale=scale, adaptation=adaptation)
+        if type(retain_source) is not bool:
+            raise TypeError("retain_source must be boolean")
+        if retain_source:
+            provenance = dict(kwargs.get("provenance", {}))
+            if "source_values" in provenance:
+                raise ValueError("retained source_values are supplied by the reference factory")
+            provenance["source_values"] = {"values": np.asarray(values,dtype=np.float64).tolist(),
+                "color_space": color_space, "white": _white(white), "scale": float(scale), "adaptation": adaptation}
+            kwargs["provenance"] = provenance
         return cls(profile_id, revision, names, canonical, neutral_ids,
                    source_color_space=color_space, source_white=white, source_scale=scale,
                    adaptation=adaptation, **kwargs)

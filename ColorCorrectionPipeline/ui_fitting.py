@@ -297,10 +297,35 @@ def _forward(x, weights, biases, batch_norm=False, dropout=0.0, rng=None, traini
     return activations, caches
 
 
+def _training_forward(x, weights, biases, batch_norm=False, dropout=0.0, rng=None, training=False):
+    from .ui_nn import dense, sum_rows
+
+    activations, caches = [x], []
+    for index, (w, b) in enumerate(zip(weights, biases)):
+        z = dense(activations[-1], w, b)
+        if index == len(weights) - 1:
+            activations.append(z)
+            break
+        inverse = np.ones(len(b))
+        if batch_norm and len(x) > 1:
+            mean = sum_rows(z) / len(z)
+            inverse = 1 / np.sqrt(sum_rows((z - mean) * (z - mean)) / len(z) + 1e-5)
+            z = (z - mean) * inverse
+        normalized = z.copy()
+        mask = np.ones_like(z)
+        if training and dropout:
+            mask = (rng.uniform(size=z.shape) < 1 - dropout) / (1 - dropout)
+        activations.append(np.maximum(z, 0) * mask)
+        caches.append((normalized, inverse, mask))
+    return activations, caches
+
+
 def _score(x, y, weights, biases, batch_norm):
-    output = _forward(x, weights, biases, batch_norm=batch_norm)[0][-1]
-    residual = np.sum((output - y) ** 2, axis=0)
-    total = np.sum((y - y.mean(axis=0)) ** 2, axis=0)
+    from .ui_nn import sum_rows
+
+    output = _training_forward(x, weights, biases, batch_norm=batch_norm)[0][-1]
+    residual = sum_rows((output - y) ** 2)
+    total = sum_rows((y - sum_rows(y) / len(y)) ** 2)
     score = np.where(total > 0, 1 - residual / np.where(total > 0, total, 1), 0).mean()
     loss = float(residual.sum() / len(y))
     if not np.isfinite(score) or not math.isfinite(loss):
@@ -310,6 +335,8 @@ def _score(x, y, weights, biases, batch_norm):
 
 def fit_nn(x, target, settings):
     """Seed-42 residual MLP, with native full-chart/tiny-set selection semantics."""
+    from .ui_nn import dense, dot, sum_rows, backend
+
     rng = np.random.RandomState(42)
     dimensions = [x.shape[1]] + settings["hidden_layers"] + [3]
     weights, biases = [], []
@@ -340,7 +367,7 @@ def fit_nn(x, target, settings):
     for epoch in range(settings["max_iterations"]):
         for start in range(0, len(train), batch):
             indices = train[start : start + batch]
-            acts, caches = _forward(
+            acts, caches = _training_forward(
                 x[indices],
                 weights,
                 biases,
@@ -352,10 +379,10 @@ def fit_nn(x, target, settings):
             delta = (acts[-1] - y[indices]) / len(indices)
             gw, gb = [None] * len(weights), [None] * len(biases)
             for i in range(len(weights) - 1, -1, -1):
-                gw[i] = acts[i].T @ delta + _NN_ALPHA * weights[i] / len(train)
-                gb[i] = delta.sum(axis=0)
+                gw[i] = dot(acts[i].T, delta) + _NN_ALPHA * weights[i] / len(train)
+                gb[i] = sum_rows(delta)
                 if i:
-                    delta = delta @ weights[i].T
+                    delta = dot(delta, weights[i].T)
                     normalized, inverse, mask = caches[i - 1]
                     delta *= mask
                     delta[normalized <= 0] = 0
@@ -365,8 +392,8 @@ def fit_nn(x, target, settings):
                             / len(indices)
                             * (
                                 len(indices) * delta
-                                - delta.sum(axis=0)
-                                - normalized * np.sum(delta * normalized, axis=0)
+                                - sum_rows(delta)
+                                - normalized * sum_rows(delta * normalized)
                             )
                         )
             step += 1
@@ -401,11 +428,12 @@ def fit_nn(x, target, settings):
     if settings["use_batch_norm"]:
         previous = x[train]
         for i in range(len(best_w) - 1):
-            z = previous @ best_w[i] + best_b[i]
-            mean, std = z.mean(axis=0), np.sqrt(z.var(axis=0) + 1e-5)
+            z = dense(previous, best_w[i], best_b[i])
+            mean = sum_rows(z) / len(z)
+            std = np.sqrt(sum_rows((z - mean) ** 2) / len(z) + 1e-5)
             best_w[i] /= std
             best_b[i] = (best_b[i] - mean) / std
-            previous = np.maximum(previous @ best_w[i] + best_b[i], 0)
+            previous = np.maximum(dense(previous, best_w[i], best_b[i]), 0)
     return (
         best_w,
         best_b,
@@ -424,6 +452,8 @@ def fit_nn(x, target, settings):
             "seed": 42,
             "residual": True,
             "precision": "float64",
+            "arithmetic": "native-ordered-f64-v1",
+            "backend": backend(),
         },
     )
 
@@ -520,6 +550,9 @@ def fit_ui(X, Y, parameters=None):
     kind = settings["model"]
     detail = {}
     if kind == "nn":
+        from .ui_nn import design as training_design
+
+        design = training_design(X, settings["degree"])
         weights, biases, detail = fit_nn(design, Y, settings)
         predictor = UIPredictor(settings, weights=weights, biases=biases)
     elif kind == "pls":
@@ -610,7 +643,13 @@ def fit_stage(owner, image, method, parameters):
     )
     params = dict(parameters or {})
     params["cc_method"] = method
+    from .ui_native import enabled as native_enabled, reference as native_reference
+
+    if native_enabled(owner):
+        y = native_reference(owner.reference_profile)[0]
     predictor, report = fit_ui(x, y, params)
+    if native_enabled(owner):
+        report["details"]["ui_runtime"] = "native-v1"
     settings = report["effective_parameters"]
     model = Regressor_Model()
     for name, value in settings.items():
@@ -670,38 +709,41 @@ def fit_stage(owner, image, method, parameters):
     return round_image(np.clip(predict_(image, model), 0, 1)), {}, False
 
 
+_UI_CLASSIC_LAB = (
+    (37.54, 14.37, 14.92),
+    (64.66, 19.27, 17.5),
+    (49.32, -3.82, -22.54),
+    (43.46, -12.74, 22.72),
+    (54.94, 9.61, -24.79),
+    (70.48, -32.26, -0.37),
+    (62.73, 35.83, 56.5),
+    (39.43, 10.75, -45.17),
+    (50.57, 48.64, 16.67),
+    (30.1, 22.54, -20.87),
+    (71.77, -24.13, 58.19),
+    (71.51, 18.24, 67.37),
+    (28.37, 15.42, -49.8),
+    (54.38, -39.72, 32.27),
+    (42.43, 51.05, 28.62),
+    (81.8, 2.67, 80.41),
+    (50.63, 51.28, -14.12),
+    (49.57, -29.71, -28.32),
+    (95.19, -1.03, 2.93),
+    (81.29, -0.57, 0.44),
+    (66.89, -0.75, -0.06),
+    (50.76, -0.13, 0.14),
+    (35.63, -0.46, -0.48),
+    (20.64, 0.07, -0.46),
+)
+
+
 def default_reference():
     """UI Classic24 truth with its declared white; do not relabel D50 values."""
     from .contracts import ReferenceProfile
 
     base = ReferenceProfile.classic24()
     lab = np.array(
-        [
-            (37.54, 14.37, 14.92),
-            (64.66, 19.27, 17.5),
-            (49.32, -3.82, -22.54),
-            (43.46, -12.74, 22.72),
-            (54.94, 9.61, -24.79),
-            (70.48, -32.26, -0.37),
-            (62.73, 35.83, 56.5),
-            (39.43, 10.75, -45.17),
-            (50.57, 48.64, 16.67),
-            (30.1, 22.54, -20.87),
-            (71.77, -24.13, 58.19),
-            (71.51, 18.24, 67.37),
-            (28.37, 15.42, -49.8),
-            (54.38, -39.72, 32.27),
-            (42.43, 51.05, 28.62),
-            (81.8, 2.67, 80.41),
-            (50.63, 51.28, -14.12),
-            (49.57, -29.71, -28.32),
-            (95.19, -1.03, 2.93),
-            (81.29, -0.57, 0.44),
-            (66.89, -0.75, -0.06),
-            (50.76, -0.13, 0.14),
-            (35.63, -0.46, -0.48),
-            (20.64, 0.07, -0.46),
-        ],
+        _UI_CLASSIC_LAB,
         dtype=np.float64,
     )
     white = (0.34567, 0.35850)

@@ -1776,7 +1776,6 @@ def get_illuminant_from(type_="", var=None, CMFS="CIE 1931 2 Degree Standard Obs
             np_, _ = extract_neutral_patches(to_uint8(var))
             n_6_5 = np_.iloc[2, :]
             T, x, y = compute_temperature(n_6_5.values)
-            print(T, x, y)
             log_(
                 f"Detected Temperature from neutral patches, Temperature: {T.astype(int)}K, \tx: {x}, \ty: {y}",
                 "cyan",
@@ -1861,7 +1860,7 @@ def estimate_gamma_profile(
     get_deltaE: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
 
-    # redo "find optimal gamma profile" # find optimal degree
+    # Select the degree from the change in neutral-patch mean-squared error.
 
     Metrics_all = {}
 
@@ -1908,7 +1907,6 @@ def estimate_gamma_profile(
             try:
                 if range_min_grad < threshold:
                     min_idx = np.argmin(before_min_grad)
-                    print(f"adjusted min_idx: {min_idx}")
                 else:
                     break
             except:
@@ -2295,7 +2293,6 @@ def do_color_adaptation(img, orig_illuminant, dest_illuminant):
 
     # check if there is a need for adaptation
     delta = np.abs(np.hypot(*np.subtract(orig_illuminant, dest_illuminant)))
-    print(f"delta: {delta}")
     if delta < 1e-5:
         img_adapted = img
     else:

@@ -116,6 +116,11 @@ class MyModels:
             from .fitting import FittingPolicy
             stages = StagePolicy.from_value(metadata.get("stage_policy"))
             fitting = FittingPolicy.from_value(metadata.get("fitting_policy"))
+            recorded_runtime = metadata.get("algorithms", {}).get("ui_runtime", "staged-v1")
+            if fitting.version == "ui-compatible-v1" and recorded_runtime != fitting.ui_runtime:
+                raise ValueError("UI runtime contradicts recorded image equations")
+            if fitting.ui_runtime == "native-v1" and metadata.get("input_image", {}).get("source_dtype") != "uint8":
+                raise ValueError("native UI calibration requires recorded uint8 input")
             if stages.version == "modern-v1":
                 import numpy as np
                 if state["model_gc"] is not None:
@@ -125,6 +130,8 @@ class MyModels:
                     MonotonicToneModel(curve.measured_knots, curve.target_knots, curve.version)
                 if state["model_ffc"] is not None:
                     gain = np.asarray(state["model_ffc"])
+                    if fitting.ui_runtime == "native-v1" and not np.array_equal(gain,gain.astype(np.float32).astype(np.float64)):
+                        raise ValueError("native UI FFC gains must preserve their float32 storage")
                     if gain.ndim != 2 or not gain.size or not np.isfinite(gain).all() or np.any(gain <= 0):
                         raise ValueError("modern FFC requires positive finite spatial gains")
                     quality = metadata.get("numerical_report", {}).get("FFC", {})
@@ -162,6 +169,8 @@ class MyModels:
                         raise ValueError("UI estimator contradicts recorded LUT settings")
                 if model._lut_grid_size != cc[1]["lut_grid_size"]:
                     raise ValueError("UI estimator contradicts recorded LUT grid")
+                if fitting.ui_runtime == "native-v1" and recorded.get("details", {}).get("ui_runtime") != "native-v1":
+                    raise ValueError("native UI fitting report contradicts image runtime")
                 predictor = model.model
                 UIPredictor(settings,predictor.coefficients,predictor.intercept,predictor.weights,predictor.biases)
                 prediction = _predict_direct(np.array([[.1,.2,.3],[.4,.5,.6]]),model)

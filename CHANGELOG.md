@@ -8,6 +8,10 @@
 - Portable calibration bundles, bounded batch processing and precision-preserving image export.
 - Qualified direct CPU execution, optional Numba acceleration and an explicit fast-lossless PNG profile.
 - Consolidated current documentation and isolated distribution qualification.
+- Added opt-in UI-compatible CCM, RPCC2/RPCC3, polynomial, PLS and residual NN fitting, with ordered float64 NN training arithmetic.
+- Added `ui-native-v1` for recorded uint8 sRGB decoding, ordered sampling, reference conversion and joint FFC/GC; older calibration semantics remain unchanged.
+- Added bounded CPU image workers and exact byte-code decode caching, preserving stage precision and strict persistence. Native-mode and optional-kernel smoke checks run in installed-wheel qualification.
+- Removed transient compiler caches and legacy debug traces; release measurements retain their numerical scope and cold-start limits.
 
 ## [1.4.5] - 2026-05-07
 

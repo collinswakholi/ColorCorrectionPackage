@@ -35,6 +35,7 @@ class FittingPolicy:
     random_state: int = 42
     anchor_weight: float = 0.0
     condition_limit: float = 1e12
+    ui_runtime: str = "staged-v1"
 
     def __post_init__(self):
         if self.version not in ("legacy-v1", "reproducible-v1", "ui-compatible-v1"):
@@ -45,12 +46,18 @@ class FittingPolicy:
             raise ValueError("anchor_weight must be finite and nonnegative")
         if isinstance(self.condition_limit, (bool, np.bool_)) or not isinstance(self.condition_limit, (int, float, np.number)) or not np.isfinite(self.condition_limit) or self.condition_limit <= 1:
             raise ValueError("condition_limit must be finite and greater than one")
+        if self.ui_runtime not in ("staged-v1", "native-v1") or (self.ui_runtime != "staged-v1" and self.version != "ui-compatible-v1"):
+            raise ValueError("native UI runtime requires ui-compatible-v1")
         object.__setattr__(self, "random_state", int(self.random_state))
         object.__setattr__(self, "anchor_weight", float(self.anchor_weight))
         object.__setattr__(self, "condition_limit", float(self.condition_limit))
 
     def to_dict(self):
-        return asdict(self)
+        result = asdict(self)
+        if self.ui_runtime == "staged-v1":
+            # Keep older policy serialization and its identity digest unchanged.
+            result.pop("ui_runtime")
+        return result
 
     @classmethod
     def from_value(cls, value):
@@ -59,6 +66,8 @@ class FittingPolicy:
         if value is None:
             return cls()
         if isinstance(value, str):
+            if value == "ui-native-v1":
+                return cls(version="ui-compatible-v1", ui_runtime="native-v1")
             return cls(version=value)
         if isinstance(value, dict):
             return cls(**value)

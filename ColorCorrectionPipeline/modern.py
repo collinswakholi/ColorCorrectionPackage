@@ -60,16 +60,32 @@ def apply_tone(rgb, model):
     return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip")
 
 
+_REFERENCE_APPLY_TONE = apply_tone
+
+
 def fit_gamma(owner, image):
     face = selected_face(owner, image, "GC_training")
-    lightness = xyz_to_lab(rgb_to_xyz(face.measured_rgb, encoding="srgb"), white=D65)[:, 0]
-    reference = owner.color_semantics.reference_to_working_lab(owner.reference_profile.canonical_lab_d50)[:, 0]
+    from .ui_native import enabled as native_enabled, lab as native_lab, reference as native_reference, sample_ffc
+    if native_enabled(owner):
+        if owner.models.model_ffc is not None:
+            face = sample_ffc(owner, face)
+        lightness = native_lab(face.measured_rgb, scalar=True)[:, 0]
+        reference = native_reference(owner.reference_profile)[2][:, 0]
+    else:
+        lightness = xyz_to_lab(rgb_to_xyz(face.measured_rgb, encoding="srgb"), white=D65)[:, 0]
+        reference = owner.color_semantics.reference_to_working_lab(owner.reference_profile.canonical_lab_d50)[:, 0]
     model, report = fit_monotonic_tone(lightness, reference, face.cell_ids,
                                      owner.reference_profile.neutral_ids,
                                      clipped_fractions=clipping(owner, face), policy=owner.stage_policy)
     owner.models.model_gc = model
     owner.numerical_report["GC"] = report
-    result = apply_tone(image, model)
+    if native_enabled(owner):
+        from .ui_native import apply_color
+        report["ui_runtime"] = "native-v1"
+        report["training_observation"] = face.to_dict()
+        result = apply_color(owner.Image, owner.models.model_ffc, model)
+    else:
+        result = apply_tone(image, model)
     if owner.fitting_policy.version == "ui-compatible-v1":
         from .ui_fitting import round_image
         result = round_image(result)

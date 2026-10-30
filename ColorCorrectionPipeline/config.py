@@ -115,8 +115,12 @@ class Config:
             if stage_policy is None:
                 self.stage_policy = StagePolicy(version="modern-v1", saturation="report").to_dict()
             if reference_profile is None:
-                self.reference_profile = default_reference()
-            self.chart_detection.setdefault("sampling_policy", "ui-compatible-v1")
+                if self.fitting_policy.get("ui_runtime") == "native-v1":
+                    from .ui_native import default_reference as native_reference
+                    self.reference_profile = native_reference()
+                else:
+                    self.reference_profile = default_reference()
+            self.chart_detection.setdefault("sampling_policy", "ui-native-v1" if self.fitting_policy.get("ui_runtime") == "native-v1" else "ui-compatible-v1")
             self.chart_detection.setdefault("samples_per_axis", 9)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -204,8 +208,10 @@ class Config:
         stages = StagePolicy.from_value(self.stage_policy)
         fitting = FittingPolicy.from_value(self.fitting_policy)
         if fitting.version == "ui-compatible-v1":
-            if semantics.adaptation != "Bradford" or semantics.fitting_domain != "linear-rgb" or self.chart_detection.get("sampling_policy") != "ui-compatible-v1":
+            if semantics.adaptation != "Bradford" or semantics.fitting_domain != "linear-rgb" or self.chart_detection.get("sampling_policy") != ("ui-native-v1" if fitting.ui_runtime == "native-v1" else "ui-compatible-v1"):
                 raise ValueError("ui-compatible-v1 requires Bradford adaptation, linear-rgb fitting and UI sampling")
+            if fitting.ui_runtime == "native-v1" and semantics.input_encoding != "srgb":
+                raise ValueError("native UI runtime requires sRGB input")
             if self.check_saturation or stages.saturation != "report" or fitting.anchor_weight or fitting.random_state != 42 or fitting.condition_limit != 1e12:
                 raise ValueError("ui-compatible-v1 requires check_saturation=False, report saturation, no anchors, seed 42 and the default condition_limit")
         elif semantics.fitting_domain != "encoded-rgb":

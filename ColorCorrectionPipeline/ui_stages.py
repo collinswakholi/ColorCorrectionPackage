@@ -22,6 +22,9 @@ def apply_ffc(rgb, gain):
     return round_image(xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip"))
 
 
+_REFERENCE_APPLY_FFC = apply_ffc
+
+
 def _cubic_weights(t):
     t2, t3 = t * t, t * t * t
     return (
@@ -97,7 +100,12 @@ def fit_ffc(owner, image, parameters):
     h, w = source.shape[:2]
     if source.shape != image.shape:
         raise ValueError("FFC white and source images must have identical dimensions")
-    lab = xyz_to_lab(rgb_to_xyz(source[y1:y2, x1:x2], encoding="srgb"), white=D65)
+    from .ui_native import enabled as native_enabled, working_input, lab as native_lab
+    if native_enabled(owner):
+        source = working_input(owner.white_image_data, owner.white_image_data.to_srgb())
+        lab = native_lab(source[y1:y2, x1:x2])
+    else:
+        lab = xyz_to_lab(rgb_to_xyz(source[y1:y2, x1:x2], encoding="srgb"), white=D65)
     lightness = lab[..., 0].astype(np.float32)
     if lightness.min() / 100 < guard.min_signal:
         raise ValueError("safe UI FFC white plane has insufficient signal")
@@ -166,4 +174,7 @@ def fit_ffc(owner, image, parameters):
     )
     owner.models.model_ffc = gain
     owner.numerical_report["FFC"] = quality
+    if native_enabled(owner):
+        from .ui_native import apply_color
+        return apply_color(image, gain), {}, False
     return apply_ffc(image, gain), {}, False

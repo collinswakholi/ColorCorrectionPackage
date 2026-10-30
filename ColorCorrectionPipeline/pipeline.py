@@ -199,7 +199,9 @@ class ColorCorrection:
             profile = self.reference_profile or ReferenceProfile.classic24()
             self.reference_profile = profile
             self.REF_ILLUMINANT = np.asarray(D65, dtype=np.float64)
-            fitting_rgb = self.color_semantics.reference_to_working_rgb(profile.canonical_lab_d50, clip=False)
+            from .ui_native import enabled as native_enabled, reference as native_reference
+            fitting_rgb = (native_reference(profile)[1] if native_enabled(self) else
+                self.color_semantics.reference_to_working_rgb(profile.canonical_lab_d50, clip=False))
             display_rgb = self.color_semantics.reference_to_working_rgb(profile.canonical_lab_d50, clip=True)
             self.REFERENCE_RGB_PD = pd.DataFrame(fitting_rgb, columns=["R", "G", "B"], index=profile.names)
             self.REFERENCE_DISPLAY_RGB_PD = pd.DataFrame(display_rgb, columns=["R", "G", "B"], index=profile.names)
@@ -842,7 +844,8 @@ class ColorCorrection:
         self.image_data, self.Image = self._prepare_input(Image, self.color_semantics, config.image_options)
         if self.fitting_policy.version == "ui-compatible-v1":
             from .ui_fitting import round_image
-            self.Image = round_image(self.Image)
+            from .ui_native import enabled as native_enabled, working_input
+            self.Image = working_input(self.image_data, self.Image) if native_enabled(self) else round_image(self.Image)
         self.White_Image = None
         self.white_image_data = None
         if config.do_ffc:
@@ -992,6 +995,9 @@ class ColorCorrection:
                 "FFC": "guarded-legacy-uint8-Lab-lightness-v1", "saturation": "sampled-pixel-report-or-exclude-v1; identity image transform"})
         if self.fitting_policy.version == "reproducible-v1":
             self.models.metadata["algorithms"]["CC"] = "encoded-rgb-reproducible-v1; unique cell means"
+        if self.fitting_policy.ui_runtime == "native-v1":
+            self.models.metadata["algorithms"]["ui_runtime"] = "native-v1"
+            self.models.metadata["algorithms"]["pipeline"] = "native uint8 decode; joint FFC/GC; ordered sampling"
         if self.fitting_policy.version == "ui-compatible-v1":
             self.models.metadata["algorithms"]["CC"] = "ui-compatible-v1; linear-light fit; float32 stage boundaries"
             self.models.metadata["algorithms"]["FFC"] = "ui-compatible-v1; float32 Lab-D65 gain; plane/poly surface"
@@ -1139,17 +1145,42 @@ class ColorCorrection:
         semantics = self._active_semantics()
         metadata = getattr(self.models, "metadata", {})
         started = time.perf_counter()
-        data, current = self._prepare_input(Image, semantics, metadata.get("image_options", {}))
+        from .ui_fitting import is_ui
+        data, current = self._prepare_input(Image, semantics, metadata.get("image_options", {}),
+                                            _borrow_readonly=is_ui(self.models))
+        if metadata:
+            self.REF_ILLUMINANT = np.asarray(metadata.get("legacy_reference_illuminant", D65), dtype=np.float64)
+        from .ui_native import enabled as native_enabled, validate_input, predict as native_predict
+        if native_enabled(self.models):
+            validate_input(data)
+            decoded = time.perf_counter()
+            outputs = self._convert_outputs(native_predict(current, self.models, selected, chunk_pixels, native_codes=True))
+            elapsed = time.perf_counter() - started
+            if not _quiet:
+                print(f"Info: Prediction done in {elapsed:.2f}s")
+            if _return_context:
+                return outputs, {"input_image":data.to_metadata(), "color_semantics":semantics.to_dict(),
+                    "selected_stages":list(selected), "timings":{"decode_seconds":decoded-started,
+                    "native_execution_seconds":time.perf_counter()-decoded,"total_seconds":elapsed},
+                    "execution":"ui-native-v1", "fusion":"FFC+GC when both enabled"}
+            return outputs
         from .ui_fitting import is_ui, round_image
         ui_policy = is_ui(self.models)
+        if ui_policy and chunk_pixels is None and not _return_context:
+            from .ui_execution import try_execute
+            accelerated = try_execute(current, self.models, selected)
+            if accelerated is not None:
+                outputs = self._convert_outputs(accelerated)
+                elapsed = time.perf_counter() - started
+                if not _quiet:
+                    print(f"Info: Prediction done in {elapsed:.2f}s")
+                return outputs
         if ui_policy:
             current = round_image(current)
         expected_shape = current.shape
         input_metadata = data.to_metadata() if _return_context else None
         del data
         decoded = time.perf_counter()
-        if metadata:
-            self.REF_ILLUMINANT = np.asarray(metadata.get("legacy_reference_illuminant", D65), dtype=np.float64)
         out_images = {}
         timings = {"decode_seconds": decoded - started}
         order = ("FFC", "GC", "WB", "CC")

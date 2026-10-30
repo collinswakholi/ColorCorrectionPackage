@@ -21,25 +21,35 @@ _normalize_unsigned_serial = None
 _quantize_unsigned_serial = None
 
 if accel.HAS_NUMBA:
-    _prange = accel.nb_prange
 
-    @accel.nb_njit(parallel=True, cache=True, nogil=True, fastmath=False)
     def _normalize_unsigned(source, output, maximum):
-        width = source.shape[1]
-        for index in _prange(source.shape[0] * width):
-            row, column = index // width, index % width
-            for channel in range(3):
-                output[index * 3 + channel] = (np.float64(source[row, column, channel]) - 0.0) / maximum
+        from ._cpu_workers import worker_count, ranges, run_slices
 
-    @accel.nb_njit(parallel=True, cache=True, nogil=True, fastmath=False)
+        workers = min(source.shape[0], worker_count(source.size, 1024 * 1024))
+        if workers == 1:
+            return _normalize_unsigned_serial(source, output, maximum)
+        _normalize_unsigned_serial(source[:0], output[:0], maximum)
+        stride = source.shape[1] * 3
+
+        def fill(start, end):
+            _normalize_unsigned_serial(
+                source[start:end], output[start * stride : end * stride], maximum
+            )
+
+        run_slices(fill, ranges(source.shape[0], workers), workers)
+
     def _quantize_unsigned(source, output, maximum):
-        error = 0.0
-        for index in _prange(source.size):
-            rounded = np.rint(source[index] * maximum)
-            output[index] = rounded
-            error = max(error, abs(rounded / maximum - source[index]))
-        return error
+        from ._cpu_workers import worker_count, ranges, run_slices
 
+        workers = worker_count(source.size, 1024 * 1024)
+        if workers == 1:
+            return _quantize_unsigned_serial(source, output, maximum)
+        _quantize_unsigned_serial(source[:0], output[:0], maximum)
+
+        def fill(start, end):
+            return _quantize_unsigned_serial(source[start:end], output[start:end], maximum)
+
+        return max(run_slices(fill, ranges(source.size, workers), workers))
 
     @accel.nb_njit(cache=True, nogil=True, fastmath=False)
     def _normalize_unsigned_serial(source, output, maximum):

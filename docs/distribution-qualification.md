@@ -30,8 +30,12 @@ and import isolation, linear/PLS/sklearn-NN/custom-Torch fitting, safe-bundle
 reload, prediction parity, guarded FFC, mixed-success and file-mode batches,
 uint16 PNG and floating TIFF round trips, prepared CPU backends, honest fallback
 and cube export. The photo option fits, saves, reloads and applies an actual
-chart image. Small training caps verify execution and serialization, not
-convergence or physical color accuracy. An external frozen JSON gamma fixture
+chart image under both staged and native UI policies. Native checks cover
+safe reload, byte-input validation, prepared-mode rejection and actual optional
+image-kernel execution. A short residual NN fit is compared with its ordered
+NumPy reference, with the actual arithmetic backend recorded. Small training
+caps verify execution and serialization, not convergence or physical color
+accuracy. An external frozen JSON gamma fixture
 can optionally be supplied with `--legacy-baseline`.
 
 The evidence records dependency versions, package paths, actual backend choices

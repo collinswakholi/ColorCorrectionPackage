@@ -64,7 +64,7 @@ class DetectionOptions:
     samples_per_axis: int = 9
 
     def __post_init__(self):
-        if self.sampling_policy not in ("default", "ui-compatible-v1"):
+        if self.sampling_policy not in ("default", "ui-compatible-v1", "ui-native-v1"):
             raise ValueError("unsupported chart sampling policy")
         if type(self.samples_per_axis) is not int or not 1 <= self.samples_per_axis <= 63:
             raise ValueError("samples_per_axis must be an integer in [1,63]")
@@ -237,6 +237,9 @@ def _decode(output, options, gain=1.0, left=0, top=0):
         box = boxes[i].copy()
         box[:2] = (box[:2] - [left, top]) / gain
         box[2:4] /= gain
+        if options.sampling_policy == "ui-native-v1":
+            from ..ui_native import anchor_center
+            box[:2] = anchor_center(box)
         if any(np.linalg.norm(box[:2] - det["center"]) < 3 for det in detections):
             continue
         detections.append({"type": int(classes[i]) // 8, "anchor": int(classes[i]) % 8,
@@ -266,7 +269,11 @@ def _aabb_iou(a, b):
     return float(inter / union) if union > 0 else 0
 
 
-def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False):
+def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False, native=False):
+    if native:
+        from ..ui_native import warp as warp_points, homography as solve_native_homography, order_quad
+    else:
+        warp_points = _warp
     rows, cols = _LAYOUTS[chart_type]
     best = {}
     for det in cluster:
@@ -284,14 +291,16 @@ def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False)
         if abs(cv2.contourArea(cv2.convexHull(src.astype(np.float32)))) < .03:
             continue
         dst = np.array([best[i]["center"] for i in ids], dtype=np.float64 if ui_precision else np.float32)
-        if ui_precision:
+        if native:
+            candidate = solve_native_homography(src, dst)
+        elif ui_precision:
             from ..ui_fitting import homography as solve_homography
             candidate = solve_homography(src, dst)
         else:
             candidate = cv2.getPerspectiveTransform(src.astype(np.float32), dst)
         if not np.isfinite(candidate).all() or abs(np.linalg.det(candidate)) < 1e-10:
             continue
-        errors = np.linalg.norm(_warp(anchors[list(best)], candidate) - np.array([d["center"] for d in best.values()]), axis=1)
+        errors = np.linalg.norm(warp_points(anchors[list(best)], candidate) - np.array([d["center"] for d in best.values()]), axis=1)
         if homography is None or np.median(errors) < best_error:
             homography, best_error = candidate, np.median(errors)
     if homography is None:
@@ -299,7 +308,7 @@ def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False)
     denominators = np.array([0., homography[2, 0], homography[2, 0] + homography[2, 1], homography[2, 1]]) + homography[2, 2]
     if np.abs(denominators).min() < 1e-8 or (denominators > 0).any() != (denominators > 0).all():
         return None
-    corners = _warp(((0, 0), (1, 0), (1, 1), (0, 1)), homography)
+    corners = warp_points(((0, 0), (1, 0), (1, 1), (0, 1)), homography)
     if not np.isfinite(corners).all() or not cv2.isContourConvex(corners.astype(np.float32)):
         return None
     area = abs(cv2.contourArea(corners.astype(np.float32)))
@@ -317,9 +326,11 @@ def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False)
     patches = []
     for row in range(rows):
         for col in range(cols):
-            cell_quad = _warp(((col / cols, row / rows), ((col + 1) / cols, row / rows),
+            cell_quad = warp_points(((col / cols, row / rows), ((col + 1) / cols, row / rows),
                                ((col + 1) / cols, (row + 1) / rows), (col / cols, (row + 1) / rows)), homography)
-            center = cell_quad.mean(axis=0)
+            if native:
+                cell_quad = order_quad(cell_quad)
+            center = (.25*(cell_quad[0]+cell_quad[1]+cell_quad[2]+cell_quad[3]) if native else cell_quad.mean(axis=0))
             patches.append(center + (cell_quad - center) * inset)
     patches = np.asarray(patches)
     if not np.isfinite(patches).all() or (patches[:, :, 0] < 0).any() or (patches[:, :, 0] > width - 1).any() or (patches[:, :, 1] < 0).any() or (patches[:, :, 1] > height - 1).any():
@@ -364,7 +375,7 @@ def _assemble(detections, options, width, height):
                     if i not in refined or (det["score"] >= .85 and det["score"] > refined[i]["score"] + .12):
                         refined[i] = det
                 bucket = refined
-            chart = _assemble_one(list(bucket.values()), chart_type, options.sampling_inset, width, height, options.sampling_policy == "ui-compatible-v1")
+            chart = _assemble_one(list(bucket.values()), chart_type, options.sampling_inset, width, height, options.sampling_policy in ("ui-compatible-v1", "ui-native-v1"), options.sampling_policy == "ui-native-v1")
             if chart is not None:
                 charts.append(chart)
                 used = {id(d) for d in bucket.values()}
@@ -380,7 +391,11 @@ def _assemble(detections, options, width, height):
 
 def _forward(image, path, options):
     def prepare(size):
-        tensor, gain, left, top = _letterbox(image, size)
+        if options.sampling_policy == "ui-native-v1":
+            from ..ui_native import letterbox
+            tensor, gain, left, top = letterbox(image, size)
+        else:
+            tensor, gain, left, top = _letterbox(image, size)
         return tensor, (gain, left, top)
 
     def validate(outputs):

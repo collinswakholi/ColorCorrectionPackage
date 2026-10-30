@@ -68,3 +68,55 @@ warm the prepared handle, then measure `predict_image(path)` followed by
 thread counts, output precision and persistence checks fixed. Record raw samples,
 dependency versions, actual backend diagnostics and input/model hashes outside
 the repository. Compare decoded output samples, not only elapsed time.
+
+## UI execution qualification (2026-10-30)
+
+On Windows Core i9-14900K, Python 3.12.10, eight numerical threads, common
+1152×768 PNG8 inputs, seven alternating paired warm public file-to-PNG calls
+per input. Import, calibration, loading, JIT and LUT preparation are excluded.
+The table uses explicit `fitting_policy="ui-native-v1"`, full FFC/GC/WB/CC,
+matched WebGPU detections and physical XYZ D65 references, and CPU rendering.
+Both use the same plane FFC (bins 30/smoothing 7), 9×9 samples and CC LUT33.
+
+| Method | Input | Package strict PNG8, ms | UI API PNG8, ms | Package/UI |
+| --- | --- | ---: | ---: | ---: |
+| CCM | Image_1 | 195.26 | 85.54 | 2.28× |
+| CCM | Sample_1 | 190.37 | 82.99 | 2.29× |
+| RPCC3 | Image_1 | 190.06 | 83.37 | 2.28× |
+| RPCC3 | Sample_1 | 208.98 | 91.62 | 2.28× |
+| NN100 | Image_1 | 164.68 | 70.75 | 2.33× |
+| NN100 | Sample_1 | 170.08 | 74.61 | 2.28× |
+
+Package uses explicit `fast-lossless` PNG (level 0/NoFilter) with verified
+quantization, immutable identity hashes, fsync, complete readback, sample and
+metadata checks, and atomic publication. UI uses its normal fixed Fast/NoFilter
+encoder, whose compression level is not exposed. The differing export work is
+included; this table does not claim native UI speed parity.
+
+Thirty matched configurations cover CCM, RPCC2/3, polynomial2/3, PLS d1/c3
+and d2/c3/c6, and residual NN32/NN100 across CC-only, GC/WB/CC and full stages.
+All sixty outputs pass exact per-package safe reload checks. Twenty existing
+staged-model float-array golden comparisons also remain exact. Existing staged
+calibrations and defaults retain their original equations.
+
+Bounded CPU workers execute nogil image kernels without an OpenMP spin phase.
+No global thread environment is changed. Older Numba uses separate helpers to
+avoid pathological nested inlining. Exact byte-code decode caching adds no
+transfer-function approximation. Unsupported/failed optional execution retains
+the reference implementation and strict persistence checks.
+
+The first complete native NN100 image with an empty JIT cache took 12.00s;
+the next took 164.13ms. Imports and model loading were excluded.
+Optional JIT therefore benefits repeated execution, not every one-shot use.
+
+Identical-observation NN100 training matches all 1,403 native parameters in the
+qualified Windows 10,000-epoch control. Independent native full-pipeline fits
+differ by 0.026268 RGB8 levels/channel on the scene (maximum 1);
+the chart maximum is 2 levels. These are small remaining differences, not a
+promise of bit-identical independently fitted networks or independent-capture
+accuracy. See [UI-compatible fitting](ui-compatible-fitting.md) for native-mode
+requirements, fusion semantics and prepared-execution limits.
+
+Final regression qualification passed 1,450 checks. Wheel/sdist and isolated
+Python 3.8/3.12 installations, with and without optional performance kernels,
+passed source-equivalence, numerical, safe-reload and distribution checks.
