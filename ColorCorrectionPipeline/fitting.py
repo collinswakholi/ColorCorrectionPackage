@@ -384,6 +384,18 @@ def fit_observations(X, Y, groups, parameters=None, policy=None, synthetic_mask=
                     "estimator_precision": "CPU float32" if p["mtd"] == "custom" else "CPU float64",
                     "estimator_parameters": _plain(estimator_parameters), "dependencies": dependencies,
                     "device": "cpu", "selection_scope": "training objective" if p["mtd"] != "custom" else "grouped internal CC-only holdout"}
+    # RGB fitting and perceptual evaluation have different objectives. Record
+    # unreachable sRGB targets without clipping canonical reference truth.
+    M.fit_report["fitting_domain"] = "encoded-rgb"
+    M.fit_report["target_domain"] = "unclipped-encoded-srgb"
+    outside = np.any((Y < 0) | (Y > 1), axis=1) & ~synthetic
+    M.fit_report["out_of_gamut_targets"] = {
+        "cell_ids": groups[outside].tolist(),
+        "channel_min": float(Y.min()), "channel_max": float(Y.max())}
+    if p["mtd"] == "linear":
+        M.fit_report["objective"] = {
+            "metric": "weighted least squares", "domain": "encoded-srgb",
+            "optimizes_delta_e00": False}
     if hasattr(M.model, "split_report"):
         M.fit_report["internal_split"] = deepcopy(M.model.split_report)
     if p["mtd"] == "linear":

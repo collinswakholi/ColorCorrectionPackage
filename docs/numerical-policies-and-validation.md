@@ -143,6 +143,36 @@ CC defaults to direct application; opt-in LUT controls retain the existing LUT
 approximation. Effective parameters, feature order, group counts, weighting,
 rank/condition and execution device are recorded with the fitted model.
 
+## Fit objective and perceptual evaluation
+
+`reproducible-v1` fits encoded sRGB, including its affine degree-1 linear model.
+Linear fitting minimizes cell-weighted RGB squared error, not CIEDE2000.
+PLS and neural fits also retain their recorded objectives and stopping rules.
+A lower RGB error can therefore accompany a higher mean Delta-E.
+
+Canonical reference truth and fitting targets remain unclipped. A physical
+reference outside the display gamut can have a negative encoded channel that
+cannot be reproduced by a clipped sRGB export. Forcing an affine encoded-RGB
+fit toward that target can move otherwise accurate colors. Clipping display
+swatches, dropping difficult cells or substituting reference-assisted samples
+would change the stated fitting problem; the package does not do so implicitly.
+
+Reproducible fit reports record `fitting_domain`, `target_domain` and
+`out_of_gamut_targets` (observed cell IDs outside the unit gamut and the
+fitting-target channel range). Linear reports
+also record `objective.optimizes_delta_e00=False`. These are additive
+diagnostics; older fits, inference equations and saved bundles keep their
+behavior. Per-stage canonical Delta-E metrics remain the separate check on
+rendered results.
+
+For a linear-light matrix matched to the UI, explicitly select
+`fitting_policy="ui-native-v1"` and `CC_kwargs={"model": "ccm"}`, as in the
+README. This records the existing native image rules for new uint8 sRGB
+calibrations. It also minimizes RGB error, so perceptual improvement still
+requires measurement. The affine `linear` model and CCM are different
+hypothesis classes; equal polynomial degree alone does not match their settings.
+See [UI-compatible fitting](ui-compatible-fitting.md) for complete controls.
+
 ## What the evaluation means
 
 Default new evaluation uses four deterministic grouped folds. Every canonical
