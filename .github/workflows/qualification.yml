@@ -1,0 +1,105 @@
+name: Qualify source and distributions
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and inspect wheel and sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade build twine
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - run: python scripts/verify_distribution.py --output evidence/artifacts.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-inspection
+          path: evidence/artifacts.json
+          if-no-files-found: error
+
+  installed-wheel:
+    name: Isolated wheel (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.8', '3.12']
+        exclude:
+          - {os: ubuntu-latest, python: '3.8'}
+        include:
+          # Python 3.8 needs an Intel macOS runner; newer Python also covers ARM.
+          # https://github.com/actions/setup-python/issues/808
+          - {os: macos-15-intel, python: '3.8'}
+          - {os: macos-latest, python: '3.12'}
+          # Ubuntu 26.04 has no setup-python builds for these older minors.
+          - {os: ubuntu-22.04, python: '3.8'}
+          - {os: ubuntu-22.04, python: '3.9'}
+          - {os: ubuntu-latest, python: '3.10'}
+          - {os: ubuntu-latest, python: '3.11'}
+    env:
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: ${{ runner.temp }}/ccp-dist
+      - name: Install the wheel and qualify base and performance environments
+        shell: python
+        run: |
+          import os, pathlib, subprocess, sys, venv
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          temporary = pathlib.Path(os.environ['RUNNER_TEMP'])
+          environment = temporary / 'ccp-installed'
+          venv.create(environment, with_pip=True, system_site_packages=False)
+          python = environment / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          wheel, = (temporary / 'ccp-dist').glob('*.whl')
+          evidence = temporary / 'ccp-evidence'
+          evidence.mkdir()
+          def run(*args):
+              subprocess.run([str(python), *map(str, args)], cwd=temporary, check=True)
+          run('-m', 'pip', 'install', '--upgrade', 'pip')
+          if sys.platform != 'darwin':
+              run('-m', 'pip', 'install', 'torch', '--index-url', 'https://download.pytorch.org/whl/cpu')
+          run('-m', 'pip', 'install', wheel)
+          run('-m', 'pip', 'check')
+          common = ['-I', root / 'scripts/verify_installed.py', '--forbid-source', root,
+                    '--photo', root / 'Images/Image_1.JPG']
+          run(*common, '--expect-numba', 'no', '--output', evidence / 'base.json')
+          run('-m', 'pip', 'install', str(wheel) + '[performance]')
+          run('-m', 'pip', 'check')
+          run(*common, '--expect-numba', 'yes', '--output', evidence / 'performance.json')
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-wheel-${{ matrix.os }}-${{ matrix.python }}
+          path: ${{ runner.temp }}/ccp-evidence/*.json
+          if-no-files-found: error
+
+  qualified:
+    name: Built and installed distributions qualified
+    needs: [build, installed-wheel]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Artifact inspection and isolated wheel qualification passed."

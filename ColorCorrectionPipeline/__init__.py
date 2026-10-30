@@ -39,6 +39,14 @@ from .__version__ import __version__, __version_info__
 
 # Import constants first to avoid circular imports
 from .constants import MODEL_PATH
+from .contracts import ImageData, ReferenceProfile, ChartObservation, ObservationSet
+from .colorimetry import ColorSemantics
+from .stage_policies import StagePolicy, MonotonicToneModel
+from .fitting import FittingPolicy
+from .bundle import BundleLimits, BundleError
+from .results import BatchItemResult, BatchResult
+from .reporting import save_report
+from .acceleration import ExecutionOptions, PreparedExecution, AcceleratedResult, LutCache, AccuracyBudgetError
 
 # Import main classes
 try:
@@ -59,11 +67,11 @@ except ImportError as e:
 from . import core
 from . import io
 
-# Warn early if cv2.mcc is missing (color chart detection will fail)
+# MCC is now an explicitly selected legacy backend; model detection is independent.
 if not core.HAS_MCC:
     warnings.warn(
-        "cv2.mcc module not found \u2014 color chart detection will fail. "
-        "Install opencv-contrib-python: pip install opencv-contrib-python",
+        "cv2.mcc module not found \u2014 the legacy MCC backend is unavailable. "
+        "Model-based detection remains available with the bundled ONNX model and onnxruntime.",
         ImportWarning,
     )
 
@@ -76,6 +84,10 @@ __all__: List[str] = [
     "MyModels",
     "FlatFieldCorrection",
     "MODEL_PATH",
+    "ImageData", "ReferenceProfile", "ChartObservation", "ObservationSet", "ColorSemantics",
+    "StagePolicy", "MonotonicToneModel", "FittingPolicy",
+    "BundleLimits", "BundleError", "BatchItemResult", "BatchResult", "save_report",
+    "ExecutionOptions", "PreparedExecution", "AcceleratedResult", "LutCache", "AccuracyBudgetError",
     "core",
     "io",
 ]
