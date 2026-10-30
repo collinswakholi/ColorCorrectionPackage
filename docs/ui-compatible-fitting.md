@@ -126,6 +126,11 @@ questions. In particular, small detector/sampler differences can change an NN's
 optimization trajectory. Numerical compatibility does not promise byte identity
 between independently detected calibrations, equal speed to the native engine,
 or independent color accuracy from a training-chart residual.
+Long NN training can also diverge numerically with identical encoded observations;
+the 100-unit, 10,000-epoch qualification run did not satisfy a 1e-6 linear-RGB
+cross-runtime comparison bound. Shorter runs agreed to floating-point roundoff.
+This policy does not promise identical NN weights across implementations. Each
+saved model still has deterministic prediction and exact bundle reload semantics.
 
 Safe bundles store the known UI feature-order identifier, effective parameters
 and owned affine/network arrays. Loading validates their structure and matching
