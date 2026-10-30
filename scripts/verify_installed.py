@@ -91,6 +91,14 @@ def main():
         if method in ("nn", "custom"):
             params.update(hidden_layers=[4], patience=2, batch_size=8)
         fitted = fit_observations(x, target, groups, params, "reproducible-v1")
+        fit_report = fitted.fit_report
+        assert fit_report["fitting_domain"] == "encoded-rgb"
+        assert fit_report["target_domain"] == "unclipped-encoded-srgb"
+        assert fit_report["out_of_gamut_targets"] == {
+            "cell_ids": [], "channel_min": float(target.min()), "channel_max": float(target.max())}
+        if method == "linear":
+            assert fit_report["objective"] == {
+                "metric": "weighted least squares", "domain": "encoded-srgb", "optimizes_delta_e00": False}
         models = MyModels()
         models.model_cc = (fitted, {}, "ours")
         models.model_gc = MonotonicToneModel(np.array([0., 20., 50., 80., 100.]), np.array([0., 20., 50., 80., 100.]))
@@ -100,6 +108,7 @@ def main():
         path = work / (method + ".ccpb")
         models.save_bundle(path)
         loaded = MyModels().load_bundle(path)
+        assert loaded.model_cc[0].fit_report == fit_report
         np.testing.assert_allclose(predict_(x, loaded.model_cc[0]), before, atol=2e-12, rtol=2e-12)
         pipeline = ColorCorrection().load_bundle(path)
         predicted = pipeline.predict_image(image, stages="final")["CC"]
@@ -108,6 +117,22 @@ def main():
         tolerance = 2e-6 if method == "custom" else 2e-12
         np.testing.assert_allclose(batch.items[0].images["CC"], predicted, atol=tolerance, rtol=tolerance)
         families[method] = {"fit_bundle_apply_batch": True, "max_direct_reload_difference": float(np.max(np.abs(predict_(x, loaded.model_cc[0]) - before)))}
+
+    # Extended reference targets stay truthful across fitting and safe reload.
+    extended_target = target.copy()
+    extended_target[0, 0], extended_target[1, 2] = -.1, 1.05
+    extended = fit_observations(x, extended_target, groups,
+        {"degree": 1, "use_lut": False}, "reproducible-v1")
+    assert extended.fit_report["out_of_gamut_targets"] == {
+        "cell_ids": groups[:2], "channel_min": -.1, "channel_max": 1.05}
+    extended_models = MyModels()
+    extended_models.model_cc = (extended, {}, "ours")
+    extended_models.save_bundle(work / "extended-target.ccpb")
+    extended_loaded = MyModels().load_bundle(work / "extended-target.ccpb").model_cc[0]
+    assert extended_loaded.fit_report == extended.fit_report
+    np.testing.assert_array_equal(predict_(x, extended_loaded), predict_(x, extended))
+    encoded_fit_contract = {"domains_verified": True, "bundle_report_preserved": True,
+        "out_of_gamut_cells": groups[:2], "linear_optimizes_delta_e00": False}
 
     # Qualify prepared execution against an installed portable affine model. A small
     # affine LUT makes a tight numerical oracle without a costly benchmark.
@@ -295,6 +320,7 @@ def main():
             "strict_png_export_passed": True}
     report = {"ui_compatible_families": ui_families, "native_ui": native_ui,
         "calibration_name_contract": name_contract,
+        "encoded_fit_contract": encoded_fit_contract,
         "python": platform.python_version(), "executable": sys.executable,
         "prefix": str(prefix), "base_prefix": sys.base_prefix, "package_file": str(package_file),
         "system_site_packages": False, "user_site_enabled": site.ENABLE_USER_SITE, "sys_path": list(sys.path),

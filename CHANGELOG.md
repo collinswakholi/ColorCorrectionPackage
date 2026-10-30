@@ -2,6 +2,7 @@
 
 ## Unreleased (1.4.6)
 
+- Clarify encoded-RGB fit objectives and out-of-gamut targets; use the existing linear-light CCM workflow in the sample example.
 - Transactional calibration state, structured failures and verified atomic persistence.
 - Reject Windows drive-relative and alternate-stream calibration names before decoding or persistence, preserving POSIX colon filenames.
 - Model-based chart detection with GPU provider diagnostics and CPU recovery.

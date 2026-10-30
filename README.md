@@ -40,9 +40,10 @@ Chart detection and color-transform acceleration have separate backend policies.
 
 ## Calibrate and apply
 
-This example uses the bundled sample photographs and explicitly selects their
-first frame. Modern numerical policies are opt-in; existing callers retain the
-legacy encoded-sRGB stage mathematics and return conventions.
+This example uses the bundled sample photographs, explicitly selects their first
+frame, and fits a linear-light CCM with native uint8 sRGB image semantics.
+Numerical policies are opt-in; existing callers retain their recorded stage
+mathematics and return conventions.
 
 ```python
 from pathlib import Path
@@ -55,12 +56,10 @@ pipeline = ColorCorrection()
 config = Config(
     do_ffc=True, do_gc=True, do_wb=True, do_cc=True,
     check_saturation=False,
-    color_semantics={"version": "explicit-v1"},
-    stage_policy="modern-v1",
-    fitting_policy="reproducible-v1",
+    fitting_policy="ui-native-v1",
     image_options={"frame_index": 0},
-    FFC_kwargs={"fit_method": "linear", "degree": 2, "bins": 30},
-    CC_kwargs={"degree": 1, "use_lut": False},
+    FFC_kwargs={"fit_method": "linear", "bins": 30, "smooth_window": 7},
+    CC_kwargs={"model": "ccm"},
     save=True, save_path=str(output), model_format="bundle",
 )
 metrics, images, failed = pipeline.run(
@@ -71,18 +70,25 @@ if failed:
 
 # Loading a safe bundle restores the numerical policies and reference context.
 restored = ColorCorrection().load_bundle(output / "sample_models.ccpb")
-with restored.prepare_execution({"mode": "direct", "backend": "auto"}) as execution:
-    result = execution.predict_image("Images/Sample_1.JPG")
-    record = write_image_data(
-        output / "corrected.png", result.images["CC"],
-        dtype="uint8", allow_precision_loss=True,
-    )
+result = restored.predict_image("Images/Sample_1.JPG", stages="final")
+record = write_image_data(
+    output / "corrected.png", result["CC"],
+    dtype="uint8", allow_precision_loss=True,
+)
 ```
 
 Set `do_ffc=False` and omit the white image when no matching white-field
 photograph is available. Enabled stages are required: `last_run` records stage
 outcomes, errors, detector execution and persistence diagnostics. A failed fit
 or save preserves the previous successful calibration.
+
+The existing `reproducible-v1` encoded-sRGB fits remain available. Their linear
+solver minimizes RGB squared error against unclipped reference targets; lower
+RGB error can increase CIEDE2000, particularly for out-of-gamut references.
+The fit report records this objective and affected target cells. See
+[fit objectives and perceptual evaluation](docs/numerical-policies-and-validation.md#fit-objective-and-perceptual-evaluation).
+Linear-light CCM also optimizes RGB error; evaluate its measured results rather
+than assuming every correction reduces perceptual error.
 
 ## Working with the package
 
