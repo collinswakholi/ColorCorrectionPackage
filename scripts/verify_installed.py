@@ -52,6 +52,33 @@ def main():
         assert numba_present == (args.expect_numba == "yes")
     work = args.output.parent / (args.output.stem + "-artifacts")
     work.mkdir(parents=True, exist_ok=True)
+    # Names must be rejected before decoding, fitting or filesystem publication.
+    name_config = Config(do_ffc=False, do_gc=False, do_wb=False, do_cc=False, check_saturation=False)
+    invalid_names = ["../escape", "..\\escape", ".", ".."]
+    if os.name == "nt":
+        invalid_names += ["D:escape", "file:stream", "file::$DATA"]
+    name_probe = ColorCorrection()
+    prior_models = name_probe.models
+    for name in invalid_names:
+        try:
+            name_probe.run(None, name_=name, config=name_config)
+        except ValueError as error:
+            assert "name_" in str(error), str(error)
+        else:
+            raise AssertionError("unsafe calibration name was accepted")
+        assert name_probe.models is prior_models
+    if os.name != "nt":
+        try:
+            name_probe.run(None, name_="label:with-colon", config=name_config)
+        except TypeError as error:
+            assert "Image must" in str(error), str(error)
+        else:
+            raise AssertionError("valid POSIX name did not reach input decoding")
+        assert name_probe.models is prior_models
+    name_contract = {"invalid_names_rejected": len(invalid_names),
+        "windows_drive_stream_check": "passed" if os.name == "nt" else "not-applicable",
+        "posix_colon_name_preserved": True if os.name != "nt" else None,
+        "active_models_preserved": True}
     x = np.random.default_rng(901).uniform(.04, .94, (24, 3))
     target = x * .9 + .02
     groups = ["r%dc%d" % (i // 6 + 1, i % 6 + 1) for i in range(24)]
@@ -267,6 +294,7 @@ def main():
             "image_kernel_executed": numba_present, "byte_and_prepared_contracts_enforced": True,
             "strict_png_export_passed": True}
     report = {"ui_compatible_families": ui_families, "native_ui": native_ui,
+        "calibration_name_contract": name_contract,
         "python": platform.python_version(), "executable": sys.executable,
         "prefix": str(prefix), "base_prefix": sys.base_prefix, "package_file": str(package_file),
         "system_site_packages": False, "user_site_enabled": site.ENABLE_USER_SITE, "sys_path": list(sys.path),

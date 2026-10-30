@@ -3,6 +3,7 @@
 ## Unreleased (1.4.6)
 
 - Transactional calibration state, structured failures and verified atomic persistence.
+- Reject Windows drive-relative and alternate-stream calibration names before decoding or persistence, preserving POSIX colon filenames.
 - Model-based chart detection with GPU provider diagnostics and CPU recovery.
 - Explicit image/reference/observation and color contracts, opt-in modern numerical policies and reproducible grouped fitting.
 - Portable calibration bundles, bounded batch processing and precision-preserving image export.

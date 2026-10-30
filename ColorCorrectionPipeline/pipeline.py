@@ -801,6 +801,10 @@ class ColorCorrection:
                 candidate.last_run["stages"][stage] = {"status": "not_run" if enabled else "disabled"}
             if not isinstance(name_, str) or "/" in name_ or "\\" in name_ or name_ in (".", ".."):
                 raise ValueError("name_ must be a filename stem, without path separators")
+            # A drive-relative name can escape staging; ':' also selects NTFS
+            # alternate streams. POSIX colon filenames retain their behavior.
+            if os.name == "nt" and ":" in name_:
+                raise ValueError("name_ must not contain Windows drive or stream qualifiers")
             with detection_context(DetectionOptions(**selected.chart_detection)):
                 try:
                     metrics, images, failed = candidate._run_stages(Image, White_Image, name_, selected)

@@ -12,6 +12,9 @@ artifacts. Required-stage failure stops processing; later stages stay `not_run`.
 Invalid configuration, input and filesystem errors raise after recording failure.
 Stage errors retain the legacy `error=True` return. Enabled FFC requires a
 readable white image: explicitly disable it when that image is unavailable.
+Calibration names must be filename stems. Windows drive-relative and NTFS
+alternate-stream qualifiers are rejected before decoding or persistence;
+POSIX filenames containing a colon remain supported.
 GC, WB and CC require a real chart during `run`; standalone legacy helpers retain
 their historical identity fallback unless `require_chart=True` is requested.
 FFC can succeed without chart metrics, which are reported as unavailable.
