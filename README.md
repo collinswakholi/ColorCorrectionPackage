@@ -167,7 +167,7 @@ e70067. [doi:10.1002/ppj2.70067](https://doi.org/10.1002/ppj2.70067).
   author = {Wakholi, Collins and Rippner, Devin A.},
   title = {ColorCorrectionPipeline: A stepwise color correction pipeline},
   url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-  version = {1.4.6},
+  version = {1.5.0},
   year = {2026}
 }
 ```

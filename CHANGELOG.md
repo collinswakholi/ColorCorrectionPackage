@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (1.4.6)
+## [1.5.0] - 2026-10-30
 
 - Clarify encoded-RGB fit objectives and out-of-gamut targets; use the existing linear-light CCM workflow in the sample example.
 - Transactional calibration state, structured failures and verified atomic persistence.
@@ -14,6 +14,12 @@
 - Added `ui-native-v1` for recorded uint8 sRGB decoding, ordered sampling, reference conversion and joint FFC/GC; older calibration semantics remain unchanged.
 - Added bounded CPU image workers and exact byte-code decode caching, preserving stage precision and strict persistence. Native-mode and optional-kernel smoke checks run in installed-wheel qualification.
 - Removed transient compiler caches and legacy debug traces; release measurements retain their numerical scope and cold-start limits.
+
+## [1.4.6] - 2026-05-08
+
+- Coerced UI string configuration values before sklearn NN fitting.
+- Accepted scalar, JSON and comma-separated hidden-layer settings.
+- Hardened sample-count, random-state and boolean CC options from UI payloads.
 
 ## [1.4.5] - 2026-05-07
 
