@@ -1,10 +1,15 @@
 # Pipeline contracts and color interpretation
 
-The default `legacy-v1` path retains the earlier encoded-sRGB numerical behavior
-and saved-model interpretation. GPU-first detection is now the default independently
-of color semantics. Pin `chart_detection={"device":"cpu"}` when reproducing the
-earlier CPU chart observations; inference arithmetic can slightly change geometry
-and measurements across GPU providers.
+New calibrations default to UI-native RPCC2 with linear-light fitting and
+calibration-time precision selection. Explicit `legacy-v1` and
+`reproducible-v1` profiles preserve their encoded-sRGB training recipes.
+Saved calibrations restore their recorded interpretation. The
+[migration guide](migration-2.md) describes those choices.
+
+GPU-first detection is independent of the fitting domain. Pin
+`chart_detection={"device":"cpu"}` when reproducing earlier CPU chart
+observations. Inference arithmetic can slightly change geometry and measurements
+across GPU providers.
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, Config, ImageData, ReferenceProfile
@@ -55,23 +60,24 @@ guessing occurs. Custom profiles require explicit pipeline semantics and Classic
 layout today. Display RGB is derived separately and can clip; it never replaces
 reference truth or the unclipped fitting targets.
 
-The default catalog profile is derived from colour-science's after-November-2014
-Classic24 xyY table, with its library version/provenance retained. It is not
-described as an independently verified manufacturer CGATS file.
+The explicit historical reference catalog is derived from colour-science's
+after-November-2014 Classic24 xyY table, with its library version/provenance
+retained. The UI-native profiles use the retained UI catalog coordinates.
+Custom physical XYZ/Lab references retain their declared coordinates when
+requested; see [UI-native reference handling](ui-compatible-fitting.md).
 
-`explicit-v1` uses sRGB primaries, encoded sRGB/D65 inside the correction engine,
-canonical Lab D50, declared Bradford (default) or CAT02 adaptation, and a chosen
-common D50/D65 evaluation white. RGB transfer, matrix, CAT and Lab operations are
-explicit. Gamma retains the same all-patch polynomial fitting/selection algorithm,
-but explicit mode uses canonical working-white lightness and pure D65 Lab fit/apply
-conversion. This avoids an out-of-gamut RGB round-trip and dependence on the global
-colour-science domain/range setting. Legacy gamma keeps its earlier fast conversion.
+`explicit-v1` declares sRGB primaries, encoded sRGB/D65 working images, canonical
+Lab D50 references, and a common evaluation white. The fitting policy determines
+the feature domain and the qualified adaptation. UI-native fitting uses Bradford
+and linear RGB. Historical explicit gamma uses its all-patch polynomial recipe
+with canonical working-white lightness and D65 Lab conversion. Modern profiles
+use the neutral-stage algorithms recorded by their stage policy.
 
-Declared neutral IDs drive explicit WB; legacy WB defaults to the last six cells.
-The historical 0.95 headroom factor remains. CC still fits encoded RGB; selecting
-linear input/output does not silently change its regression features or domain.
-The current pipeline requires output policy `clip` because its stages clip. Other
-policies are available in pure conversion helpers but rejected by this engine.
+Declared neutral IDs drive explicit WB; historical WB defaults to the last six
+cells and preserves its headroom convention. The legacy and reproducible CC
+profiles fit encoded RGB, while UI-native CC fits linear RGB. Input/output
+encoding is a separate declaration. The stage engine requires output policy
+`clip`; pure conversion helpers also expose preserving policies.
 
 Explicit metrics compare actual fixed-region output samples against canonical Lab
 truth at one declared evaluation white using CIEDE2000. They report training-chart
@@ -98,13 +104,14 @@ not silently resize a spatial gain map. This shape gate does not certify matchin
 lens, crop, illumination or capture conditions. Legacy application retains its
 historical resizing behavior.
 
-`read_image_data` reads uint8/uint16 three-channel images with unchanged precision
-and applies EXIF orientation once. Pending nonidentity orientation must be explicitly
-normalized with `with_orientation_applied()` before processing. Embedded ICC profiles
-are rejected until the caller converts them or explicitly chooses
-`icc_policy='assume-declared'`. That decision/profile hash is recorded; no implicit
-ICC transformation is claimed. Grayscale, alpha and multiframe inputs require a
-caller-selected conversion before import. Legacy file decoding remains unchanged.
+`read_image_data` preserves supported uint8/uint16 samples and floating TIFF
+values and applies EXIF orientation once. Pending nonidentity orientation must
+be normalized with `with_orientation_applied()` before pipeline processing.
+Embedded ICC profiles require a declared policy. The strict loader can convert
+qualified uint8 profiles with `icc_policy='convert-srgb'`, or record an explicit
+`'assume-declared'` decision. Unsupported high-precision profile conversions
+fail before a byte downgrade. Alpha, grayscale and multiframe inputs require
+their explicit loader policy or frame selection. See [strict image I/O](image-io-policies.md).
 
 Legacy pickle containers are still trusted-file-only. New metadata stores image,
 reference, observation and color contracts, stage switches, detector provenance
@@ -114,9 +121,10 @@ legacy interpretation, without invented source/capture metadata. Use the separat
 non-executable inference parameters. Old package versions do not understand new
 explicit metadata.
 
-The defaults described here retain the earlier stage algorithms. Opt-in modern
-saturation/neutral GC/WB/guarded FFC and reproducible fitting are now documented
-in [numerical policies](numerical-policies-and-validation.md).
+The [numerical policy guide](numerical-policies-and-validation.md) describes
+reproducible encoded-RGB fitting and grouped evaluation. The
+[UI-native guide](ui-compatible-fitting.md) specifies the default neutral stages,
+joint FFC/GC rendering and linear-light CC.
 Independent-capture validation requires a separately measured capture. The 2.0
 high-precision FFC path has separate tests for original white-field values and
 is identified in the stored runtime.

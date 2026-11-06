@@ -14,20 +14,17 @@ Main Components:
 
 Example:
     >>> from ColorCorrectionPipeline import ColorCorrection, Config
-    >>> from ColorCorrectionPipeline.core.utils import to_float64
-    >>> import cv2
-    >>> 
-    >>> # Load image
-    >>> img_bgr = cv2.imread("sample.jpg")
-    >>> img_rgb = to_float64(img_bgr[:, :, ::-1])
-    >>> 
-    >>> # Configure and run
-    >>> config = Config(do_ffc=True, do_gc=True, do_wb=True, do_cc=True)
+    >>> config = Config(model="rpcc2", image_options={"frame_index": 0})
     >>> cc = ColorCorrection()
-    >>> metrics, images, errors = cc.run(Image=img_rgb, config=config)
+    >>> metrics, images, failed = cc.run("chart.jpg", "white.jpg", config=config)
+    >>> if failed:
+    ...     raise RuntimeError(cc.last_run["errors"])
+
+The example expects a chart capture and its matching white field. Run
+``python -m ColorCorrectionPipeline.examples.quickstart --output demo``
+to use the included sample images after installing the package.
 """
 
-import sys
 import warnings
 from typing import List
 
@@ -94,14 +91,6 @@ __all__: List[str] = [
 
 # Package metadata
 __author__ = "Collins Wakholi"
-__email__ = "collinswakholi@example.com"
+__email__ = "49397327+collinswakholi@users.noreply.github.com"
 __license__ = "MIT"
 __copyright__ = "Copyright (c) 2025 Collins Wakholi"
-
-# For pdoc documentation
-if "pdoc" in sys.modules:
-    try:
-        with open("README.txt", "r", encoding="utf-8") as fh:
-            __doc__ = fh.read()
-    except FileNotFoundError:
-        pass

@@ -133,6 +133,44 @@ def historical_trainers():
     return rows
 
 
+def legacy_import_contracts():
+    """Historical model imports remain usable without optional chart backends."""
+    import pickle
+    import sys
+    from types import SimpleNamespace
+    from unittest.mock import patch
+    from ColorCorrectionPipeline import key_functions as legacy
+
+    model = legacy.Regressor_Model()
+    model.degree = 2
+    restored = pickle.loads(pickle.dumps(model))
+    assert type(restored) is type(model) and restored.degree == 2
+    assert type(restored).__module__ == "ColorCorrectionPipeline.key_functions"
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+    with patch.dict(sys.modules, {"colour_checker_detection": None}):
+        try:
+            legacy.detect_colour_checkers_segmentation(image)
+        except ImportError as exc:
+            assert "ColorCorrectionPipeline[segmentation]" in str(exc)
+        else:
+            raise AssertionError("Missing segmentation backend was accepted")
+    with patch.object(legacy, "cv2", SimpleNamespace()):
+        requests = (
+            lambda: legacy.extract_color_chart(image),
+            lambda: legacy.extract_color_charts(image),
+            lambda: legacy.extract_color_chart_ex(image, np.zeros((24, 3))),
+        )
+        for request in requests:
+            try:
+                request()
+            except ImportError as exc:
+                assert "opencv-contrib-python" in str(exc)
+            else:
+                raise AssertionError("Missing MCC backend was accepted")
+    return {"base_import": True, "pickle_class_path": type(restored).__module__,
+            "optional_backend_errors": 4}
+
+
 def precision_estimation():
     from types import SimpleNamespace
     from ColorCorrectionPipeline import FittingPolicy
@@ -298,6 +336,7 @@ def main():
     result = {"version": version("ColorCorrectionPipeline"), "package": str(package),
               "configurations": configurations(), "models": numerical_contracts(),
               "historical_trainers": historical_trainers(),
+              "legacy_import_contracts": legacy_import_contracts(),
               "precision_estimation": precision_estimation()}
     if args.photos:
         result["photos"] = photos(args.device)

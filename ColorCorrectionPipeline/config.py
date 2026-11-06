@@ -160,7 +160,8 @@ class Config:
                                   if isinstance(reference_profile, dict) else deepcopy(reference_profile))
         self.image_options = deepcopy(image_options) if image_options is not None else {}
         self.stage_policy = StagePolicy.from_value(stage_policy).to_dict()
-        self.fitting_policy = FittingPolicy.from_value(fitting_policy).to_dict()
+        policy = FittingPolicy.from_value(fitting_policy)
+        self.fitting_policy = policy.to_dict()
         self.validation_options = deepcopy(validation_options) if validation_options is not None else {}
         self.model_format = model_format
         if self.fitting_policy["version"] == "ui-compatible-v1":
@@ -172,12 +173,12 @@ class Config:
             if stage_policy is None:
                 self.stage_policy = StagePolicy(version="modern-v1", saturation="report").to_dict()
             if reference_profile is None:
-                if self.fitting_policy.get("ui_runtime") in ("native-v1", "auto-v2", "precision-f64-v1"):
+                if policy.sampling_policy == "ui-native-v1":
                     from .ui_native import default_reference as native_reference
                     self.reference_profile = native_reference()
                 else:
                     self.reference_profile = default_reference()
-            self.chart_detection.setdefault("sampling_policy", "ui-native-v1" if self.fitting_policy.get("ui_runtime") in ("native-v1", "auto-v2", "precision-f64-v1") else "ui-compatible-v1")
+            self.chart_detection.setdefault("sampling_policy", policy.sampling_policy)
             self.chart_detection.setdefault("samples_per_axis", 9)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -282,7 +283,7 @@ class Config:
             if expected_runtime is not None and fitting.ui_runtime not in ("auto-v2", expected_runtime):
                 raise ValueError("precision contradicts the explicit fitting runtime")
         if fitting.version == "ui-compatible-v1":
-            if semantics.adaptation != "Bradford" or semantics.fitting_domain != "linear-rgb" or self.chart_detection.get("sampling_policy") != ("ui-native-v1" if fitting.ui_runtime in ("native-v1", "auto-v2", "precision-f64-v1") else "ui-compatible-v1"):
+            if semantics.adaptation != "Bradford" or semantics.fitting_domain != "linear-rgb" or self.chart_detection.get("sampling_policy") != fitting.sampling_policy:
                 raise ValueError("ui-compatible-v1 requires Bradford adaptation, linear-rgb fitting and UI sampling")
             if fitting.ui_runtime == "native-v1" and semantics.input_encoding != "srgb":
                 raise ValueError("native UI runtime requires sRGB input")

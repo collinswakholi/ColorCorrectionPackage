@@ -1,9 +1,13 @@
-# Opt-in numerical policies and grouped evaluation
+# Numerical policies and grouped evaluation
 
-Patches 5–6 introduce new calibration algorithms behind explicit versions. Existing
-calls, default configurations, metadata-free models and earlier explicit-v1 models
-retain their legacy numerical paths. A degree-one legacy gamma fit now works; its
-previous degree-selection calculation required at least two candidates and failed.
+Numerical profiles identify the training and application recipes of a calibration.
+New 2.0 fits default to UI-native RPCC2. Explicit `legacy-v1` and
+`reproducible-v1` configurations retain their historical algorithms.
+Metadata-free saved models restore legacy interpretation.
+
+The examples below focus on the `reproducible-v1` encoded-RGB profile.
+See the [migration guide](migration-2.md) for new solver/basis controls and
+precision selection.
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, Config

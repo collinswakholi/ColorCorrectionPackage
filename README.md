@@ -19,7 +19,10 @@ and root-polynomial fitting, and high-precision image handling.
 ## Installation
 
 Python 3.8 or later is required. The qualification matrix covers Python
-3.8–3.12 on Windows, Linux and macOS; newer interpreters are not in that matrix.
+3.8–3.14. Use maintained CPython 3.13 or 3.14 for new environments.
+Python 3.15 currently lacks required binary dependencies. See
+[Python compatibility](docs/python-compatibility.md) for tested versions,
+platform coverage and the qualification procedure.
 
 ```shell
 pip install ColorCorrectionPipeline
@@ -120,6 +123,7 @@ the [comparison example](docs/migration-2.md#executable-examples) reports both.
 - [Batch processing and reporting](docs/batch-and-reporting.md): bounded work, cancellation, per-file outcomes and stage retention.
 - [Prepared execution](docs/acceleration.md): direct CPU execution, explicitly budgeted combined LUTs, cache ownership and cube export.
 - [Performance measurements](docs/performance.md) and [distribution qualification](docs/distribution-qualification.md).
+- [Package structure and ownership](docs/architecture.md) describes the implementation boundaries.
 
 Legacy `run`, `predict_image`, `predict_images`, array/image helpers, saved-model
 formats and import entry points remain available. New contracts and policies

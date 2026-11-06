@@ -1217,13 +1217,6 @@ def extract_color_chart_ex(
     """
     Extract extended color chart samples with random sampling from each patch.
     
-    PRODUCTION VERSION - Combines bug fixes and optimizations:
-    - Fixed negative dimension bug (adaptive sampling)
-    - Fixed broadcasting bug (explicit array operations)
-    - Pre-allocated arrays for performance
-    - Vectorized statistics computation
-    - Comprehensive error handling
-    
     Args:
         img: Input BGR image (uint8)
         ref: Reference RGB values (24, 3), float64, range [0, 1]

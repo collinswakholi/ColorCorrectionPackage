@@ -22,13 +22,20 @@ SAMPLES = {
 @contextmanager
 def sample_paths():
     """Keep extracted wheel resources alive for the whole example run."""
+    package = "ColorCorrectionPipeline.examples.data"
+    resource_files = getattr(resources, "files", None)
+    root = resource_files(package) if resource_files is not None else None
     with ExitStack() as stack:
         paths = {}
         for name, digest in SAMPLES.items():
-            if resources.is_resource("ColorCorrectionPipeline.examples.data", name):
-                path = stack.enter_context(resources.path("ColorCorrectionPipeline.examples.data", name))
-            else:
-                path = Path(__file__).resolve().parents[2] / "Images" / name
+            path = Path(__file__).resolve().parents[2] / "Images" / name
+            if root is not None:
+                resource = root.joinpath(name)
+                if resource.is_file():
+                    path = stack.enter_context(resources.as_file(resource))
+            elif resources.is_resource(package, name):
+                # Python 3.8 predates the Traversable resource API.
+                path = stack.enter_context(resources.path(package, name))
             if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
                 raise RuntimeError("Sample resource is missing or changed: " + name)
             paths[name] = path
