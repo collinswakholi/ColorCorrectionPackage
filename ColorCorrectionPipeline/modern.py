@@ -31,7 +31,9 @@ def prepare_source(owner, *, required):
     owner._source_face = face
     if owner.fitting_policy.version == "ui-compatible-v1":
         from .ui_fitting import sample_regions
-        samples = sample_regions(owner.Image, face.quadrilaterals, int(np.sqrt(face.sample_count)))
+        from .ui_native import high_precision, sample_regions_float64
+        sampler = sample_regions_float64 if high_precision(owner) else sample_regions
+        samples = sampler(owner.Image, face.quadrilaterals, int(np.sqrt(face.sample_count)))
     else:
         samples = sample_quadrilaterals(owner.Image, face.quadrilaterals, face.sample_count)
     per_channel = np.mean(samples >= face.clipping_threshold, axis=1)
@@ -80,13 +82,14 @@ def fit_gamma(owner, image):
     owner.models.model_gc = model
     owner.numerical_report["GC"] = report
     if native_enabled(owner):
-        from .ui_native import apply_color
-        report["ui_runtime"] = "native-v1"
+        from .ui_native import apply_color, high_precision, runtime
+        report["ui_runtime"] = runtime(owner)
         report["training_observation"] = face.to_dict()
-        result = apply_color(owner.Image, owner.models.model_ffc, model)
+        result = apply_color(owner.Image, owner.models.model_ffc, model, rounded=not high_precision(owner))
     else:
         result = apply_tone(image, model)
-    if owner.fitting_policy.version == "ui-compatible-v1":
+    from .ui_native import high_precision
+    if owner.fitting_policy.version == "ui-compatible-v1" and not high_precision(owner):
         from .ui_fitting import round_image
         result = round_image(result)
     return result, {}, False
@@ -100,7 +103,8 @@ def fit_wb(owner, image):
     owner.models.model_wb = np.frombuffer(matrix.tobytes(), dtype=matrix.dtype).reshape(matrix.shape)
     owner.numerical_report["WB"] = report
     result = np.clip(image @ matrix, 0, 1)
-    if owner.fitting_policy.version == "ui-compatible-v1":
+    from .ui_native import high_precision
+    if owner.fitting_policy.version == "ui-compatible-v1" and not high_precision(owner):
         from .ui_fitting import round_image
         result = round_image(result)
     return result, {}, False

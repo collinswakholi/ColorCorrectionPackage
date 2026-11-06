@@ -89,9 +89,10 @@ new pipeline instances that load the model.
 
 For explicit raw white inputs, file/uint8/float forms consistently use the configured
 input encoding. The historical uint8-white BGR channel order is retained; typed
-white data declares its own order/encoding. FFC estimation still converts the white
-image to uint8 BGR and records that actual precision. Higher-precision radiometric
-FFC is later work.
+white data declares its own order/encoding. Historical explicit policies estimate
+FFC through their recorded uint8/float32 paths. The 2.0 high-precision runtime
+measures the original white values in float64; see the [migration guide](migration-2.md).
+This remains a Lab-lightness correction with the declared capture assumptions.
 Explicit application also requires the calibrated FFC image dimensions; it does
 not silently resize a spatial gain map. This shape gate does not certify matching
 lens, crop, illumination or capture conditions. Legacy application retains its
@@ -116,5 +117,7 @@ explicit metadata.
 The defaults described here retain the earlier stage algorithms. Opt-in modern
 saturation/neutral GC/WB/guarded FFC and reproducible fitting are now documented
 in [numerical policies](numerical-policies-and-validation.md).
-Independent-capture validation and high-precision FFC remain later work.
+Independent-capture validation requires a separately measured capture. The 2.0
+high-precision FFC path has separate tests for original white-field values and
+is identified in the stored runtime.
 Fit/apply parity comparisons must account for the legacy fit-only saturation operation.

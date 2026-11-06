@@ -8,13 +8,13 @@ under the same conditions.
 The package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
 A desktop interface is available in [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
 
-The opt-in [UI-compatible fitting policy](docs/ui-compatible-fitting.md) adds
-linear-light CCM, RPCC2/RPCC3, polynomial, PLS and residual NN algorithms while
-retaining the existing fitting defaults. `fitting_policy="ui-native-v1"` adds
-the native byte-image and FFC/GC fusion rules for new uint8 sRGB calibrations.
-Apply that mode with `predict_image` or `predict_batch`; its
-[documented limits](docs/ui-compatible-fitting.md#matching-the-native-ui-image-pipeline)
-include prepared execution. Existing calibrations keep their recorded rules.
+Starting in 2.0, new calibrations use the UI-native workflow and default to
+RPCC2. Select a color model, feature basis and degree directly. The old
+`ours`/`conv` terminology is retired from the primary training API. Historical
+ML and conventional training configurations remain available through their
+original numerical policy, and saved calibrations retain their recorded rules.
+See the [2.0 migration guide](docs/migration-2.md) for compatibility, polynomial
+and root-polynomial fitting, and high-precision image handling.
 
 ## Installation
 
@@ -22,16 +22,14 @@ Python 3.8 or later is required. The qualification matrix covers Python
 3.8–3.12 on Windows, Linux and macOS; newer interpreters are not in that matrix.
 
 ```shell
-git clone https://github.com/collinswakholi/ColorCorrectionPackage.git
-cd ColorCorrectionPackage
-python -m pip install -e ".[performance]"
+pip install ColorCorrectionPipeline
 ```
 
-The `performance` extra enables optional Numba CPU kernels. Install with
-`python -m pip install -e .` for the NumPy fallback. Scientific, Torch, plotting
-and ONNX Runtime dependencies are included. The separately published PyPI
-package can be installed with `python -m pip install ColorCorrectionPipeline`;
-its features depend on the published version.
+The `performance` extra enables optional Numba CPU kernels. Install it with
+`pip install "ColorCorrectionPipeline[performance]"`. Scientific, Torch,
+plotting and ONNX Runtime dependencies are included. The repository is named
+ColorCorrectionPackage. Both the installed distribution and Python import are
+ColorCorrectionPipeline. Features described for 2.0 require that version.
 
 Chart detection defaults to the bundled Classic24 ONNX model. It prefers a
 supported GPU provider and falls back to CPU. See [GPU configuration](docs/gpu-detection.md)
@@ -40,10 +38,19 @@ Chart detection and color-transform acceleration have separate backend policies.
 
 ## Calibrate and apply
 
-This example uses the bundled sample photographs, explicitly selects their first
-frame, and fits a linear-light CCM with native uint8 sRGB image semantics.
-Numerical policies are opt-in; existing callers retain their recorded stage
-mathematics and return conventions.
+Run the installed tutorial with the bundled sample photographs. It calibrates
+RPCC2, applies the result, saves a portable bundle, checks exact replay and
+writes a verified PNG. Choose a new output directory for each run.
+
+```shell
+python -m ColorCorrectionPipeline.examples.quickstart --output results-rpcc2
+```
+
+With your own chart and scene, omit `--white` to disable flat-field correction.
+Each source must declare a supported encoding and range. The sample JPEGs expose
+multiple frames, so the tutorials explicitly select frame zero.
+
+To use the Python API, supply paths to your captures:
 
 ```python
 from pathlib import Path
@@ -51,26 +58,22 @@ from ColorCorrectionPipeline import ColorCorrection, Config
 from ColorCorrectionPipeline.io import write_image_data
 
 output = Path("results")
-output.mkdir(exist_ok=True)
+output.mkdir(exist_ok=False)
 pipeline = ColorCorrection()
 config = Config(
-    do_ffc=True, do_gc=True, do_wb=True, do_cc=True,
-    check_saturation=False,
-    fitting_policy="ui-native-v1",
+    model="rpcc2",
     image_options={"frame_index": 0},
-    FFC_kwargs={"fit_method": "linear", "bins": 30, "smooth_window": 7},
-    CC_kwargs={"model": "ccm"},
     save=True, save_path=str(output), model_format="bundle",
 )
 metrics, images, failed = pipeline.run(
-    "Images/Image_1.JPG", "Images/white.JPG", name_="sample", config=config
+    "chart.png", "white.png", name_="sample", config=config
 )
 if failed:
-    raise RuntimeError(pipeline.last_run)
+    raise RuntimeError(pipeline.last_run["errors"])
 
 # Loading a safe bundle restores the numerical policies and reference context.
 restored = ColorCorrection().load_bundle(output / "sample_models.ccpb")
-result = restored.predict_image("Images/Sample_1.JPG", stages="final")
+result = restored.predict_image("scene.png", stages="final")
 record = write_image_data(
     output / "corrected.png", result["CC"],
     dtype="uint8", allow_precision_loss=True,
@@ -82,7 +85,8 @@ photograph is available. Enabled stages are required: `last_run` records stage
 outcomes, errors, detector execution and persistence diagnostics. A failed fit
 or save preserves the previous successful calibration.
 
-The existing `reproducible-v1` encoded-sRGB fits remain available. Their linear
+The existing `legacy-v1` and `reproducible-v1` encoded-sRGB fits remain available
+for training with their respective configurations. Their linear
 solver minimizes RGB squared error against unclipped reference targets; lower
 RGB error can increase CIEDE2000, particularly for out-of-gamut references.
 The fit report records this objective and affected target cells. See
@@ -91,6 +95,20 @@ Linear-light CCM also optimizes RGB error; evaluate its measured results rather
 than assuming every correction reduces perceptual error.
 
 ## Working with the package
+
+| New fit | Configuration |
+| --- | --- |
+| Default root-polynomial matrix | `Config(model="rpcc2")` |
+| 3×3 matrix | `Config(model="3x3")` |
+| Degree-four polynomial linear fit | `Config(model="linear", basis="polynomial", degree=4)` |
+| PLS on degree-three roots | `Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 6})` |
+| Width-100 NN on hybrid features | `Config(model="nn", basis="hybrid", degree=4, CC_kwargs={"hidden_layers": [100]})` |
+
+`precision="auto"` selects the recorded byte or high-precision runtime once at
+calibration. Choose `precision="high"` when a byte chart will calibrate future
+uint16/float scenes. New root/hybrid PLS fits require an explicit component
+budget. Training-chart ΔE00 and held-out color error answer different questions;
+the [comparison example](docs/migration-2.md#executable-examples) reports both.
 
 - [Contracts](docs/contracts.md): immutable images, canonical references and chart observations.
 - [Color semantics](docs/color-semantics.md) and [pipeline integration](docs/contracts-and-color-integration.md): declared encoding, illuminants and orientation.
@@ -146,6 +164,10 @@ safe-bundle reload, precision I/O and bounded batch processing. See the
 [qualification guide](docs/distribution-qualification.md) for neutral-directory
 commands. Generated evidence belongs outside the source tree. Submit changes
 through a pull request with the relevant numerical and compatibility evidence.
+Run `python scripts/verify_v2.py --photos --output evidence/v2.json` from a
+neutral directory to qualify the new selectors, bases, historical trainers,
+real-photo bundle replay and high-precision scene handling. The installed
+distribution supplies the example samples.
 
 ## License
 

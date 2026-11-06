@@ -1,9 +1,14 @@
 # UI-compatible fitting
 
-`fitting_policy="ui-compatible-v1"` selects additive numerical implementations
+In 2.0, new calibrations default to UI-native RPCC2. The
+[migration guide](migration-2.md) documents model/basis selection, high precision
+and retained historical training. This page describes the explicit v1 policies
+for reproducing a recorded workflow.
+
+`fitting_policy="ui-compatible-v1"` selects numerical implementations
 of the UI engine's CCM, root-polynomial, polynomial, PLS and residual NN fits.
-It does not change the default `legacy-v1` or existing `reproducible-v1` fits,
-their feature domains, or previously saved calibrations.
+Explicit `legacy-v1` and `reproducible-v1` fits retain their feature domains,
+and previously saved calibrations retain their recorded interpretation.
 Select it through the pipeline `Config`. The legacy `fit_model` adapter rejects
 this policy because it has no reference or observation contract to interpret it.
 

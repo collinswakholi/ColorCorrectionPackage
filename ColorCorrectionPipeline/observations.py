@@ -38,8 +38,12 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
     for index, geometry in enumerate(state.geometry):
         if explicit:
             if state.options.sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
-                from .ui_fitting import sample_regions
-                samples = sample_regions(rgb, geometry["patches"], state.options.samples_per_axis)
+                if getattr(state, "measurement_runtime", None) == "precision-f64-v1":
+                    from .ui_native import sample_regions_float64
+                    samples = sample_regions_float64(rgb, geometry["patches"], state.options.samples_per_axis)
+                else:
+                    from .ui_fitting import sample_regions
+                    samples = sample_regions(rgb, geometry["patches"], state.options.samples_per_axis)
             else:
                 samples = sample_quadrilaterals(rgb, geometry["patches"], 81)
         else:
@@ -57,6 +61,6 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
             from dataclasses import replace
             from .ui_native import ordered_mean
             face = replace(face, measured_rgb=ordered_mean(samples), provenance={**dict(face.provenance),
-                "measurement_policy":"ui-native-v1", "sample_reduction":"row-order-f64"})
+                "measurement_policy":getattr(state, "measurement_runtime", "ui-native-v1"), "sample_reduction":"row-order-f64"})
         faces.append(face.validate_reference(reference))
     return ObservationSet(tuple(faces), image_data.digest).validate_reference(reference)

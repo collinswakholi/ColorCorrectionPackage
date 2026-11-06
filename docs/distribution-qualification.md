@@ -45,6 +45,14 @@ of a distribution. Timing measurements are described separately in
 
 ## CI and publication
 
+The 2.0 qualification also runs `scripts/verify_v2.py --photos` against installed
+base and performance environments. It checks all 36 solver/basis/degree
+requests, independent root-feature values, retained historical trainers,
+real-image replay, and adjacent uint16/float signals. All five installed
+tutorials run with bundled samples. The source archive is independently built
+and installed, then checked from a neutral directory for sample-resource
+mapping and executable quickstart behavior.
+
 The reusable qualification workflow builds and inspects distributions once,
 then installs that wheel in isolated base and performance environments on
 Windows, Linux and macOS for Python 3.8 and 3.12, plus Ubuntu for 3.9–3.11.

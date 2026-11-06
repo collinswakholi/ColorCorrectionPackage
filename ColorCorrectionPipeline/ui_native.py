@@ -11,21 +11,31 @@ from dataclasses import replace
 import numpy as np
 
 RUNTIME = "native-v1"
+HIGH_RUNTIME = "precision-f64-v1"
 D65 = (0.31271, 0.32902)
 # Native D50 coordinates differ from the canonical-reference shorthand.
 D50 = (0.34567, 0.35850)
 EPSILON, KAPPA = 216.0 / 24389.0, 24389.0 / 27.0
 
 
-def enabled(value):
+def runtime(value):
+    """Return the persisted runtime without resolving defaults during prediction."""
     metadata = getattr(value, "metadata", None)
     if metadata is not None:
         policy = metadata.get("fitting_policy", {})
     else:
         policy = getattr(value, "fitting_policy", {})
     if not isinstance(policy, dict):
-        return policy.version == "ui-compatible-v1" and policy.ui_runtime == RUNTIME
-    return policy.get("version") == "ui-compatible-v1" and policy.get("ui_runtime") == RUNTIME
+        return policy.ui_runtime if policy.version == "ui-compatible-v1" else None
+    return policy.get("ui_runtime") if policy.get("version") == "ui-compatible-v1" else None
+
+
+def enabled(value):
+    return runtime(value) in (RUNTIME, HIGH_RUNTIME)
+
+
+def high_precision(value):
+    return runtime(value) == HIGH_RUNTIME
 
 
 def _white(xy):
@@ -225,7 +235,9 @@ def normalize_codes(values):
     return (codes * np.float32(1.0 / 255.0)).astype(np.float64)
 
 
-def working_input(data, values):
+def working_input(data, values, *, high=False):
+    if high:
+        return np.asarray(values, dtype=np.float64)
     validate_input(data)
     return normalize_codes(values)
 
@@ -339,22 +351,42 @@ def points(quads, count):
     )
 
 
+def sample_regions_float64(rgb, quads, count):
+    """Use the native sampling geometry against original float64 pixels."""
+    image = np.asarray(rgb, dtype=np.float64)
+    xy = points(quads, count)
+    h, w = image.shape[:2]
+    x, y = np.clip(xy[..., 0], 0, w - 1), np.clip(xy[..., 1], 0, h - 1)
+    x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
+    x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
+    fx, fy = (x - x0)[..., None], (y - y0)[..., None]
+    samples = (
+        image[y0, x0] * (1 - fx) * (1 - fy)
+        + image[y0, x1] * fx * (1 - fy)
+        + image[y1, x0] * (1 - fx) * fy
+        + image[y1, x1] * fx * fy
+    )
+    return np.clip(samples, 0, 1)
+
+
 def sample_ffc(owner, face):
     from .ui_fitting import sample_regions
 
     count = int(round(math.sqrt(face.sample_count)))
-    samples = sample_regions(owner.Image, face.quadrilaterals, count)
+    high = high_precision(owner)
+    samples = (sample_regions_float64 if high else sample_regions)(owner.Image, face.quadrilaterals, count)
     xy = points(face.quadrilaterals, count)
     h, w = owner.Image.shape[:2]
-    x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(np.float32)
-    y = (np.clip(xy[..., 1], 0, h - 1) * (h - 1) / max(h - 1, 1)).astype(np.float32)
+    dtype = np.float64 if high else np.float32
+    x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(dtype)
+    y = (np.clip(xy[..., 1], 0, h - 1) * (h - 1) / max(h - 1, 1)).astype(dtype)
     x0 = np.floor(x).astype(int)
     y0 = np.floor(y).astype(int)
     x1 = np.minimum(x0 + 1, w - 1)
     y1 = np.minimum(y0 + 1, h - 1)
-    fx = x - x0.astype(np.float32)
-    fy = y - y0.astype(np.float32)
-    g = owner.models.model_ffc.astype(np.float32)
+    fx = x - x0.astype(dtype)
+    fy = y - y0.astype(dtype)
+    g = owner.models.model_ffc.astype(dtype)
     gains = (
         g[y0, x0] * (1 - fy) * (1 - fx)
         + g[y1, x0] * fy * (1 - fx)
@@ -369,7 +401,7 @@ def sample_ffc(owner, face):
         clipped_fractions=clipped,
         provenance={
             **dict(face.provenance),
-            "measurement_policy": "ui-native-v1/FFC-after-bilinear",
+            "measurement_policy": runtime(owner) + "/FFC-after-bilinear",
             "sample_reduction": "row-order-f64",
         },
     )
@@ -395,14 +427,15 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
         raise ValueError("native UI fusion does not support overridden tone/FFC hooks")
     from .ui_execution import try_execute
 
-    if chunk_pixels is None:
+    high = high_precision(models)
+    if chunk_pixels is None and not high:
         result = try_execute(image, models, selected, native_codes=native_codes)
         if result is not None:
             return result
     from .core.correction import predict_
     from .prediction import chunked_cc
 
-    source = (
+    source = np.asarray(image, dtype=np.float64) if high else (
         normalize_codes(image)
         if native_codes
         else np.asarray(image, dtype=np.float32).astype(np.float64)
@@ -418,17 +451,22 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     for index, name in enumerate(order[: stop + 1]):
         if name == "FFC" and gain is not None:
             if "FFC" in selected or curve is None or stop == 0:
-                current = apply_color(source, gain)
+                current = apply_color(source, gain, rounded=not high)
         elif name == "GC" and curve is not None:
-            current = apply_color(source, gain, curve)
+            current = apply_color(source, gain, curve, rounded=not high)
         elif name == "WB" and models.model_wb is not None:
-            current = np.clip(current @ models.model_wb, 0, 1).astype(np.float32).astype(np.float64)
+            current = np.clip(current @ models.model_wb, 0, 1)
+            if not high:
+                current = current.astype(np.float32).astype(np.float64)
         elif name == "CC" and models.model_cc is not None:
-            if chunk_pixels is not None:
-                current = chunked_cc(current, models.model_cc, chunk_pixels)
+            extended = "basis" in models.model_cc[1]
+            if chunk_pixels is not None or high or extended:
+                current = chunked_cc(current, models.model_cc, chunk_pixels or 65536)
             else:
                 current = predict_(RGB=current, M=models.model_cc[0])
-            current = np.clip(current, 0, 1).astype(np.float32).astype(np.float64)
+            current = np.clip(current, 0, 1)
+            if not high:
+                current = current.astype(np.float32).astype(np.float64)
         if (
             current.shape != source.shape
             or not np.isfinite(current).all()
