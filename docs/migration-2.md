@@ -13,14 +13,12 @@ kwargs forms or saved-calibration interpretation. See the
 
 ## Install and run
 
-The distribution is installed with `pip install ColorCorrectionPipeline`. The
-APIs in this guide require a 2.x build; until publication, install the local
-candidate wheel instead. An unqualified public install cannot retrieve an
-unpublished candidate.
+The APIs in this guide require ColorCorrectionPipeline 2.x. Use `--upgrade`
+when updating an existing 1.x installation:
 
 ```shell
-pip install ColorCorrectionPipeline
-pip install "ColorCorrectionPipeline[performance]"
+python -m pip install --upgrade "ColorCorrectionPipeline>=2,<3"
+python -m pip install --upgrade "ColorCorrectionPipeline[performance]>=2,<3"
 python -m ColorCorrectionPipeline.examples.quickstart --output results-rpcc2
 ```
 

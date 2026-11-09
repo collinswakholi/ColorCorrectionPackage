@@ -5,17 +5,17 @@ It is additive: existing `Config` constructors, kwargs dictionaries and saved
 calibrations keep their numerical behavior. Grouping does not select a different
 solver, change a reference, or create a new bundle format.
 
-This API requires the local 2.x candidate until it is published. The installed
-distribution and Python import are both `ColorCorrectionPipeline`:
+This API requires ColorCorrectionPipeline 2.x. The installed distribution and
+Python import are both `ColorCorrectionPipeline`. Use `--upgrade` when updating
+an existing 1.x installation:
 
 ```shell
-pip install ColorCorrectionPipeline
-pip install "ColorCorrectionPipeline[performance]"
+python -m pip install --upgrade "ColorCorrectionPipeline>=2,<3"
+python -m pip install --upgrade "ColorCorrectionPipeline[performance]>=2,<3"
 ```
 
-For an unpublished build, install its local wheel instead. The optional
-performance extra enables qualified CPU kernels; it does not select the chart
-detector's GPU provider or change the fitting recipe.
+The optional performance extra enables qualified CPU kernels; it does not
+select the chart detector's GPU provider or change the fitting recipe.
 
 ## Configure the steps
 

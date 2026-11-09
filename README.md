@@ -12,24 +12,24 @@ numerical behavior. See the [migration guide](docs/migration-2.md).
 ## Install
 
 ```shell
-pip install ColorCorrectionPipeline
+pip install --upgrade ColorCorrectionPipeline
 ```
 
-This README describes the **unreleased 2.0 candidate**. Until it is published,
-install the local candidate wheel with
-`python -m pip install path/to/colorcorrectionpipeline-2.0.0-py3-none-any.whl`.
+This README describes **ColorCorrectionPipeline 2.0.0**. To pin this release,
+use `pip install ColorCorrectionPipeline==2.0.0`.
 The distribution and Python import are both named `ColorCorrectionPipeline`;
 the repository is named ColorCorrectionPackage.
 
 Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPython
 3.13 or 3.14 for a new environment; see [Python compatibility](docs/python-compatibility.md).
 Optional CPU acceleration is available with
-`pip install "ColorCorrectionPipeline[performance]"`. Chart detection separately
+`pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
 prefers a supported GPU provider and falls back to CPU; see [GPU setup](docs/gpu-detection.md).
 
 ## One complete test example
 
-Save this as `test_calibration.py` and run `python test_calibration.py`.
+Save this as `test_calibration.py` outside the source checkout and run
+`python test_calibration.py` so it imports the installed package.
 It uses the installed sample photographs, fits all four steps, saves and reloads
 a safe calibration bundle, checks exact replay, and writes a verified PNG.
 Choose a new output directory for each run.

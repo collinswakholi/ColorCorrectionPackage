@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-11-09
 
 - Default new calibrations to UI-native RPCC2 with calibration-time image precision selection.
 - Expose model, basis, degree and precision directly in `Config`; support polynomial, root and hybrid features through degree four for linear, PLS and NN fits.

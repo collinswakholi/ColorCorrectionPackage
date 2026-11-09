@@ -45,11 +45,14 @@ decoded samples before publication and honor no-clobber/overwrite policy.
 
 ## Numerical compatibility
 
-Legacy ndarray callers retain encoded-sRGB stage equations, including the
-historical saturation scaling and WB headroom. [Modern policies](numerical-policies-and-validation.md)
-and [explicit semantics](color-semantics.md) require opt-in. Use `ImageData` to
-declare precision, channel order and encoding; floating raw RGB must be finite,
-nonempty HxWx3 and in `[0,1]`. Legacy uint8 white arrays retain their BGR convention.
+Explicit historical configurations and loaded calibrations retain their recorded
+stage equations, including legacy saturation scaling and WB headroom where
+applicable. Fresh 2.0 configurations default to UI-native RPCC2 with explicit
+color semantics; an ndarray input does not select the historical workflow.
+See the [migration guide](migration-2.md), [numerical policies](numerical-policies-and-validation.md)
+and [color semantics](color-semantics.md). Use `ImageData` to declare precision,
+channel order and encoding; floating raw RGB must be finite, nonempty HxWx3 and
+in `[0,1]`. Legacy uint8 white arrays retain their BGR convention.
 
 The default Classic24 ONNX detector supplies geometry from original pixels,
 independently of optional metrics, and reuses it within a run. Transformed images
