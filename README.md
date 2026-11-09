@@ -1,258 +1,169 @@
 # ColorCorrectionPipeline
 
-A stepwise color correction package for scientific images. Fit flat-field
-correction (FFC), gamma correction (GC), white balance (WB) and color correction
-(CC) from a chart photograph, then apply the calibration to images captured
-under the same conditions.
+Calibrate **flat-field correction (FFC) → gamma correction (GC) → white balance
+(WB) → color correction (CC)**, then apply the fitted calibration to images
+captured under the same conditions.
 
-The package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
-A desktop interface is available in [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
+**Version 2.0 defaults to the UI-native RPCC2 workflow.** Legacy methodology is
+retired as the default, along with `ours`/`conv` naming in the primary API.
+Historical training configurations and saved calibrations retain their original
+numerical behavior. See the [migration guide](docs/migration-2.md).
 
-Starting in 2.0, new calibrations use the UI-native workflow and default to
-RPCC2. Select a color model, feature basis and degree directly. The old
-`ours`/`conv` terminology is retired from the primary training API. Historical
-ML and conventional training configurations remain available through their
-original numerical policy, and saved calibrations retain their recorded rules.
-See the [2.0 migration guide](docs/migration-2.md) for compatibility, polynomial
-and root-polynomial fitting, and high-precision image handling.
-
-The additive [grouped configuration API](docs/grouped-configuration.md) puts each
-step's enable switch beside its controls. Existing constructor arguments and
-kwargs dictionaries remain supported, with the same numerical interpretation.
-
-## Installation
-
-Python 3.8 or later is required. The qualification matrix covers Python
-3.8–3.14. Use maintained CPython 3.13 or 3.14 for new environments.
-Python 3.15 currently lacks required binary dependencies. See
-[Python compatibility](docs/python-compatibility.md) for tested versions,
-platform coverage and the qualification procedure.
+## Install
 
 ```shell
 pip install ColorCorrectionPipeline
 ```
 
-The `performance` extra enables optional Numba CPU kernels. Install it with
-`pip install "ColorCorrectionPipeline[performance]"`. Scientific, Torch,
-plotting and ONNX Runtime dependencies are included. The repository is named
-ColorCorrectionPackage. Both the installed distribution and Python import are
-ColorCorrectionPipeline. Features described for 2.0 require that version.
-Until 2.0 is published, install the local candidate wheel to use these APIs;
-an unqualified public pip install does not install an unpublished candidate.
+This README describes the **unreleased 2.0 candidate**. Until it is published,
+install the local candidate wheel with
+`python -m pip install path/to/colorcorrectionpipeline-2.0.0-py3-none-any.whl`.
+The distribution and Python import are both named `ColorCorrectionPipeline`;
+the repository is named ColorCorrectionPackage.
 
-Chart detection defaults to the bundled Classic24 ONNX model. It prefers a
-supported GPU provider and falls back to CPU. See [GPU configuration](docs/gpu-detection.md)
-for CUDA, DirectML, WebGPU and CoreML setup and execution diagnostics.
-Chart detection and color-transform acceleration have separate backend policies.
+Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPython
+3.13 or 3.14 for a new environment; see [Python compatibility](docs/python-compatibility.md).
+Optional CPU acceleration is available with
+`pip install "ColorCorrectionPipeline[performance]"`. Chart detection separately
+prefers a supported GPU provider and falls back to CPU; see [GPU setup](docs/gpu-detection.md).
 
-## Calibrate and apply
+## One complete test example
 
-Run the installed tutorial with the bundled sample photographs. It calibrates
-RPCC2, applies the result, saves a portable bundle, checks exact replay and
-writes a verified PNG. Choose a new output directory for each run.
-
-```shell
-python -m ColorCorrectionPipeline.examples.quickstart --output results-rpcc2
-```
-
-With your own chart and scene, omit `--white` to disable flat-field correction.
-Each source must declare a supported encoding and range. The sample JPEGs expose
-multiple frames, so the tutorials explicitly select frame zero.
-
-To use the Python API, supply paths to your captures:
+Save this as `test_calibration.py` and run `python test_calibration.py`.
+It uses the installed sample photographs, fits all four steps, saves and reloads
+a safe calibration bundle, checks exact replay, and writes a verified PNG.
+Choose a new output directory for each run.
 
 ```python
+from contextlib import ExitStack
+from importlib import resources
 from pathlib import Path
-from ColorCorrectionPipeline import ColorCorrection, Config, Steps, CCOptions
+
+import numpy as np
+
+from ColorCorrectionPipeline import (
+    ColorCorrection, Config, Steps, FFCOptions, GCOptions, WBOptions, CCOptions,
+)
 from ColorCorrectionPipeline.io import write_image_data
 
-output = Path("results")
-output.mkdir(exist_ok=False)
-pipeline = ColorCorrection()
-config = Config(
-    steps=Steps(cc=CCOptions(fit={"model": "rpcc2"})),
-    input={"frame_index": 0},
-    persistence={"enabled": True, "directory": str(output), "format": "bundle"},
-)
-metrics, images, failed = pipeline.run(
-    "chart.png", "white.png", name_="sample", config=config
-)
-if failed:
-    raise RuntimeError(pipeline.last_run["errors"])
-
-# Loading a safe bundle restores the numerical policies and reference context.
-restored = ColorCorrection().load_bundle(output / "sample_models.ccpb")
-result = restored.predict_image("scene.png", stages="final")
-record = write_image_data(
-    output / "corrected.png", result["CC"],
-    dtype="uint8", allow_precision_loss=True,
-)
-```
-
-Set `steps={"ffc": {"enabled": False}}` and omit the white image when no matching
-white-field photograph is available. The existing `do_ffc=False` alias also
-remains available. Enabled stages are required: `last_run` records stage
-outcomes, errors, detector execution and persistence diagnostics. A failed fit
-or save preserves the previous successful calibration.
-
-The existing `legacy-v1` and `reproducible-v1` encoded-sRGB fits remain available
-for training with their respective configurations. Their linear
-solver minimizes RGB squared error against unclipped reference targets; lower
-RGB error can increase CIEDE2000, particularly for out-of-gamut references.
-The fit report records this objective and affected target cells. See
-[fit objectives and perceptual evaluation](docs/numerical-policies-and-validation.md#fit-objective-and-perceptual-evaluation).
-Linear-light CCM also optimizes RGB error; evaluate its measured results rather
-than assuming every correction reduces perceptual error.
-
-## Working with the package
-
-Use `Steps` with `FFCOptions`, `GCOptions`, `WBOptions` and `CCOptions` to keep
-stage controls together. CC fitting, application/LUT settings and validation
-have separate subgroups. Input, chart detection, reference, color and precision
-are shared contracts; image export remains an explicit writer call.
-
-```python
-from ColorCorrectionPipeline import Config, Steps, FFCOptions, WBOptions, CCOptions
-
+output = Path("sample-results")
 config = Config(
     steps=Steps(
-        ffc=FFCOptions(enabled=False),
-        wb=WBOptions(fit={"headroom": 0.95}),
+        ffc=FFCOptions(enabled=True, fit={"method": "linear", "degree": 1}),
+        gc=GCOptions(enabled=True, quality={"min_neutrals": 3}),
+        wb=WBOptions(enabled=True, fit={"headroom": 0.95}),
         cc=CCOptions(
-            fit={"model": "pls", "basis": "root", "degree": 3,
-                 "pls": {"components": 6}},
-            validation={"enabled": True, "n_splits": 4, "random_state": 42},
+            enabled=True,
+            fit={"model": "rpcc2"},
+            validation={"enabled": False},
         ),
     ),
+    input={"frame_index": 0},
+    chart={"device": "auto", "allow_cpu_fallback": True},
+    color={"input_encoding": "srgb", "output_encoding": "srgb"},
     numerics={"precision": "auto"},
+    observations={"saturation": "report"},
+    persistence={"enabled": True, "directory": str(output), "format": "bundle"},
 )
+
+output.mkdir(exist_ok=False)
+
+with ExitStack() as stack:
+    def sample(name):
+        # Keep packaged files alive until calibration and prediction finish.
+        package = "ColorCorrectionPipeline.examples.data"
+        if hasattr(resources, "files"):
+            source = resources.as_file(resources.files(package).joinpath(name))
+        else:  # Python 3.8
+            source = resources.path(package, name)
+        return stack.enter_context(source)
+
+    chart, white, scene = map(sample, ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
+    pipeline = ColorCorrection()
+    metrics, _, failed = pipeline.run(chart, white, name_="chart", config=config)
+    if failed:
+        raise RuntimeError(pipeline.last_run["errors"])
+
+    bundle = output / "chart_models.ccpb"
+    restored = ColorCorrection().load_bundle(bundle)
+    corrected = restored.predict_image(scene, stages="final")["CC"]
+    direct = pipeline.predict_image(scene, stages="final")["CC"]
+    np.testing.assert_array_equal(corrected, direct)
+
+    record = write_image_data(
+        output / "corrected.png", corrected,
+        dtype="uint8", input_encoding="srgb", allow_precision_loss=True,
+        png_profile="fast-lossless",
+    )
+    assert record.maximum_codec_error == 0
+
+    print("Training-chart mean Delta E00:", metrics["chart_CC"]["delta_e00_after_mean"])
+    print("Bundle replay: exact; PNG codec error:", record.maximum_codec_error)
+    print("Outputs:", output.resolve())
 ```
 
-The containers and their owned subgroup mappings are immutable. `Config` keeps
-one authoritative state and exposes fresh grouped snapshots. Its existing
-mutable flat attributes and the convenient model aliases below remain supported.
-Conflicting grouped/flat requests fail rather than silently overriding a value.
-See the [complete grouped reference](docs/grouped-configuration.md) for each
-category, solver-specific controls, JSON and compatibility rules.
+The PNG is an explicitly quantized preview; zero codec error means its stored
+samples survived readback unchanged. Use a suitable TIFF export when retaining
+floating-point precision. Chart ΔE00 measures the calibration chart, not
+independent scene accuracy.
 
-| New fit | Configuration |
+For your own captures, replace the three sample paths with your chart, matching
+white-field image and scene. Enabled FFC requires compatible image dimensions.
+Without a matching white image, disable `steps.ffc.enabled` and pass `None`
+as the white-image argument.
+
+## Configuration breakdown
+
+| Category | Purpose in the example |
 | --- | --- |
-| Default root-polynomial matrix | `Config(model="rpcc2")` |
-| 3×3 matrix | `Config(model="3x3")` |
-| Degree-four polynomial linear fit | `Config(model="linear", basis="polynomial", degree=4)` |
-| PLS on degree-three roots | `Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 6})` |
-| Width-100 NN on hybrid features | `Config(model="nn", basis="hybrid", degree=4, CC_kwargs={"hidden_layers": [100]})` |
+| `steps.ffc` | Enables white-field correction and selects a linear illumination surface. |
+| `steps.gc` | Fits the neutral-lightness curve; requires at least three usable neutral patches. |
+| `steps.wb` | Fits neutral white balance with 0.95 headroom. |
+| `steps.cc` | Fits RPCC2. `fit`, `apply`/LUT options and CC-only `validation` have separate subgroups; validation is disabled for this smoke test. |
+| `input` | Selects frame zero explicitly for the bundled JPEGs. |
+| `chart` | Selects chart detection, independently of CPU color fitting. `auto` allows GPU detection with CPU fallback. |
+| `reference` | Omitted here to use the built-in UI-native Classic24 reference. Supply a `ReferenceProfile` for measured targets. |
+| `color` | Declares input and output encoding; the example uses sRGB. |
+| `numerics` | Resolves byte or high-precision execution from calibration inputs. Use `high` if a byte chart will later serve uint16/float scenes. |
+| `observations` | Reports saturation evidence without synthesizing replacement measurements. |
+| `persistence` | Saves models and metrics during calibration, using a safe bundle in the output directory. Image export is a separate writer call. |
 
-`precision="auto"` selects the recorded byte or high-precision runtime once at
-calibration. Choose `precision="high"` when a byte chart will calibrate future
-uint16/float scenes. New root/hybrid PLS fits require an explicit component
-budget. Training-chart ΔE00 and held-out color error answer different questions;
-the [comparison example](docs/migration-2.md#executable-examples) reports both.
+CC supports `3x3`/`ccm`, `rpcc2`, `rpcc3`, `linear`, `pls` and `nn`.
+Linear, PLS and NN fits support polynomial, root or hybrid features through
+degree four. See the [grouped configuration reference](docs/grouped-configuration.md)
+for solver-specific controls, defaults, constraints and JSON.
 
-For a complete editable workflow, open
-[`examples/customizable.py`](ColorCorrectionPipeline/examples/customizable.py).
-Its `SETTINGS` dictionary exposes grouped calibration options, optional stages,
-reference data, scene inputs and verified exports. It saves a safe calibration bundle,
-checks exact replay, and reports calibration, application and export times.
+Grouped options are immutable snapshots over the existing flat configuration.
+Old constructor arguments and kwargs remain supported; contradictory aliases
+fail explicitly. Unversioned flat dictionaries retain their historical API-1
+interpretation. A loaded calibration owns its recorded numerical recipe.
 
-```shell
-pip install ColorCorrectionPipeline
-python -m ColorCorrectionPipeline.examples.customizable --write-settings settings.json
-# Edit settings.json, then choose a new output directory:
-python -m ColorCorrectionPipeline.examples.customizable --settings settings.json --output my-run
-```
+## Further usage
 
-The example requires the 2.x API described here; until that version is published,
-install the local candidate wheel. The starter runs bundled sample photographs
-and writes a float64 TIFF plus an explicitly quantized PNG preview for each scene.
-Use `use_sample_images=false` with your own chart, white and scene paths.
+- [Fully customizable example](ColorCorrectionPipeline/examples/customizable.py):
+  editable grouped JSON, custom references, multiple scenes, TIFF/PNG exports and replay checks.
+- [Migration and model selection](docs/migration-2.md): retired defaults, historical training and feature bases.
+- [Images and exports](docs/image-io-policies.md): encoding, range, precision consent and strict readback.
+- [Calibration bundles](docs/calibration-bundles.md): portable validated inference parameters.
+- [Numerical policies](docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
+- [Batch processing](docs/batch-and-reporting.md) and [prepared execution](docs/acceleration.md).
+- [Architecture](docs/architecture.md) and [distribution qualification](docs/distribution-qualification.md): source ownership and installed-package checks.
 
-- [Contracts](docs/contracts.md): immutable images, canonical references and chart observations.
-- [Grouped configuration](docs/grouped-configuration.md): step ownership, typed containers, compatibility aliases and versioned JSON.
-- [Color semantics](docs/color-semantics.md) and [pipeline integration](docs/contracts-and-color-integration.md): declared encoding, illuminants and orientation.
-- [Numerical policies](docs/numerical-policies-and-validation.md): clipping evidence, monotonic neutral gamma, guarded FFC, reproducible fitting and grouped evaluation.
-- [Chart detection](docs/chart-detection.md): model settings, supported layouts and explicit OpenCV MCC compatibility.
-- [Persistence and compatibility](docs/local-reliability.md): transactional state and honest failure behavior.
-- [Calibration bundles](docs/calibration-bundles.md): portable validated parameters; legacy pickle loading remains trusted-file-only.
-- [Image I/O](docs/image-io-policies.md): precision consent, strict readback verification and atomic publication. Optional `png_profile="fast-lossless"` preserves PNG samples with larger files.
-- [Batch processing and reporting](docs/batch-and-reporting.md): bounded work, cancellation, per-file outcomes and stage retention.
-- [Prepared execution](docs/acceleration.md): direct CPU execution, explicitly budgeted combined LUTs, cache ownership and cube export.
-- [Performance measurements](docs/performance.md) and [distribution qualification](docs/distribution-qualification.md).
-- [Package structure and ownership](docs/architecture.md) describes the implementation boundaries.
+A desktop interface is available in
+[ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
+This package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
 
-Legacy `run`, `predict_image`, `predict_images`, array/image helpers, saved-model
-formats and import entry points remain available. New contracts and policies
-do not reinterpret older calibrations. Chart model geometry differs from MCC,
-so fitting a new calibration can produce different measurements.
+## License and citation
 
-The runtime is organized around `pipeline.py` and `config.py`; `contracts.py`,
-`colorimetry.py` and `observations.py` define the interpretation boundaries.
-`detection/` supplies model geometry and provider policy. `core/`, `modern.py`,
-`stage_policies.py` and `fitting.py` implement stage execution and fitting.
-`ui_fitting.py` and `ui_nn.py` contain UI numerical fits; `ui_native.py` records
-native image semantics and `ui_execution.py` supplies optional CPU execution.
-`bundle.py` handles safe inference artifacts; `acceleration.py` prepares execution;
-`batch.py`, `prediction.py`, `reporting.py` and `io/` handle application and output.
-`key_functions.py` retains historical utility imports for compatibility.
-
-## Example output
-
-The illustrations show an example workflow. Chart residuals and appearance do
-not establish physical color accuracy on independent photographs; results
-depend on the reference, capture conditions, fit and validation protocol.
-
-| Before | After |
-| --- | --- |
-| ![Before correction](ReadMe_Images/before.svg) | ![After correction](ReadMe_Images/After.svg) |
-
-## Development and qualification
-
-Install developer tools with `python -m pip install -e ".[dev,performance]"`.
-Build and inspect distributions with:
-
-```shell
-python -m pip install build twine
-python -m build
-python -m twine check --strict dist/*
-python scripts/verify_distribution.py --output evidence/artifacts.json
-```
-
-The release workflow installs the built wheel into isolated base and performance
-environments and runs `scripts/verify_installed.py`, including a real-photo fit,
-safe-bundle reload, precision I/O and bounded batch processing. See the
-[qualification guide](docs/distribution-qualification.md) for neutral-directory
-commands. Generated evidence belongs outside the source tree. Submit changes
-through a pull request with the relevant numerical and compatibility evidence.
-Run `python scripts/verify_v2.py --photos --output evidence/v2.json` from a
-neutral directory to qualify the new selectors, bases, historical trainers,
-real-photo bundle replay and high-precision scene handling. The installed
-distribution supplies the example samples.
-
-## License
-
-Python source is MIT licensed; see [LICENSE](LICENSE). Bundled detector models
-declare AGPL-3.0. Their original license, notices and provenance are retained
-[beside the chart model](ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md).
-Source licensing does not replace the model terms; the provenance record also
-states the unresolved model ancestry and training-data rights information.
-
-## Citation
+Python source is [MIT licensed](LICENSE). Bundled detector models declare
+AGPL-3.0; their [notices and provenance](ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md)
+are retained, including the recorded model-ancestry and training-data rights limitations.
 
 Wakholi, C., Hardigan, M. A., Lee, J., Lukas, S. B., Feldman, M. J., Altendorf,
 K. R., Neyhart, J. L., & Rippner, D. A. (2026). A systematic color correction
 pipeline for controlled-environment imaging. *The Plant Phenome Journal*, 9(1),
 e70067. [doi:10.1002/ppj2.70067](https://doi.org/10.1002/ppj2.70067).
 
-```bibtex
-@software{colorcorrectionpipeline,
-  author = {Wakholi, Collins and Rippner, Devin A.},
-  title = {ColorCorrectionPipeline: A stepwise color correction pipeline},
-  url = {https://github.com/collinswakholi/ColorCorrectionPackage},
-  version = {1.5.0},
-  year = {2026}
-}
-```
-
 Thanks to Devin A. Rippner for technical guidance, ORISE for fellowship support,
-and USDA-ARS for research support. Report issues and feature requests on
-[GitHub](https://github.com/collinswakholi/ColorCorrectionPackage/issues).
+and USDA-ARS for research support.
+[Report an issue](https://github.com/collinswakholi/ColorCorrectionPackage/issues).
