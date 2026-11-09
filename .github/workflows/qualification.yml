@@ -70,7 +70,7 @@ jobs:
       - name: Install the wheel and qualify base and performance environments
         shell: python
         run: |
-          import os, pathlib, subprocess, sys, venv
+          import json, os, pathlib, subprocess, sys, venv
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
           temporary = pathlib.Path(os.environ['RUNNER_TEMP'])
           environment = temporary / 'ccp-installed'
@@ -84,9 +84,11 @@ jobs:
           def v2_examples(label):
               run('-I', root / 'scripts/verify_v2.py', '--forbid-source', root,
                   '--photos', '--output', evidence / (label + '-v2.json'))
+              run('-I', root / 'scripts/verify_grouped_config.py', '--forbid-source', root,
+                  '--photos', '--output', evidence / (label + '-grouped.json'))
               prefix = 'ColorCorrectionPipeline.examples.'
               for module in ('quickstart', 'compare_bases', 'legacy_training',
-                             'high_precision', 'apply_bundle'):
+                              'high_precision', 'apply_bundle', 'customizable'):
                   run('-I', '-m', prefix + module, '--help')
               quick = evidence / (label + '-quickstart')
               run('-I', '-m', prefix + 'quickstart', '--device', 'cpu', '--output', quick)
@@ -100,6 +102,13 @@ jobs:
                   '--output', evidence / (label + '-precision'))
               run('-I', '-m', prefix + 'apply_bundle', '--bundle', quick / 'calibration.ccpb',
                   '--image', quick / 'corrected.png', '--output', evidence / (label + '-replay'))
+              settings = evidence / (label + '-settings.json')
+              run('-I', '-m', prefix + 'customizable', '--write-settings', settings)
+              editable = json.loads(settings.read_text(encoding='utf8'))
+              editable['calibration']['chart']['device'] = 'cpu'
+              settings.write_text(json.dumps(editable), encoding='utf8')
+              run('-I', '-m', prefix + 'customizable', '--settings', settings,
+                  '--output', evidence / (label + '-customizable'))
           run('-m', 'pip', 'install', '--upgrade', 'pip')
           if sys.platform != 'darwin':
               run('-m', 'pip', 'install', 'torch', '--index-url', 'https://download.pytorch.org/whl/cpu')

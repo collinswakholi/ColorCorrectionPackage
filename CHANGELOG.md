@@ -4,6 +4,7 @@
 
 - Default new calibrations to UI-native RPCC2 with calibration-time image precision selection.
 - Expose model, basis, degree and precision directly in `Config`; support polynomial, root and hybrid features through degree four for linear, PLS and NN fits.
+- Add immutable step options and categorized configuration requests with explicit grouped JSON; retain flat constructors, mutable fields and saved numerical recipes.
 - Retire `ours`/`conv` terminology from the primary API while retaining historical ML/conventional training, effective settings and saved-model evaluation.
 - Preserve native byte-image equations and add an explicitly recorded float64 precision runtime.
 - Ship pip-installable tutorials, sample resources, migration documentation and v2 numerical/image qualification checks.

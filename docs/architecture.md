@@ -9,7 +9,8 @@ at explicit boundaries. The repository is `ColorCorrectionPackage`.
 ```text
 ColorCorrectionPipeline/
   __init__.py                 Public imports
-  config.py                   New-fit selection and versioned config import
+  config.py                   New-fit selection, aliases and versioned config import
+  config_groups.py            Immutable grouped options and one translation map
   pipeline.py                 Transactional fit, activation and application
   contracts.py                Owned images, references and observations
   colorimetry.py              Declared transfer, white-point and color operations
@@ -72,6 +73,21 @@ The dependency direction is deliberate:
 
 ## Boundaries that protect compatibility
 
+The [grouped configuration API](grouped-configuration.md) is a presentation and
+validation boundary over the existing flat `Config` state. Frozen `Steps` and
+step option containers own their mapping inputs. Grouped constructor requests
+normalize into the same stage dictionaries, policies and switches consumed by
+the pipeline. Fresh read-only grouped snapshots reflect later supported flat
+mutations; there is no mirrored mutable tree to keep synchronized.
+
+`Config.to_dict()` keeps the existing flat contract used by runtime snapshots
+and persistence. The explicit `grouped-v1` settings layout has its own marker
+and API-2 interpretation; historical unversioned flat mappings retain API 1.
+Categorization does not change a feature order, numerical runtime or bundle
+schema. Step-local ownership coexists with shared precision, color, reference,
+observation and geometry checks. Export and prepared execution remain separate
+public APIs rather than unused Config wrappers.
+
 `FittingPolicy` owns the valid numerical profiles and runtime capabilities.
 Its `sampling_policy` mapping is shared by configuration defaults and validation,
 so adding a runtime cannot leave a separate sampling list out of sync.
@@ -111,4 +127,3 @@ packaging mistakes that an in-checkout test could miss.
 See [distribution qualification](distribution-qualification.md) for installation
 and release checks, [migration](migration-2.md) for public model/precision controls,
 and [calibration bundles](calibration-bundles.md) for the persisted contract.
-

@@ -7,7 +7,7 @@ demonstrates the API and creates no additional capture precision. Pass genuine
 uint16/float TIFF files with --chart, --white and --scene for scientific inputs.
 """
 import numpy as np
-from ColorCorrectionPipeline import Config, ImageData
+from ColorCorrectionPipeline import Config, ImageData, Steps, FFCOptions, CCOptions
 from ColorCorrectionPipeline.io import read_image_data, write_image_data
 from ._common import (sample_paths, input_arguments, inputs, new_output, fit,
                       export_and_replay, report, scores)
@@ -27,8 +27,11 @@ def main():
     with sample_paths() as samples:
         chart, white, scene = inputs(args, samples)
         output = new_output(args.output)
-        config = Config(model="rpcc2", precision="high", do_ffc=white is not None,
-                        chart_detection={"device": args.device})
+        config = Config(
+            steps=Steps(ffc=FFCOptions(enabled=white is not None),
+                        cc=CCOptions(fit={"model": "rpcc2"})),
+            numerics={"precision": "high"}, chart={"device": args.device},
+        )
         pipeline, metrics, elapsed = fit(high_image(chart),
                                          high_image(white) if white is not None else None, config)
         corrected, result = export_and_replay(pipeline, high_image(scene), output, dtype="float64")
@@ -45,4 +48,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

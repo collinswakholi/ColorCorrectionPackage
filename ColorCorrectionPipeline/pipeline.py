@@ -14,32 +14,16 @@ The pipeline can train on an image with color chart and then apply learned
 corrections to new images.
 
 Example:
-    >>> from color_correc_optim import ColorCorrection, Config
-    >>> import cv2
-    >>> 
-    >>> # Load images
-    >>> img_bgr = cv2.imread("image_with_chart.jpg")
-    >>> white_bgr = cv2.imread("white_background.jpg")
-    >>> 
-    >>> # Configure pipeline
+    >>> from ColorCorrectionPipeline import ColorCorrection, Config, Steps, CCOptions
     >>> config = Config(
-    ...     do_ffc=True,
-    ...     do_gc=True,
-    ...     do_wb=True,
-    ...     do_cc=True,
-    ...     FFC_kwargs={"bins": 50, "show": False},
-    ...     GC_kwargs={"max_degree": 5},
-    ...     WB_kwargs={"get_deltaE": True},
-    ...     CC_kwargs={"mtd": "nn", "degree": 2}
+    ...     steps=Steps(cc=CCOptions(fit={"model": "rpcc3"})),
+    ...     input={"frame_index": 0},
     ... )
-    >>> 
-    >>> # Run pipeline
     >>> cc = ColorCorrection()
-    >>> metrics, images, error = cc.run(img_bgr, white_bgr, "test", config)
-    >>> 
-    >>> # Predict on new image
-    >>> test_img = cv2.imread("new_image.jpg")
-    >>> results = cc.predict_image(test_img, show=True)
+    >>> metrics, images, failed = cc.run("chart.jpg", "white.jpg", config=config)
+    >>> if failed:
+    ...     raise RuntimeError(cc.last_run["errors"])
+    >>> results = cc.predict_image("scene.jpg", stages="final")
 """
 
 import gc

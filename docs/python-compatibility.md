@@ -61,4 +61,3 @@ after its actual installations and numerical checks pass. Recheck the
 dependency versions and device execution evidence when comparing performance.
 Saved numerical bundles avoid training-library object deserialization, but
 their predictions still need qualification when the numerical stack changes.
-

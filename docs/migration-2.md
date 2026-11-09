@@ -6,9 +6,17 @@ terminology is retired from the primary model menu. Existing ML and
 conventional training can still run with their original numerical policies,
 and supported calibration files retain their recorded predictions.
 
+Grouped configuration is an additive way to express that same recipe. It places
+step switches beside their controls without changing fitted numbers, existing
+kwargs forms or saved-calibration interpretation. See the
+[grouped configuration reference](grouped-configuration.md) for all categories.
+
 ## Install and run
 
-Install the published package with:
+The distribution is installed with `pip install ColorCorrectionPipeline`. The
+APIs in this guide require a 2.x build; until publication, install the local
+candidate wheel instead. An unqualified public install cannot retrieve an
+unpublished candidate.
 
 ```shell
 pip install ColorCorrectionPipeline
@@ -22,8 +30,67 @@ CPU recovery. The sample resources are included with the wheel and their
 hashes are checked before each tutorial. No UI checkout or UI executable is
 needed.
 
-The v2 API requires a 2.x build. To reproduce a released 1.x environment, pin the
+To reproduce a released 1.x environment, pin the
 original package and dependencies, for example `pip install ColorCorrectionPipeline==1.5.0`.
+
+## Group existing controls by step
+
+```python
+from ColorCorrectionPipeline import Config, Steps, FFCOptions, WBOptions, CCOptions
+
+config = Config(
+    input={"frame_index": 0},
+    chart={"device": "auto", "allow_cpu_fallback": True},
+    numerics={"precision": "auto"},
+    steps=Steps(
+        ffc=FFCOptions(enabled=False),
+        wb=WBOptions(fit={"headroom": 0.95}),
+        cc=CCOptions(
+            fit={"model": "nn", "basis": "root", "degree": 3,
+                 "nn": {"hidden_layers": [100], "max_iterations": 10000}},
+            validation={"enabled": True, "n_splits": 4, "random_state": 42},
+        ),
+    ),
+)
+```
+
+`Steps`, `FFCOptions`, `GCOptions`, `WBOptions` and `CCOptions` are frozen
+containers with owned immutable subgroup mappings. The same structure can be
+provided as dictionaries. Omitted controls retain their existing defaults.
+
+| Existing control | Grouped form |
+| --- | --- |
+| `do_ffc` / `FFC_kwargs` | `steps.ffc.enabled`, `.fit`, `.white_plane`, `.quality`, `.reporting` |
+| `do_gc` / modern GC fields in `stage_policy` | `steps.gc.enabled`, `.quality`, `.reporting` |
+| `do_wb` / modern WB fields in `stage_policy` | `steps.wb.enabled`, `.fit`, `.quality`, `.reporting` |
+| `do_cc`, `model`, `basis`, `degree`, solver kwargs | `steps.cc.enabled`, `.fit`, including `.fit.nn` or `.fit.pls` |
+| CC LUT kwargs | `steps.cc.apply` (`grid_size` / `min_pixels` replace `lut_grid_size` / `lut_min_pixels` there) |
+| `validation_options` | `steps.cc.validation` |
+| `image_options`, `chart_detection` | Shared `input`, `chart` mappings with existing field names |
+| `reference_profile`, `color_semantics`, `precision` | Shared `reference`, `color`, `numerics.precision` |
+| `save`, `save_path`, `model_format` | `persistence.enabled`, `.directory`, `.format` |
+
+These are aliases into one authoritative configuration. Existing mutable flat
+attributes continue to work. A grouped accessor returns a fresh read-only
+snapshot, rather than another mutable copy to synchronize. Equal duplicates are
+accepted and conflicting values fail, including explicitly supplied default
+flags such as `do_ffc=True` versus `steps.ffc.enabled=False`. Numeric aliases
+must have the same type as well as value (`True` versus `1`, or `2` versus
+`2.0`, conflict); equivalent `Path` and string paths are accepted.
+
+`to_dict()` retains its existing flat representation. `to_grouped_dict()` is the
+explicit nested JSON form with `layout="grouped-v1"` and `api_version=2`;
+`Config.from_dict` reads that marker. An unversioned flat dictionary still means
+API 1. To deliberately interpret a new unversioned mapping as API 2, supply
+`source_version=2`. Configuration interpretation, grouped layout version,
+numerical runtime and bundle schema are separate version domains.
+
+Grouped controls target modern API-2 UI-family configurations. Historical
+training stays in its explicit flat form; its configuration cannot be silently
+converted to a native residual NN by grouping a similarly named method. The
+grouped API does not add export or prepared-execution wrappers to `Config`:
+use `write_image_data` and the existing runtime-qualified `ExecutionOptions`
+API for those operations.
 
 ## Model and basis selection
 
@@ -138,7 +205,8 @@ information.
 
 ## Executable examples
 
-All tutorials support `--help`. Each output directory must be new. Supply
+All tutorials support `--help`. Each output directory must be new. The focused
+calibration tutorials below accept
 `--chart`, `--white`, `--scene` for your own captures. With a caller-supplied chart,
 omitting `--white` disables FFC. `--no-white` disables it for bundled samples.
 
@@ -149,6 +217,8 @@ python -m ColorCorrectionPipeline.examples.compare_bases --output comparison --m
 python -m ColorCorrectionPipeline.examples.legacy_training --method custom --iterations 100 --output old-torch
 python -m ColorCorrectionPipeline.examples.high_precision --output precision-demo
 python -m ColorCorrectionPipeline.examples.apply_bundle --bundle run-default/calibration.ccpb --image scene.png --output replay
+python -m ColorCorrectionPipeline.examples.customizable --write-settings settings.json
+python -m ColorCorrectionPipeline.examples.customizable --settings settings.json --output customized
 ```
 
 `quickstart` saves `calibration.ccpb`, `corrected.png` and `results.json`.
@@ -161,6 +231,27 @@ unless `--nn-epochs` is supplied. A shortened cap is a smoke test configuration.
 preview. With the built-in byte JPEGs it expands the original codes to uint16
 for demonstration. Pass genuine uint16 or float TIFF captures to assess your
 measurement workflow.
+
+[`customizable.py`](../ColorCorrectionPipeline/examples/customizable.py) is a
+complete editable workflow using `SETTINGS` or a JSON settings file. Its starter
+uses an explicit `grouped-v1` calibration document. Change
+`calibration.steps.cc.fit` to select the module's 3×3, polynomial linear, root
+PLS or hybrid NN recipes. A supplied `calibration` dictionary replaces that
+entire section, so retain any overrides you still need. Existing flat
+calibration sections remain accepted. The example selects API version 2
+deliberately for new flat mappings and restores array-valued options.
+
+Set `use_sample_images=false` and fill in `chart`, `white` and a nonempty `scenes`
+list for your captures. Set `calibration.steps.ffc.enabled=false` to omit the
+white in the grouped starter. Flat settings can still use `do_ffc=False`. Capture,
+output-directory and resolved calibration-save paths resolve relative to the JSON file;
+nested detector/model paths retain their usual working-directory semantics.
+`--output` resolves relative to the working directory. Optional physical
+`reference` data uses the `ReferenceProfile.from_values` contract. Exports accept
+`write_image_data` options and record readback verification, precision consent
+and timing. Each scene receives its own directory. The example refuses existing
+output directories and compares predictions from the in-memory calibration and
+a freshly loaded safe bundle exactly.
 
 The reported training-chart ΔE00 compares fixed patch means on the fitted
 capture. Grouped validation excludes held-out CC cells while upstream FFC/GC/WB
@@ -183,4 +274,3 @@ For a release candidate, run it from a neutral directory against the built
 wheel and source distribution with `--forbid-source /path/to/checkout`.
 Use the existing UI comparator for the 15 shared methods. New root/hybrid
 PLS and NN combinations require their own reference and held-out validation.
-

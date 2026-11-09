@@ -48,18 +48,22 @@ of a distribution. Timing measurements are described separately in
 The 2.0 qualification also runs `scripts/verify_v2.py --photos` against installed
 base and performance environments. It checks all 36 solver/basis/degree
 requests, independent root-feature values, retained historical trainers,
-real-image replay, and adjacent uint16/float signals. All five installed
-tutorials run with bundled samples. The source archive is independently built
+real-image replay, and adjacent uint16/float signals. Grouped configuration
+checks cover flat/grouped equivalence, explicit JSON layouts, immutable snapshots,
+conflicting aliases and real-image persistence. All six installed tutorials
+run with bundled samples. The source archive is independently built
 and installed, then checked from a neutral directory for sample-resource
 mapping and executable quickstart behavior.
 
 The reusable qualification workflow builds and inspects distributions once,
 then installs that wheel in isolated base and performance environments on
-Windows, Linux and macOS for Python 3.8 and 3.12, plus Ubuntu for 3.9–3.11.
+Windows, Linux and macOS for Python 3.8 and 3.12–3.14, plus Linux for 3.9–3.11.
 Linux and Windows runners install CPU Torch from the official PyTorch index;
 this does not change package requirements or a user's selected Torch runtime.
-The matrix must pass before release. Local Windows execution cannot qualify
-unavailable operating systems, Radeon/Apple hardware or newer interpreters.
+The matrix must pass before release. Local Windows checks cover Python 3.8,
+3.12, 3.13 and 3.14; cross-platform qualification comes from CI. Local results
+apply only to the tested interpreters and available hardware. Radeon and Apple
+acceleration require their respective hardware checks.
 
 Numba is optional. Base installations use NumPy fallbacks; strict unavailable
 backend requests fail. Prepared CPU selection controls CC/LUT execution, while

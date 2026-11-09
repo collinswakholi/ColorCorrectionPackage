@@ -21,6 +21,7 @@ def main():
     args = parser.parse_args()
     output = new_output(args.output)
     pipeline = ColorCorrection().load_bundle(args.bundle)
+    encoding = (pipeline.models.metadata.get("color_semantics") or {}).get("output_encoding", "srgb")
     records = []
     for index, path in enumerate(args.image):
         start = time.perf_counter()
@@ -29,6 +30,7 @@ def main():
         suffix = ".png" if args.dtype in ("uint8", "uint16") else ".tiff"
         record = write_image_data(output / (str(index + 1) + "-" + path.stem + suffix),
                                   corrected, dtype=args.dtype, allow_precision_loss=True,
+                                  input_encoding=encoding,
                                   png_profile="fast-lossless" if suffix == ".png" else "compatible")
         records.append({"input": str(path), "output": str(record.path),
                         "apply_seconds": apply_seconds,
@@ -40,4 +42,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

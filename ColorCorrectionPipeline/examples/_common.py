@@ -94,6 +94,7 @@ def export_and_replay(pipeline, scene, output, dtype="uint8"):
     started = time.perf_counter()
     record = write_image_data(output / ("corrected" + suffix), replay, dtype=dtype,
                               allow_precision_loss=True,
+                              input_encoding=(pipeline.models.metadata.get("color_semantics") or {}).get("output_encoding", "srgb"),
                               png_profile="fast-lossless" if suffix == ".png" else "compatible")
     export_seconds = time.perf_counter() - started
     if record.maximum_codec_error != 0:
@@ -123,4 +124,3 @@ def scores(metrics):
     cc = metrics["chart_CC"]
     return {"training_chart_de00_before_cc": cc["delta_e00_before_mean"],
             "training_chart_de00_after_cc": cc["delta_e00_after_mean"]}
-

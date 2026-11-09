@@ -11,8 +11,13 @@ from .colorimetry import ColorSemantics, D65, white_xy
 from .contracts import ReferenceProfile
 from .stage_policies import StagePolicy
 from .fitting import FittingPolicy
+from .config_groups import (UNSET, GROUP_NAMES, GROUPED_LAYOUT, resolve_grouped,
+                            grouped_dict, group_view)
 
 __all__ = ["Config"]
+
+_SCALAR_DEFAULTS = {"do_ffc": True, "do_gc": True, "do_wb": True, "do_cc": True,
+                    "save": False, "model_format": "pickle"}
 
 
 class Config:
@@ -43,17 +48,19 @@ class Config:
         precision: auto resolves once at fit, native-byte requires uint8 sRGB,
             and high uses the float64 image runtime.
 
+    Grouped API-2 requests accept ``steps`` (Steps or a mapping), ``input``
+    (image loader options), ``chart`` (detector/sampling options), ``reference``
+    (ReferenceProfile), ``color`` (color semantics), ``numerics`` (precision),
+    ``observations`` (saturation diagnostics), and ``persistence``. GC/WB quality,
+    CC fitting/application and CC-only validation live with their owning step.
+    See docs/grouped-configuration.md for the complete categorized reference.
+
     Example:
-        >>> config = Config(
-        ...     do_ffc=True,
-        ...     do_gc=True,
-        ...     do_wb=True,
-        ...     do_cc=True,
-        ...     save=True,
-        ...     save_path="results",
-        ...     FFC_kwargs={"bins": 50, "degree": 3},
-        ...     CC_kwargs={"mtd": "linear", "degree": 2}
-        ... )
+        >>> config = Config(steps={
+        ...     "ffc": {"fit": {"method": "linear", "degree": 1}},
+        ...     "cc": {"fit": {"model": "pls", "basis": "root", "degree": 3,
+        ...                     "pls": {"components": 6}}},
+        ... })
     
     Unversioned dictionaries retain v1 interpretation. Use source_version=2
     when deliberately constructing a new config from an unversioned mapping.
@@ -61,11 +68,11 @@ class Config:
 
     def __init__(
         self,
-        do_ffc: bool = True,
-        do_gc: bool = True,
-        do_wb: bool = True,
-        do_cc: bool = True,
-        save: bool = False,
+        do_ffc: bool = UNSET,
+        do_gc: bool = UNSET,
+        do_wb: bool = UNSET,
+        do_cc: bool = UNSET,
+        save: bool = UNSET,
         check_saturation: Optional[bool] = None,
         save_path: Optional[str] = None,
         REF_ILLUMINANT: Optional[np.ndarray] = None,
@@ -80,15 +87,38 @@ class Config:
         stage_policy=None,
         fitting_policy=None,
         validation_options: Optional[Dict[str, Any]] = None,
-        model_format: str = "pickle",
+        model_format: str = UNSET,
         *,
         model=None,
         basis=None,
         degree=None,
         precision=None,
         api_version=None,
+        steps=None,
+        input=None,
+        chart=None,
+        reference=None,
+        color=None,
+        numerics=None,
+        observations=None,
+        persistence=None,
     ) -> None:
         """Initialize configuration with default or provided values."""
+        arguments = locals().copy()
+        arguments.pop("self")
+        groups = {name: arguments.pop(name) for name in GROUP_NAMES}
+        if any(value is not None for value in groups.values()):
+            # One adapter resolves into the established flat state. Pipeline
+            # snapshots and legacy mutable fields therefore retain one owner.
+            resolved = resolve_grouped(Config, arguments, groups, required_keys=_SCALAR_DEFAULTS)
+            self.__dict__.update(resolved.__dict__)
+            return
+        do_ffc = _SCALAR_DEFAULTS["do_ffc"] if do_ffc is UNSET else do_ffc
+        do_gc = _SCALAR_DEFAULTS["do_gc"] if do_gc is UNSET else do_gc
+        do_wb = _SCALAR_DEFAULTS["do_wb"] if do_wb is UNSET else do_wb
+        do_cc = _SCALAR_DEFAULTS["do_cc"] if do_cc is UNSET else do_cc
+        save = _SCALAR_DEFAULTS["save"] if save is UNSET else save
+        model_format = _SCALAR_DEFAULTS["model_format"] if model_format is UNSET else model_format
         supplied = deepcopy(CC_kwargs) if CC_kwargs is not None else {}
         selectors = {"model": model, "basis": basis, "degree": degree}
         for key, value in selectors.items():
@@ -226,6 +256,13 @@ class Config:
             Config instance.
         """
         config_dict = deepcopy(config_dict)
+        layout = config_dict.pop("layout", None)
+        if layout is not None:
+            if layout != GROUPED_LAYOUT:
+                raise ValueError("unknown configuration layout: " + str(layout))
+            if source_version not in (None, 2) or config_dict.get("api_version", 2) != 2:
+                raise ValueError("grouped-v1 requires configuration API version 2")
+            config_dict.setdefault("api_version", 2)
         if source_version is not None:
             if type(source_version) is not int or source_version not in (1, 2):
                 raise ValueError("source_version must be 1 or 2")
@@ -239,6 +276,48 @@ class Config:
             config_dict["REF_ILLUMINANT"] = np.array(config_dict["REF_ILLUMINANT"])
         
         return cls(**config_dict)
+
+    def to_grouped_dict(self) -> Dict[str, Any]:
+        """Return explicit grouped-v1 JSON data; flat to_dict remains unchanged.
+
+        Fixed numerical policy identities and supported flat-only compatibility
+        keys remain explicit. Historical recipes keep their flat serialization.
+        """
+        self.validate()
+        return grouped_dict(self)
+
+    @property
+    def steps(self):
+        """Fresh immutable step snapshot; old flat mutations remain observable."""
+        return group_view(self, "steps")
+
+    @property
+    def input(self):
+        return group_view(self, "input")
+
+    @property
+    def chart(self):
+        return group_view(self, "chart")
+
+    @property
+    def reference(self):
+        return self.reference_profile
+
+    @property
+    def color(self):
+        return group_view(self, "color")
+
+    @property
+    def numerics(self):
+        return group_view(self, "numerics")
+
+    @property
+    def observations(self):
+        return group_view(self, "observations")
+
+    @property
+    def persistence(self):
+        return group_view(self, "persistence")
 
     def validate(self) -> None:
         """
@@ -384,3 +463,15 @@ class Config:
             f"do_wb={self.do_wb}, do_cc={self.do_cc}, "
             f"save={self.save}, save_path={self.save_path})"
         )
+
+
+# Omitted values need a sentinel to distinguish explicit default-value aliases
+# from grouped requests. Keep the established defaults visible to help/inspect.
+import inspect as _inspect
+_signature = _inspect.signature(Config.__init__)
+Config.__init__.__signature__ = _signature.replace(parameters=[
+    parameter.replace(default=_SCALAR_DEFAULTS[parameter.name])
+    if parameter.name in _SCALAR_DEFAULTS else parameter
+    for parameter in _signature.parameters.values()
+])
+del _signature, _inspect

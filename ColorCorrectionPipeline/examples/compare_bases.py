@@ -6,7 +6,7 @@ python -m ColorCorrectionPipeline.examples.compare_bases --output comparison \
 NN uses its full 10000-epoch cap unless --nn-epochs is supplied.
 All reported held-out colors share the already fitted upstream stages.
 """
-from ColorCorrectionPipeline import Config
+from ColorCorrectionPipeline import Config, Steps, FFCOptions, CCOptions
 from ._common import (sample_paths, input_arguments, inputs, new_output, fit,
                       export_and_replay, report, scores)
 
@@ -38,18 +38,19 @@ def main():
             cases = [(None, None)] if model in ("ccm", "rpcc2", "rpcc3") else [
                 (basis, degree) for basis in args.bases for degree in degrees]
             for basis, degree in cases:
-                options = {}
-                if model == "pls":
-                    options["ncomp"] = args.pls_components
-                if model == "nn":
-                    options.update(hidden_layers=[100], max_iterations=args.nn_epochs)
                 selection = {"model": model}
+                if model == "pls":
+                    selection["pls"] = {"components": args.pls_components}
+                if model == "nn":
+                    selection["nn"] = {"hidden_layers": [100], "max_iterations": args.nn_epochs}
                 if basis is not None:
                     selection.update(basis=basis, degree=degree)
-                config = Config(**selection, do_ffc=white is not None,
-                                CC_kwargs=options, image_options={"frame_index": 0},
-                                chart_detection={"device": args.device},
-                                validation_options={"enabled": True, "n_splits": 4, "random_state": 42})
+                config = Config(
+                    steps=Steps(ffc=FFCOptions(enabled=white is not None),
+                                cc=CCOptions(fit=selection,
+                                    validation={"enabled": True, "n_splits": 4, "random_state": 42})),
+                    input={"frame_index": 0}, chart={"device": args.device},
+                )
                 name = model if basis is None else model + "-" + basis + "-d" + str(degree)
                 folder = new_output(output / name)
                 pipeline, metrics, elapsed = fit(chart, white, config)
@@ -68,4 +69,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -16,6 +16,10 @@ original numerical policy, and saved calibrations retain their recorded rules.
 See the [2.0 migration guide](docs/migration-2.md) for compatibility, polynomial
 and root-polynomial fitting, and high-precision image handling.
 
+The additive [grouped configuration API](docs/grouped-configuration.md) puts each
+step's enable switch beside its controls. Existing constructor arguments and
+kwargs dictionaries remain supported, with the same numerical interpretation.
+
 ## Installation
 
 Python 3.8 or later is required. The qualification matrix covers Python
@@ -33,6 +37,8 @@ The `performance` extra enables optional Numba CPU kernels. Install it with
 plotting and ONNX Runtime dependencies are included. The repository is named
 ColorCorrectionPackage. Both the installed distribution and Python import are
 ColorCorrectionPipeline. Features described for 2.0 require that version.
+Until 2.0 is published, install the local candidate wheel to use these APIs;
+an unqualified public pip install does not install an unpublished candidate.
 
 Chart detection defaults to the bundled Classic24 ONNX model. It prefers a
 supported GPU provider and falls back to CPU. See [GPU configuration](docs/gpu-detection.md)
@@ -57,16 +63,16 @@ To use the Python API, supply paths to your captures:
 
 ```python
 from pathlib import Path
-from ColorCorrectionPipeline import ColorCorrection, Config
+from ColorCorrectionPipeline import ColorCorrection, Config, Steps, CCOptions
 from ColorCorrectionPipeline.io import write_image_data
 
 output = Path("results")
 output.mkdir(exist_ok=False)
 pipeline = ColorCorrection()
 config = Config(
-    model="rpcc2",
-    image_options={"frame_index": 0},
-    save=True, save_path=str(output), model_format="bundle",
+    steps=Steps(cc=CCOptions(fit={"model": "rpcc2"})),
+    input={"frame_index": 0},
+    persistence={"enabled": True, "directory": str(output), "format": "bundle"},
 )
 metrics, images, failed = pipeline.run(
     "chart.png", "white.png", name_="sample", config=config
@@ -83,8 +89,9 @@ record = write_image_data(
 )
 ```
 
-Set `do_ffc=False` and omit the white image when no matching white-field
-photograph is available. Enabled stages are required: `last_run` records stage
+Set `steps={"ffc": {"enabled": False}}` and omit the white image when no matching
+white-field photograph is available. The existing `do_ffc=False` alias also
+remains available. Enabled stages are required: `last_run` records stage
 outcomes, errors, detector execution and persistence diagnostics. A failed fit
 or save preserves the previous successful calibration.
 
@@ -98,6 +105,35 @@ Linear-light CCM also optimizes RGB error; evaluate its measured results rather
 than assuming every correction reduces perceptual error.
 
 ## Working with the package
+
+Use `Steps` with `FFCOptions`, `GCOptions`, `WBOptions` and `CCOptions` to keep
+stage controls together. CC fitting, application/LUT settings and validation
+have separate subgroups. Input, chart detection, reference, color and precision
+are shared contracts; image export remains an explicit writer call.
+
+```python
+from ColorCorrectionPipeline import Config, Steps, FFCOptions, WBOptions, CCOptions
+
+config = Config(
+    steps=Steps(
+        ffc=FFCOptions(enabled=False),
+        wb=WBOptions(fit={"headroom": 0.95}),
+        cc=CCOptions(
+            fit={"model": "pls", "basis": "root", "degree": 3,
+                 "pls": {"components": 6}},
+            validation={"enabled": True, "n_splits": 4, "random_state": 42},
+        ),
+    ),
+    numerics={"precision": "auto"},
+)
+```
+
+The containers and their owned subgroup mappings are immutable. `Config` keeps
+one authoritative state and exposes fresh grouped snapshots. Its existing
+mutable flat attributes and the convenient model aliases below remain supported.
+Conflicting grouped/flat requests fail rather than silently overriding a value.
+See the [complete grouped reference](docs/grouped-configuration.md) for each
+category, solver-specific controls, JSON and compatibility rules.
 
 | New fit | Configuration |
 | --- | --- |
@@ -113,7 +149,26 @@ uint16/float scenes. New root/hybrid PLS fits require an explicit component
 budget. Training-chart ΔE00 and held-out color error answer different questions;
 the [comparison example](docs/migration-2.md#executable-examples) reports both.
 
+For a complete editable workflow, open
+[`examples/customizable.py`](ColorCorrectionPipeline/examples/customizable.py).
+Its `SETTINGS` dictionary exposes grouped calibration options, optional stages,
+reference data, scene inputs and verified exports. It saves a safe calibration bundle,
+checks exact replay, and reports calibration, application and export times.
+
+```shell
+pip install ColorCorrectionPipeline
+python -m ColorCorrectionPipeline.examples.customizable --write-settings settings.json
+# Edit settings.json, then choose a new output directory:
+python -m ColorCorrectionPipeline.examples.customizable --settings settings.json --output my-run
+```
+
+The example requires the 2.x API described here; until that version is published,
+install the local candidate wheel. The starter runs bundled sample photographs
+and writes a float64 TIFF plus an explicitly quantized PNG preview for each scene.
+Use `use_sample_images=false` with your own chart, white and scene paths.
+
 - [Contracts](docs/contracts.md): immutable images, canonical references and chart observations.
+- [Grouped configuration](docs/grouped-configuration.md): step ownership, typed containers, compatibility aliases and versioned JSON.
 - [Color semantics](docs/color-semantics.md) and [pipeline integration](docs/contracts-and-color-integration.md): declared encoding, illuminants and orientation.
 - [Numerical policies](docs/numerical-policies-and-validation.md): clipping evidence, monotonic neutral gamma, guarded FFC, reproducible fitting and grouped evaluation.
 - [Chart detection](docs/chart-detection.md): model settings, supported layouts and explicit OpenCV MCC compatibility.

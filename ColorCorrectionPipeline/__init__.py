@@ -40,6 +40,7 @@ from .contracts import ImageData, ReferenceProfile, ChartObservation, Observatio
 from .colorimetry import ColorSemantics
 from .stage_policies import StagePolicy, MonotonicToneModel
 from .fitting import FittingPolicy
+from .config_groups import Steps, FFCOptions, GCOptions, WBOptions, CCOptions
 from .bundle import BundleLimits, BundleError
 from .results import BatchItemResult, BatchResult
 from .reporting import save_report
@@ -83,6 +84,7 @@ __all__: List[str] = [
     "MODEL_PATH",
     "ImageData", "ReferenceProfile", "ChartObservation", "ObservationSet", "ColorSemantics",
     "StagePolicy", "MonotonicToneModel", "FittingPolicy",
+    "Steps", "FFCOptions", "GCOptions", "WBOptions", "CCOptions",
     "BundleLimits", "BundleError", "BatchItemResult", "BatchResult", "save_report",
     "ExecutionOptions", "PreparedExecution", "AcceleratedResult", "LutCache", "AccuracyBudgetError",
     "core",
