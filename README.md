@@ -7,7 +7,7 @@ captured under the same conditions.
 **Version 2.0 defaults to the UI-native RPCC2 workflow.** Legacy methodology is
 retired as the default, along with `ours`/`conv` naming in the primary API.
 Historical training configurations and saved calibrations retain their original
-numerical behavior. See the [migration guide](docs/migration-2.md).
+numerical behavior. See the [migration guide](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/migration-2.md).
 
 ## Install
 
@@ -21,10 +21,10 @@ The distribution and Python import are both named `ColorCorrectionPipeline`;
 the repository is named ColorCorrectionPackage.
 
 Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPython
-3.13 or 3.14 for a new environment; see [Python compatibility](docs/python-compatibility.md).
+3.13 or 3.14 for a new environment; see [Python compatibility](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/python-compatibility.md).
 Optional CPU acceleration is available with
 `pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
-prefers a supported GPU provider and falls back to CPU; see [GPU setup](docs/gpu-detection.md).
+prefers a supported GPU provider and falls back to CPU; see [GPU setup](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/gpu-detection.md).
 
 ## One complete test example
 
@@ -130,7 +130,7 @@ as the white-image argument.
 
 CC supports `3x3`/`ccm`, `rpcc2`, `rpcc3`, `linear`, `pls` and `nn`.
 Linear, PLS and NN fits support polynomial, root or hybrid features through
-degree four. See the [grouped configuration reference](docs/grouped-configuration.md)
+degree four. See the [grouped configuration reference](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/grouped-configuration.md)
 for solver-specific controls, defaults, constraints and JSON.
 
 Grouped options are immutable snapshots over the existing flat configuration.
@@ -140,14 +140,14 @@ interpretation. A loaded calibration owns its recorded numerical recipe.
 
 ## Further usage
 
-- [Fully customizable example](ColorCorrectionPipeline/examples/customizable.py):
+- [Fully customizable example](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/ColorCorrectionPipeline/examples/customizable.py):
   editable grouped JSON, custom references, multiple scenes, TIFF/PNG exports and replay checks.
-- [Migration and model selection](docs/migration-2.md): retired defaults, historical training and feature bases.
-- [Images and exports](docs/image-io-policies.md): encoding, range, precision consent and strict readback.
-- [Calibration bundles](docs/calibration-bundles.md): portable validated inference parameters.
-- [Numerical policies](docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
-- [Batch processing](docs/batch-and-reporting.md) and [prepared execution](docs/acceleration.md).
-- [Architecture](docs/architecture.md) and [distribution qualification](docs/distribution-qualification.md): source ownership and installed-package checks.
+- [Migration and model selection](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/migration-2.md): retired defaults, historical training and feature bases.
+- [Images and exports](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/image-io-policies.md): encoding, range, precision consent and strict readback.
+- [Calibration bundles](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/calibration-bundles.md): portable validated inference parameters.
+- [Numerical policies](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
+- [Batch processing](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/batch-and-reporting.md) and [prepared execution](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/acceleration.md).
+- [Architecture](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/architecture.md) and [distribution qualification](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/distribution-qualification.md): source ownership and installed-package checks.
 
 A desktop interface is available in
 [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
@@ -155,8 +155,8 @@ This package builds on [ML_ColorCorrection_tool](https://github.com/collinswakho
 
 ## License and citation
 
-Python source is [MIT licensed](LICENSE). Bundled detector models declare
-AGPL-3.0; their [notices and provenance](ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md)
+Python source is [MIT licensed](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/LICENSE). Bundled detector models declare
+AGPL-3.0; their [notices and provenance](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md)
 are retained, including the recorded model-ancestry and training-data rights limitations.
 
 Wakholi, C., Hardigan, M. A., Lee, J., Lukas, S. B., Feldman, M. J., Altendorf,
