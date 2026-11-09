@@ -108,7 +108,7 @@ class MyModels:
                 reference_profile=profile if semantics.version == "explicit-v1" else None,
                 image_options=image_options,
                 stage_policy=metadata.get("stage_policy"),
-                fitting_policy=metadata.get("fitting_policy"),
+                fitting_policy=metadata.get("fitting_policy", "legacy-v1"),
                 validation_options=metadata.get("validation_options"),
             )
             validation.validate()
@@ -116,6 +116,16 @@ class MyModels:
             from .fitting import FittingPolicy
             stages = StagePolicy.from_value(metadata.get("stage_policy"))
             fitting = FittingPolicy.from_value(metadata.get("fitting_policy"))
+            if fitting.ui_runtime == "auto-v2":
+                raise ValueError("saved calibration requires a resolved precision runtime")
+            if "config_version" in metadata and (type(metadata["config_version"]) is not int or metadata["config_version"] not in (1, 2)):
+                raise ValueError("unsupported saved configuration version")
+            requested = metadata.get("requested_precision", "auto")
+            if requested not in ("auto", "native-byte", "high"):
+                raise ValueError("invalid recorded precision request")
+            expected = {"native-byte": "native-v1", "high": "precision-f64-v1"}.get(requested)
+            if expected is not None and fitting.ui_runtime != expected:
+                raise ValueError("recorded precision request contradicts image runtime")
             recorded_runtime = metadata.get("algorithms", {}).get("ui_runtime", "staged-v1")
             if fitting.version == "ui-compatible-v1" and recorded_runtime != fitting.ui_runtime:
                 raise ValueError("UI runtime contradicts recorded image equations")
@@ -152,10 +162,12 @@ class MyModels:
             cc = state["model_cc"]
             if fitting.version == "ui-compatible-v1" and cc is not None:
                 from .core.correction import Regressor_Model, _predict_direct
-                from .ui_fitting import UIPredictor, options
+                from .ui_fitting import UIPredictor, options, feature_order, features
                 if not isinstance(cc, tuple) or len(cc) != 3 or cc[2] != "ours" or type(cc[0]) is not Regressor_Model or type(cc[0].model) is not UIPredictor:
                     raise ValueError("UI CC requires its known numerical predictor")
                 model = cc[0]
+                if fitting.ui_runtime == "precision-f64-v1" and (model.use_lut or getattr(model, "_lut", None) is not None):
+                    raise ValueError("high precision requires direct CC without a float32 LUT")
                 recorded = metadata.get("numerical_report", {}).get("CC", {}).get("fit", {})
                 settings = {k:list(v) if isinstance(v,tuple) else v for k,v in model.model.settings.items()}
                 if (options(cc[1]) != cc[1] or settings != cc[1] or recorded.get("effective_parameters") != cc[1]
@@ -164,12 +176,15 @@ class MyModels:
                         or semantics.fitting_domain != "linear-rgb" or recorded.get("fitting_domain") != "linear-rgb"
                         or recorded.get("target_domain") != "unclipped-linear-srgb"):
                     raise ValueError("UI estimator contradicts recorded settings or fitting semantics")
+                if (recorded.get("feature_order") != feature_order(settings)
+                        or recorded.get("feature_count") != features(np.zeros((1, 3)), settings).shape[1]):
+                    raise ValueError("UI estimator contradicts recorded feature layout")
                 for key in ("use_lut", "lazy_lut", "lut_min_pixels"):
                     if getattr(model,key) != cc[1][key]:
                         raise ValueError("UI estimator contradicts recorded LUT settings")
                 if model._lut_grid_size != cc[1]["lut_grid_size"]:
                     raise ValueError("UI estimator contradicts recorded LUT grid")
-                if fitting.ui_runtime == "native-v1" and recorded.get("details", {}).get("ui_runtime") != "native-v1":
+                if fitting.ui_runtime in ("native-v1", "precision-f64-v1") and recorded.get("details", {}).get("ui_runtime") != fitting.ui_runtime:
                     raise ValueError("native UI fitting report contradicts image runtime")
                 predictor = model.model
                 UIPredictor(settings,predictor.coefficients,predictor.intercept,predictor.weights,predictor.biases)

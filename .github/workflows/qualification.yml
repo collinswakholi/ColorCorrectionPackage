@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python: ['3.8', '3.12']
+        python: ['3.8', '3.12', '3.13', '3.14']
         exclude:
           - {os: ubuntu-latest, python: '3.8'}
         include:
@@ -47,6 +47,8 @@ jobs:
           # https://github.com/actions/setup-python/issues/808
           - {os: macos-15-intel, python: '3.8'}
           - {os: macos-latest, python: '3.12'}
+          - {os: macos-latest, python: '3.13'}
+          - {os: macos-latest, python: '3.14'}
           # Ubuntu 26.04 has no setup-python builds for these older minors.
           - {os: ubuntu-22.04, python: '3.8'}
           - {os: ubuntu-22.04, python: '3.9'}
@@ -68,7 +70,7 @@ jobs:
       - name: Install the wheel and qualify base and performance environments
         shell: python
         run: |
-          import os, pathlib, subprocess, sys, venv
+          import json, os, pathlib, subprocess, sys, venv
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
           temporary = pathlib.Path(os.environ['RUNNER_TEMP'])
           environment = temporary / 'ccp-installed'
@@ -79,6 +81,34 @@ jobs:
           evidence.mkdir()
           def run(*args):
               subprocess.run([str(python), *map(str, args)], cwd=temporary, check=True)
+          def v2_examples(label):
+              run('-I', root / 'scripts/verify_v2.py', '--forbid-source', root,
+                  '--photos', '--output', evidence / (label + '-v2.json'))
+              run('-I', root / 'scripts/verify_grouped_config.py', '--forbid-source', root,
+                  '--photos', '--output', evidence / (label + '-grouped.json'))
+              prefix = 'ColorCorrectionPipeline.examples.'
+              for module in ('quickstart', 'compare_bases', 'legacy_training',
+                              'high_precision', 'apply_bundle', 'customizable'):
+                  run('-I', '-m', prefix + module, '--help')
+              quick = evidence / (label + '-quickstart')
+              run('-I', '-m', prefix + 'quickstart', '--device', 'cpu', '--output', quick)
+              run('-I', '-m', prefix + 'compare_bases', '--device', 'cpu',
+                  '--models', 'pls,nn', '--bases', 'root', '--degrees', '2',
+                  '--nn-epochs', '30', '--output', evidence / (label + '-compare'))
+              run('-I', '-m', prefix + 'legacy_training', '--device', 'cpu',
+                  '--method', 'custom', '--iterations', '5',
+                  '--output', evidence / (label + '-legacy'))
+              run('-I', '-m', prefix + 'high_precision', '--device', 'cpu',
+                  '--output', evidence / (label + '-precision'))
+              run('-I', '-m', prefix + 'apply_bundle', '--bundle', quick / 'calibration.ccpb',
+                  '--image', quick / 'corrected.png', '--output', evidence / (label + '-replay'))
+              settings = evidence / (label + '-settings.json')
+              run('-I', '-m', prefix + 'customizable', '--write-settings', settings)
+              editable = json.loads(settings.read_text(encoding='utf8'))
+              editable['calibration']['chart']['device'] = 'cpu'
+              settings.write_text(json.dumps(editable), encoding='utf8')
+              run('-I', '-m', prefix + 'customizable', '--settings', settings,
+                  '--output', evidence / (label + '-customizable'))
           run('-m', 'pip', 'install', '--upgrade', 'pip')
           if sys.platform != 'darwin':
               run('-m', 'pip', 'install', 'torch', '--index-url', 'https://download.pytorch.org/whl/cpu')
@@ -87,14 +117,26 @@ jobs:
           common = ['-I', root / 'scripts/verify_installed.py', '--forbid-source', root,
                     '--photo', root / 'Images/Image_1.JPG']
           run(*common, '--expect-numba', 'no', '--output', evidence / 'base.json')
+          v2_examples('base')
           run('-m', 'pip', 'install', str(wheel) + '[performance]')
           run('-m', 'pip', 'check')
           run(*common, '--expect-numba', 'yes', '--output', evidence / 'performance.json')
+          v2_examples('performance')
+          # Exercise the source archive's build mapping and resources independently.
+          source, = (temporary / 'ccp-dist').glob('*.tar.gz')
+          run('-m', 'pip', 'install', '--force-reinstall', '--no-deps', '--no-cache-dir', source)
+          run('-m', 'pip', 'check')
+          run('-I', root / 'scripts/verify_v2.py', '--forbid-source', root,
+              '--photos', '--output', evidence / 'sdist-v2.json')
+          run('-I', '-m', 'ColorCorrectionPipeline.examples.quickstart', '--device', 'cpu',
+              '--output', evidence / 'sdist-quickstart')
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: installed-wheel-${{ matrix.os }}-${{ matrix.python }}
-          path: ${{ runner.temp }}/ccp-evidence/*.json
+          path: |
+            ${{ runner.temp }}/ccp-evidence/*.json
+            ${{ runner.temp }}/ccp-evidence/**/results.json
           if-no-files-found: error
 
   qualified:

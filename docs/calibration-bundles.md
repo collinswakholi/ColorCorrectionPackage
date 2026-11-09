@@ -49,7 +49,16 @@ When an older model has no calibration metadata, the bundle retains an empty
 metadata dictionary and explicitly marks capture/reference provenance unknown. It
 does not invent a measured reference, camera identity or chart capture. Inference
 parameters still identify their known numerical operation. The package's existing
-legacy input/output interpretation remains the compatibility default.
+legacy input/output interpretation is restored when that older model is loaded.
+Fresh 2.0 calibrations select UI-native RPCC2.
+
+Schema 2 records new configuration profiles, root/hybrid feature layouts and
+the high-precision image runtime. Its descriptor and array dimensions are
+validated together. These capabilities require a version-2 archive header,
+even if a modified manifest has a valid recomputed content hash. Schema-1
+calibrations retain their original feature/runtime rules and can be re-saved
+as schema 1. The loader rejects unresolved precision and a float32 LUT in the
+direct high-precision profile.
 
 ## Container and validation
 

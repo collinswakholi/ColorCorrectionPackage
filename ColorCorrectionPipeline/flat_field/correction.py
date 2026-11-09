@@ -137,6 +137,16 @@ class FlatFieldCorrection:
                 crop_rect: Pre-defined crop rectangle [x1, y1, x2, y2]
         """
         self.img = img
+        # Detection uses a byte preview. Precision-aware callers can supply
+        # original RGB samples for independent signal and saturation checks.
+        self.quality_source = kwargs.get("quality_source")
+        if self.quality_source is not None:
+            source = np.array(self.quality_source, dtype=np.float64, copy=True)
+            if (img is None or source.shape != (*img.shape[:2], 3)
+                    or not np.isfinite(source).all() or np.any(source < 0) or np.any(source > 1)):
+                raise ValueError("FFC quality_source must match the preview as finite RGB in [0,1]")
+            source.setflags(write=False)
+            self.quality_source = source
         self.model_path = kwargs.get("model_path", MODEL_PATH)
         self.manual_crop = kwargs.get("manual_crop", False)
         self.show = kwargs.get("show", False)
@@ -204,20 +214,33 @@ class FlatFieldCorrection:
             raise ValueError("safe FFC bins exceed distinct crop pixel coordinates")
         if self.smooth_window > min(crop_height, crop_width):
             raise ValueError("safe FFC smoothing window exceeds crop dimensions")
-        raw = self.img_cropped
-        clipped = np.any(raw >= 253, axis=2) if raw.ndim == 3 else raw >= 253
+        if self.quality_source is None:
+            raw = self.img_cropped
+            clipped = np.any(raw >= 253, axis=2) if raw.ndim == 3 else raw >= 253
+            raw_lightness, _ = self.get_L(raw, smooth=False)
+            minimum_lightness = float(raw_lightness.min()) / 255
+        else:
+            from ..ui_native import lab
+            x1, y1, x2, y2 = self.crop_rect
+            raw = self.quality_source[y1:y2, x1:x2]
+            clipped = np.any(raw >= 253.0 / 255, axis=2)
+            minimum_lightness = float(lab(raw)[..., 0].min()) / 100
         saturated_fraction = float(np.mean(clipped))
-        raw_lightness, _ = self.get_L(raw, smooth=False)
         self.quality_report.update({"crop_rect": list(self.crop_rect), "crop_fraction": fraction,
                                     "source_shape": list(self.img.shape[:2]),
                                     "saturated_pixel_fraction": saturated_fraction,
                                     "saturation_threshold_uint8": 253,
-                                    "minimum_raw_normalized_lightness": float(raw_lightness.min()) / 255,
+                                    "minimum_raw_normalized_lightness": minimum_lightness,
                                     "min_signal": float(self.min_signal),
                                     "gain_limits": [float(self.min_gain), float(self.max_gain)]})
+        if self.quality_source is not None:
+            self.quality_report.update({
+                "measurement_source": "original encoded RGB; float64",
+                "saturation_threshold_encoded": 253.0 / 255,
+            })
         if saturated_fraction > self.max_saturated_fraction:
             raise ValueError("safe FFC white plane is saturated beyond max_saturated_fraction")
-        if float(raw_lightness.min()) / 255 < self.min_signal:
+        if minimum_lightness < self.min_signal:
             raise ValueError("safe FFC white plane has insufficient signal before smoothing")
 
     def _validate_safe_multiplier(self, values, location):

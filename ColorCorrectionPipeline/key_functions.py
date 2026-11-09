@@ -20,7 +20,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from colour_checker_detection import detect_colour_checkers_segmentation
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
@@ -30,26 +29,24 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.utils import check_X_y
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-try:
-    from .utils.logger_ import log_, match_keywords
-except ImportError:
-    def log_(message, *args, **kwargs):
-        print(message)
+def log_(message, *args, **kwargs):
+    print(message)
 
-    def match_keywords(query, options):
-        if query is None:
-            return None
 
-        query_text = str(query).lower()
-        options_list = list(options)
-        for option in options_list:
-            if str(option).lower() == query_text:
-                return option
-        for option in options_list:
-            option_text = str(option).lower()
-            if query_text in option_text or option_text in query_text:
-                return option
+def match_keywords(query, options):
+    if query is None:
         return None
+
+    query_text = str(query).lower()
+    options_list = list(options)
+    for option in options_list:
+        if str(option).lower() == query_text:
+            return option
+    for option in options_list:
+        option_text = str(option).lower()
+        if query_text in option_text or option_text in query_text:
+            return option
+    return None
 
 try:
     import psutil
@@ -148,6 +145,26 @@ REF_ILLUMINANT = colour.CCS_ILLUMINANTS[CMFS][WP]
 color_chart = colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
 
 n_proc = os.cpu_count()
+
+
+def detect_colour_checkers_segmentation(*args, **kwargs):
+    """Load the optional segmentation backend only for segmentation requests."""
+    try:
+        from colour_checker_detection import detect_colour_checkers_segmentation as detect
+    except ImportError as exc:
+        raise ImportError(
+            "Legacy segmentation requires the segmentation extra. "
+            "Install it with pip install 'ColorCorrectionPipeline[segmentation]'."
+        ) from exc
+    return detect(*args, **kwargs)
+
+
+def _require_mcc():
+    if not hasattr(cv2, "mcc"):
+        raise ImportError(
+            "Legacy MCC chart extraction requires OpenCV's mcc module. "
+            "Install opencv-contrib-python or use the model detector through Config."
+        )
 
 
 def _create_detector_params():
@@ -709,6 +726,7 @@ def get_color_patch_size(color_checker_img: np.ndarray) -> np.ndarray:
 
 
 def detect_refine_charts(detector, img, n_charts, params=CDP):
+    _require_mcc()
     # Use a higher count for chart detection
     n = n_charts + 1  # increase n for extra chart detections
 
@@ -761,6 +779,7 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
 
 
 def extract_color_chart(img, get_patch_size=False):
+    _require_mcc()
 
     img_blur = cv2.medianBlur(img, 5)
     detector = cv2.mcc.CCheckerDetector_create()
@@ -807,6 +826,7 @@ def extract_color_charts(
     Returns:
         Tuple[List[np.ndarray], np.ndarray]: List of color charts and image with marked charts
     """
+    _require_mcc()
     img_blur = cv2.medianBlur(img, 5)
     detector = cv2.mcc.CCheckerDetector_create()
 
@@ -859,13 +879,6 @@ def extract_color_chart_ex(
     """
     Extract extended color chart samples with random sampling from each patch.
     
-    PRODUCTION VERSION - Combines bug fixes and optimizations:
-    - Fixed negative dimension bug (adaptive sampling)
-    - Fixed broadcasting bug (explicit array operations)
-    - Pre-allocated arrays for performance
-    - Vectorized statistics computation
-    - Comprehensive error handling
-    
     Args:
         img: Input BGR image (uint8)
         ref: Reference RGB values (24, 3), float64, range [0, 1]
@@ -892,6 +905,7 @@ def extract_color_chart_ex(
         log_(f"Error: Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}", "red", "bold", "error")
         return None, None
     
+    _require_mcc()
     try:
         # Pre-processing
         img_blur = cv2.medianBlur(img, 5)
@@ -1041,6 +1055,8 @@ def extract_color_chart_ex(
         
         return chart_result, ref_result
         
+    except ImportError:
+        raise
     except Exception as e:
         log_(f"Error in extract_color_chart_ex: {e}", "red", "bold", "error")
         import traceback

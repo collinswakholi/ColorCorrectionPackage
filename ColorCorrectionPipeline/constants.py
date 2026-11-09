@@ -23,7 +23,8 @@ if not os.path.exists(MODEL_PATH):
     
     warnings.warn(
         f"Plane detection ONNX model not found at {MODEL_PATH}. "
-        "Flat-field correction will use the full image unless a crop is supplied.",
+        "Supply a crop for flat-field correction or restore the model. "
+        "A full-image fallback requires an explicit compatible FFC policy.",
         RuntimeWarning,
     )
 

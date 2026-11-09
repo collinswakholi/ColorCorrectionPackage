@@ -1,9 +1,9 @@
 # Bounded prediction, file outputs and reports
 
-Patches 7–8 add separate APIs while preserving `run()`'s tuple, legacy pickle
-methods, `predict_image()`'s default four stages and `predict_images()`'s ordered
-list/exception behavior. Use the new APIs when partial failures, cancellation,
-controlled retention or non-executable persistence are required.
+The batch and report APIs provide partial-failure records, cancellation,
+controlled retention and non-executable persistence. The established `run()`
+tuple, trusted pickle methods, `predict_image()` stage selection and
+`predict_images()` ordered list/exception behavior remain available.
 
 ## Fit/save/load a portable calibration
 

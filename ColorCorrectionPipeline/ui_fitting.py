@@ -55,6 +55,7 @@ def options(parameters=None):
     root = p.pop("root_polynomial_expansion", True)
     alias = p.pop("mtd", None)
     kind = p.pop("model", None)
+    basis = p.pop("basis", None)
     degree = p.pop("degree", 2)
     if kind is None:
         if conventional:
@@ -71,6 +72,22 @@ def options(parameters=None):
             )
     if kind not in _KINDS:
         raise ValueError("UI model must be ccm, rpcc2, rpcc3, linear, pls or nn")
+    if basis is not None:
+        if basis not in ("polynomial", "root", "hybrid"):
+            raise ValueError("basis must be polynomial, root or hybrid")
+        degree = _integer(degree, "degree", 1, 4)
+        if conventional:
+            raise ValueError("basis cannot be combined with conventional method controls")
+        if kind in ("ccm", "rpcc2", "rpcc3"):
+            expected_degree = {"ccm": 1, "rpcc2": 2, "rpcc3": 3}[kind]
+            if basis != "root" or degree != expected_degree:
+                raise ValueError("basis/degree contradicts the fixed matrix preset")
+            basis = None
+        elif basis == "polynomial":
+            basis = None
+        elif kind == "linear" and basis == "root" and degree <= 3:
+            kind = {1: "ccm", 2: "rpcc2", 3: "rpcc3"}[degree]
+            basis = None
     canonical_alias = {"custom": "nn", "mlp": "nn", "linearcc": "linear"}.get(alias, alias)
     expected_alias = "nn" if kind == "nn" else "pls" if kind == "pls" else "linear"
     if alias is not None and canonical_alias != expected_alias:
@@ -109,7 +126,7 @@ def options(parameters=None):
     if p.get("device", "cpu") != "cpu" or p.get("random_state", 42) != 42:
         raise ValueError("UI-compatible training uses CPU and fixed seed 42")
     combinations = p.get("include_combinations", True)
-    if type(combinations) is not bool or (kind != "linear" and combinations is not True):
+    if type(combinations) is not bool or ((kind != "linear" or basis is not None) and combinations is not True):
         raise ValueError(
             "include_combinations=False is supported only by UI polynomial linear fitting"
         )
@@ -123,6 +140,8 @@ def options(parameters=None):
         "lut_grid_size": p.get("lut_grid_size", 33),
         "lut_min_pixels": p.get("lut_min_pixels", 1),
     }
+    if basis is not None:
+        result["basis"] = basis
     for key in ("use_lut", "lazy_lut"):
         if type(result[key]) is not bool:
             raise ValueError(key + " must be boolean")
@@ -136,6 +155,8 @@ def options(parameters=None):
             tol=_real(p.get("tol", 1e-6), "tol"),
             max_iterations=500,
         )
+        if basis is not None and result["ncomp"] == 0:
+            raise ValueError("root/hybrid PLS requires an explicit positive ncomp")
     if kind == "nn":
         if p.get("verbose", False) is not False:
             raise ValueError("UI-compatible NN fitting does not support verbose output")
@@ -173,6 +194,18 @@ def features(linear_rgb, settings):
     values = np.maximum(np.asarray(linear_rgb, dtype=np.float64), 0)
     r, g, b = np.moveaxis(values, -1, 0)
     kind = settings["model"]
+    basis = settings.get("basis")
+    if basis is not None:
+        root = _root_features(values, settings["degree"])
+        if basis == "hybrid":
+            polynomial = features(values, {"model": "linear", "degree": settings["degree"],
+                                           "include_combinations": True})
+            expanded = np.concatenate((polynomial, root[..., 3:]), axis=-1)
+        else:
+            expanded = root
+        if kind in ("pls", "nn"):
+            expanded = np.concatenate((np.ones(expanded.shape[:-1] + (1,)), expanded), axis=-1)
+        return expanded
     columns = [r, g, b]
     if kind in ("rpcc2", "rpcc3"):
         columns += [np.sqrt(r * g), np.sqrt(r * b), np.sqrt(g * b)]
@@ -201,6 +234,24 @@ def features(linear_rgb, settings):
                     columns.append(r**i * g**j * b**k)
         columns = columns[:_FEATURE_LIMIT]
     return np.stack(columns, axis=-1)
+
+
+def _root_features(values, degree):
+    """Keep the UI root order, appending distinct fourth-degree exponent ratios."""
+    if degree == 1:
+        return values
+    root = features(values, {"model": "rpcc2" if degree == 2 else "rpcc3"})
+    if degree < 4:
+        return root
+    r, g, b = np.moveaxis(values, -1, 0)
+    additions = []
+    for i in range(4, -1, -1):
+        for j in range(4 - i, -1, -1):
+            k = 4 - i - j
+            if math.gcd(i, math.gcd(j, k)) == 1:
+                # Fractional powers avoid underflow of a fourth-power product.
+                additions.append(r ** (i / 4) * g ** (j / 4) * b ** (k / 4))
+    return np.concatenate((root, np.stack(additions, axis=-1)), axis=-1)
 
 
 def _solve(matrix, rhs):
@@ -333,7 +384,7 @@ def _score(x, y, weights, biases, batch_norm):
     return float(score), loss
 
 
-def fit_nn(x, target, settings):
+def fit_nn(x, target, settings, *, linear_rgb=None):
     """Seed-42 residual MLP, with native full-chart/tiny-set selection semantics."""
     from .ui_nn import dense, dot, sum_rows, backend
 
@@ -346,7 +397,10 @@ def fit_nn(x, target, settings):
         biases.append(rng.uniform(-limit, limit, b))
     weights[-1].fill(0)
     biases[-1].fill(0)
-    y = target - x[:, 1:4]
+    residual = x[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+    if residual.shape != target.shape or not np.isfinite(residual).all():
+        raise ValueError("NN residual must contain the original linear RGB triples")
+    y = target - residual
     train = np.arange(len(x))
     validation = train
     if len(x) >= 64 and not settings["use_batch_norm"]:
@@ -507,11 +561,14 @@ class UIPredictor:
             (dict(self.settings), self.coefficients, self.intercept, self.weights, self.biases),
         )
 
-    def predict(self, design):
+    def predict(self, design, *, linear_rgb=None):
         values = np.asarray(design, dtype=np.float64)
         if self.settings["model"] == "nn":
             out = _forward(values, self.weights, self.biases)[0][-1]
-            return out + values[:, 1:4]
+            residual = values[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+            if residual.shape != out.shape or not np.isfinite(residual).all():
+                raise ValueError("NN residual must contain the original linear RGB triples")
+            return out + residual
         return values @ self.coefficients + self.intercept
 
     def predict_rgb(self, rgb):
@@ -524,8 +581,10 @@ class UIPredictor:
         ):
             raise ValueError("UI prediction requires finite encoded RGB in [0,1]")
         shape = values.shape
-        design = features(srgb_to_linear(values.reshape(-1, 3)), self.settings)
-        linear = np.clip(self.predict(design), 0, 1)
+        source = srgb_to_linear(values.reshape(-1, 3))
+        design = features(source, self.settings)
+        linear = np.clip(self.predict(design, linear_rgb=source) if "basis" in self.settings
+                         else self.predict(design), 0, 1)
         return linear_to_srgb(linear).reshape(shape)
 
 
@@ -550,27 +609,42 @@ def fit_ui(X, Y, parameters=None):
     kind = settings["model"]
     detail = {}
     if kind == "nn":
-        from .ui_nn import design as training_design
+        if "basis" in settings:
+            source = srgb_to_linear(X)
+            weights, biases, detail = fit_nn(design, Y, settings, linear_rgb=source)
+        else:
+            from .ui_nn import design as training_design
 
-        design = training_design(X, settings["degree"])
-        weights, biases, detail = fit_nn(design, Y, settings)
+            design = training_design(X, settings["degree"])
+            weights, biases, detail = fit_nn(design, Y, settings)
         predictor = UIPredictor(settings, weights=weights, biases=biases)
     elif kind == "pls":
         coefficients, intercept, detail = fit_pls(design, Y, settings["ncomp"], settings["tol"])
         predictor = UIPredictor(settings, coefficients, intercept)
     else:
-        matrix = np.column_stack((design, np.ones(len(design)))) if kind == "linear" else design
+        affine = kind == "linear" and settings.get("basis") != "root"
+        matrix = np.column_stack((design, np.ones(len(design)))) if affine else design
         coefficients = _solve(matrix.T @ matrix + np.eye(matrix.shape[1]) * _RIDGE, matrix.T @ Y)
-        intercept = coefficients[-1] if kind == "linear" else np.zeros(3)
+        intercept = coefficients[-1] if affine else np.zeros(3)
         predictor = UIPredictor(
-            settings, coefficients[:-1] if kind == "linear" else coefficients, intercept
+            settings, coefficients[:-1] if affine else coefficients, intercept
         )
+    if "basis" in settings:
+        condition = float(np.linalg.cond(design))
+        detail.update(
+            design_rank=int(np.linalg.matrix_rank(design)),
+            condition_number=condition if np.isfinite(condition) else None,
+        )
+        if kind == "nn":
+            detail["residual_input"] = "linear-rgb"
+        else:
+            detail["intercept"] = kind == "pls" or settings["basis"] != "root"
     return predictor, {
         "version": VERSION,
         "effective_parameters": settings,
         "input_rows": len(X),
         "feature_count": design.shape[1],
-        "feature_order": "ui/" + settings["model"] + "/linear-input/v1",
+        "feature_order": feature_order(settings),
         "fitting_domain": "linear-rgb",
         "target_domain": "unclipped-linear-srgb",
         "ridge": _RIDGE if kind not in ("pls", "nn") else 0.0,
@@ -582,6 +656,13 @@ def fit_ui(X, Y, parameters=None):
         "estimator_precision": "CPU float64",
         "details": detail,
     }
+
+
+def feature_order(settings):
+    """Version the generalized basis independently of the frozen UI feature orders."""
+    if "basis" in settings:
+        return "ccp/" + settings["basis"] + "/" + settings["model"] + "/linear-input/v2"
+    return "ui/" + settings["model"] + "/linear-input/v1"
 
 
 def is_ui(models):
@@ -643,13 +724,15 @@ def fit_stage(owner, image, method, parameters):
     )
     params = dict(parameters or {})
     params["cc_method"] = method
-    from .ui_native import enabled as native_enabled, reference as native_reference
+    from .ui_native import enabled as native_enabled, high_precision, reference as native_reference
 
     if native_enabled(owner):
         y = native_reference(owner.reference_profile)[0]
+    if high_precision(owner):
+        params.setdefault("use_lut", False)
     predictor, report = fit_ui(x, y, params)
     if native_enabled(owner):
-        report["details"]["ui_runtime"] = "native-v1"
+        report["details"]["ui_runtime"] = "precision-f64-v1" if high_precision(owner) else "native-v1"
     settings = report["effective_parameters"]
     model = Regressor_Model()
     for name, value in settings.items():
@@ -706,7 +789,14 @@ def fit_stage(owner, image, method, parameters):
             "scope": "CC-only conditional on fitted upstream stages",
         }
     owner.numerical_report["CC"] = numerical
-    return round_image(np.clip(predict_(image, model), 0, 1)), {}, False
+    if high_precision(owner) or "basis" in settings:
+        from .prediction import chunked_cc
+
+        corrected = chunked_cc(image, owner.models.model_cc, 65536)
+    else:
+        corrected = predict_(image, model)
+    corrected = np.clip(corrected, 0, 1)
+    return (corrected if high_precision(owner) else round_image(corrected)), {}, False
 
 
 _UI_CLASSIC_LAB = (

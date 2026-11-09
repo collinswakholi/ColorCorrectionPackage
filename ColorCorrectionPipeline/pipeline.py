@@ -14,32 +14,16 @@ The pipeline can train on an image with color chart and then apply learned
 corrections to new images.
 
 Example:
-    >>> from color_correc_optim import ColorCorrection, Config
-    >>> import cv2
-    >>> 
-    >>> # Load images
-    >>> img_bgr = cv2.imread("image_with_chart.jpg")
-    >>> white_bgr = cv2.imread("white_background.jpg")
-    >>> 
-    >>> # Configure pipeline
+    >>> from ColorCorrectionPipeline import ColorCorrection, Config, Steps, CCOptions
     >>> config = Config(
-    ...     do_ffc=True,
-    ...     do_gc=True,
-    ...     do_wb=True,
-    ...     do_cc=True,
-    ...     FFC_kwargs={"bins": 50, "show": False},
-    ...     GC_kwargs={"max_degree": 5},
-    ...     WB_kwargs={"get_deltaE": True},
-    ...     CC_kwargs={"mtd": "nn", "degree": 2}
+    ...     steps=Steps(cc=CCOptions(fit={"model": "rpcc3"})),
+    ...     input={"frame_index": 0},
     ... )
-    >>> 
-    >>> # Run pipeline
     >>> cc = ColorCorrection()
-    >>> metrics, images, error = cc.run(img_bgr, white_bgr, "test", config)
-    >>> 
-    >>> # Predict on new image
-    >>> test_img = cv2.imread("new_image.jpg")
-    >>> results = cc.predict_image(test_img, show=True)
+    >>> metrics, images, failed = cc.run("chart.jpg", "white.jpg", config=config)
+    >>> if failed:
+    ...     raise RuntimeError(cc.last_run["errors"])
+    >>> results = cc.predict_image("scene.jpg", stages="final")
 """
 
 import gc
@@ -846,10 +830,6 @@ class ColorCorrection:
     def _run_stages(self, Image, White_Image, name_, config):
         clear_chart_cache()
         self.image_data, self.Image = self._prepare_input(Image, self.color_semantics, config.image_options)
-        if self.fitting_policy.version == "ui-compatible-v1":
-            from .ui_fitting import round_image
-            from .ui_native import enabled as native_enabled, working_input
-            self.Image = working_input(self.image_data, self.Image) if native_enabled(self) else round_image(self.Image)
         self.White_Image = None
         self.white_image_data = None
         if config.do_ffc:
@@ -880,13 +860,44 @@ class ColorCorrection:
                     raise ValueError("FFC is enabled but White_Image was not provided")
                 self.white_image_data = self._normalized_image(self.white_image_data)
                 self.White_Image = to_uint8(self.white_image_data.to_srgb()[:, :, ::-1])
-                if self.white_image_data.source_dtype != "uint8":
+                if self.white_image_data.source_dtype != "uint8" and self.fitting_policy.version != "ui-compatible-v1":
                     self.last_run.setdefault("warnings", []).append({"stage": "FFC", "kind": "legacy-estimation-precision", "source_dtype": self.white_image_data.source_dtype, "used_dtype": "uint8 BGR white-field estimation"})
             except (FileNotFoundError, ValueError, TypeError) as exc:
                 self._record_stage_error("FFC", exc)
                 self.last_run["stages"]["FFC"] = {"status": "failed", **self._stage_errors["FFC"]}
                 self.last_run["errors"].append({"stage": "FFC", **self._stage_errors["FFC"]})
                 return {}, {}, True
+
+        if self.fitting_policy.version == "ui-compatible-v1":
+            from dataclasses import replace
+            from .ui_fitting import round_image
+            from .ui_native import enabled as native_enabled, high_precision, working_input
+            if self.fitting_policy.ui_runtime == "auto-v2":
+                sources = [self.image_data]
+                if self.white_image_data is not None:
+                    sources.append(self.white_image_data)
+                byte_sources = all(data.source_dtype == "uint8" and tuple(data.source_range) == (0.0, 255.0)
+                                   and data.color_space == "srgb" for data in sources)
+                requested_precision = getattr(config, "precision", None) or "auto"
+                if requested_precision == "native-byte" and not byte_sources:
+                    raise ValueError("native-byte precision requires full-range uint8 sRGB chart and white inputs")
+                selected_runtime = (
+                    "precision-f64-v1" if requested_precision == "high"
+                    else "native-v1" if requested_precision == "native-byte" or byte_sources
+                    else "precision-f64-v1"
+                )
+                self.fitting_policy = replace(self.fitting_policy, ui_runtime=selected_runtime)
+                config.fitting_policy = self.fitting_policy.to_dict()
+            high = high_precision(self)
+            if high:
+                # The first high-precision evaluator uses direct CC; a stored
+                # float32 LUT would discard distinctions the source retains.
+                if config.CC_kwargs.get("use_lut", False):
+                    raise ValueError("high precision requires use_lut=False; its approximate LUT has not been qualified")
+                config.CC_kwargs.setdefault("use_lut", False)
+            self.Image = working_input(self.image_data, self.Image, high=high) if native_enabled(self) else round_image(self.Image)
+            from .detection.charts import _scope
+            _scope.get().measurement_runtime = "precision-f64-v1" if high else config.chart_detection.get("sampling_policy")
 
         self.get_reference_values(config.REF_ILLUMINANT)
         # Geometry always comes from the original source, even if the first
@@ -999,12 +1010,21 @@ class ColorCorrection:
                 "FFC": "guarded-legacy-uint8-Lab-lightness-v1", "saturation": "sampled-pixel-report-or-exclude-v1; identity image transform"})
         if self.fitting_policy.version == "reproducible-v1":
             self.models.metadata["algorithms"]["CC"] = "encoded-rgb-reproducible-v1; unique cell means"
-        if self.fitting_policy.ui_runtime == "native-v1":
-            self.models.metadata["algorithms"]["ui_runtime"] = "native-v1"
+        if self.fitting_policy.ui_runtime in ("native-v1", "precision-f64-v1"):
+            self.models.metadata["algorithms"]["ui_runtime"] = self.fitting_policy.ui_runtime
             self.models.metadata["algorithms"]["pipeline"] = "native uint8 decode; joint FFC/GC; ordered sampling"
         if self.fitting_policy.version == "ui-compatible-v1":
             self.models.metadata["algorithms"]["CC"] = "ui-compatible-v1; linear-light fit; float32 stage boundaries"
             self.models.metadata["algorithms"]["FFC"] = "ui-compatible-v1; float32 Lab-D65 gain; plane/poly surface"
+        if self.fitting_policy.ui_runtime == "precision-f64-v1":
+            self.models.metadata["algorithms"].update({
+                "pipeline": "float64 source measurements; joint FFC/GC; ordered sampling",
+                "CC": "ui-compatible-v1; linear-light fit; float64 stages",
+                "FFC": "precision-f64-v1; float64 Lab-D65 gain; plane/poly surface",
+            })
+        if getattr(config, "api_version", None) == 2:
+            self.models.metadata["config_version"] = 2
+            self.models.metadata["requested_precision"] = config.precision
         self.last_run["contracts"] = copy.deepcopy(self.models.metadata)
         return metrics, images, False
 
@@ -1154,9 +1174,10 @@ class ColorCorrection:
                                             _borrow_readonly=is_ui(self.models))
         if metadata:
             self.REF_ILLUMINANT = np.asarray(metadata.get("legacy_reference_illuminant", D65), dtype=np.float64)
-        from .ui_native import enabled as native_enabled, validate_input, predict as native_predict
+        from .ui_native import enabled as native_enabled, high_precision, runtime, validate_input, predict as native_predict
         if native_enabled(self.models):
-            validate_input(data)
+            if not high_precision(self.models):
+                validate_input(data)
             decoded = time.perf_counter()
             outputs = self._convert_outputs(native_predict(current, self.models, selected, chunk_pixels, native_codes=True))
             elapsed = time.perf_counter() - started
@@ -1166,7 +1187,7 @@ class ColorCorrection:
                 return outputs, {"input_image":data.to_metadata(), "color_semantics":semantics.to_dict(),
                     "selected_stages":list(selected), "timings":{"decode_seconds":decoded-started,
                     "native_execution_seconds":time.perf_counter()-decoded,"total_seconds":elapsed},
-                    "execution":"ui-native-v1", "fusion":"FFC+GC when both enabled"}
+                    "execution":runtime(self.models) if high_precision(self.models) else "ui-native-v1", "fusion":"FFC+GC when both enabled"}
             return outputs
         from .ui_fitting import is_ui, round_image
         ui_policy = is_ui(self.models)

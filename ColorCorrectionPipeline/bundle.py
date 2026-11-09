@@ -24,7 +24,7 @@ from .portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
 from .ui_fitting import UIPredictor
 
 FORMAT = "ColorCorrectionPipeline.calibration"
-VERSION = 1
+VERSION = 2
 _ARRAY_NAME = re.compile(r"arrays/a[0-9]{4}\.npy\Z")
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _FLOATS = {"<f4", "<f8", ">f4", ">f8"}
@@ -284,6 +284,14 @@ def _validate_attrs(attrs):
         raise BundleError("unsupported fitting version")
 
 
+def _requires_v2(metadata, options):
+    """Keep the format header aligned with the numerical capabilities it needs."""
+    policy = metadata.get("fitting_policy", {})
+    return (metadata.get("config_version") == 2
+            or (isinstance(policy, dict) and policy.get("ui_runtime") == "precision-f64-v1")
+            or (isinstance(options, dict) and "basis" in options))
+
+
 def _encode(models, limits):
     from importlib.metadata import version as package_version
     from .__version__ import __version__
@@ -313,10 +321,16 @@ def _encode(models, limits):
             stages["CC"] = {"kind": "conventional-v1", "matrix": arrays.add(cc[0]), "options": _plain(cc[1])}
         elif cc[2] == "ours" and type(cc[0]) is Regressor_Model:
             fitted = cc[0]
+            from .ui_fitting import feature_order
+            order = ("ui-compatible-v1/linear-rgb/cpu-f64"
+                     if getattr(fitted, "fitting_version", None) == "ui-compatible-v1"
+                     else "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1")
+            if isinstance(fitted.model, UIPredictor) and "basis" in fitted.model.settings:
+                order = feature_order(fitted.model.settings)
             from .core.lut_cache import persistence_lut
             table = persistence_lut(fitted)
             stages["CC"] = {"kind": "regressor-v1", "options": _plain(cc[1]), "attributes": _attrs(fitted),
-                            "feature_order": "ui-compatible-v1/linear-rgb/cpu-f64" if getattr(fitted, "fitting_version", None) == "ui-compatible-v1" else "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1",
+                            "feature_order": order,
                             "estimator": _estimator_export(fitted.model, arrays),
                             "lut": None if table is None else arrays.add(table)}
         else:
@@ -324,7 +338,8 @@ def _encode(models, limits):
     # Validate only after whitelisting estimator export, avoiding an unsupported
     # user object's prediction callback in the modern metadata consistency check.
     MyModels._validated_state(models)
-    manifest = {"format": FORMAT, "version": VERSION, "metadata": _plain(models.metadata),
+    extended = _requires_v2(models.metadata, None if cc is None else cc[1])
+    manifest = {"format": FORMAT, "version": VERSION if extended else 1, "metadata": _plain(models.metadata),
                 "interpretation": "recorded" if models.metadata else "legacy-v1; capture/reference provenance unknown",
                 "exporter": {"package_version": __version__, "numpy": str(np.__version__),
                              "scikit-learn": package_version("scikit-learn"), "torch": package_version("torch")},
@@ -513,6 +528,9 @@ def _decode(manifest, arrays, limits):
             _keys(cc, {"kind", "options", "attributes", "feature_order", "estimator", "lut"}, "regressor CC")
             ui_policy = cc["attributes"].get("fitting_version") == "ui-compatible-v1" if isinstance(cc["attributes"], dict) else False
             expected_order = "ui-compatible-v1/linear-rgb/cpu-f64" if ui_policy else "sklearn-polynomial-features/include-bias/c-order/cpu-f64/v1"
+            if ui_policy and isinstance(cc["options"], dict) and "basis" in cc["options"]:
+                from .ui_fitting import feature_order
+                expected_order = feature_order(cc["options"])
             if cc["feature_order"] != expected_order or not isinstance(cc["options"], dict):
                 raise BundleError("unsupported polynomial feature order/options")
             attrs = cc["attributes"]
@@ -631,10 +649,15 @@ def loads_models(data, *, limits=None):
                 raise BundleError("ZIP has unclaimed/overlapping member bytes")
             manifest = _strict_json(archive.read("manifest.json"))
             _keys(manifest, {"format", "version", "metadata", "interpretation", "exporter", "stages", "arrays", "content_sha256"}, "manifest")
-            if manifest["format"] != FORMAT or type(manifest["version"]) is not int or manifest["version"] != VERSION:
+            if manifest["format"] != FORMAT or type(manifest["version"]) is not int or manifest["version"] not in (1, VERSION):
                 raise BundleError("unsupported calibration bundle format/version")
             if not isinstance(manifest["metadata"], dict) or manifest["interpretation"] != ("recorded" if manifest["metadata"] else "legacy-v1; capture/reference provenance unknown"):
                 raise BundleError("invalid calibration interpretation")
+            stages = manifest["stages"]
+            cc_record = stages.get("CC") if isinstance(stages, dict) else None
+            cc_options = cc_record.get("options") if isinstance(cc_record, dict) else None
+            if manifest["version"] == 1 and _requires_v2(manifest["metadata"], cc_options):
+                raise BundleError("v2 numerical capabilities require bundle version 2")
             exporter = _keys(manifest["exporter"], {"package_version", "numpy", "scikit-learn", "torch"}, "exporter provenance")
             if any(type(value) is not str or not 1 <= len(value) <= 128 for value in exporter.values()):
                 raise BundleError("invalid exporter version labels")

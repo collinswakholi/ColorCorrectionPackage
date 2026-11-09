@@ -370,6 +370,7 @@ def try_execute(image, models, selected, *, native_codes=False):
     if (
         not _enabled
         or models.metadata.get("fitting_policy", {}).get("version") != "ui-compatible-v1"
+        or models.metadata.get("fitting_policy", {}).get("ui_runtime") == "precision-f64-v1"
     ):
         return None
     from . import modern, ui_stages
