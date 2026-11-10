@@ -206,3 +206,5 @@ The public tuple return remains. CC metrics include `fitting` and `validation`;
 Metadata validation checks new policies and estimator versions before activation.
 Prefer the non-executable [portable calibration bundle](calibration-bundles.md).
 Trusted-file pickle persistence remains available for compatibility.
+
+For whole-session validation on separate photographs, see the [independent capture study](capture-study.md).
