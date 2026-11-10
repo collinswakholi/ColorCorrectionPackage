@@ -20,9 +20,7 @@ Example:
     ...     input={"frame_index": 0},
     ... )
     >>> cc = ColorCorrection()
-    >>> metrics, images, failed = cc.run("chart.jpg", "white.jpg", config=config)
-    >>> if failed:
-    ...     raise RuntimeError(cc.last_run["errors"])
+    >>> fit = cc.fit_or_raise("chart.jpg", "white.jpg", config=config)
     >>> results = cc.predict_image("scene.jpg", stages="final")
 """
 
@@ -35,6 +33,7 @@ import json
 import os
 import time
 from contextlib import nullcontext
+from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -76,7 +75,32 @@ from .core.accel import apply_ffc_float
 from .flat_field import FlatFieldCorrection
 from .models import MyModels
 
-__all__ = ["ColorCorrection"]
+__all__ = ["ColorCorrection", "FitResult", "CalibrationError"]
+
+
+@dataclass(frozen=True, eq=False)
+class FitResult:
+    """Outputs from one successful calibration. Later refits replace the pipeline's
+    models without replacing this result's models. Arrays and models remain mutable.
+    """
+
+    name: str
+    models: MyModels
+    metrics: Dict[str, Any]
+    images: Dict[str, np.ndarray]
+    artifacts: Tuple[str, ...]
+
+
+class CalibrationError(RuntimeError):
+    """An enabled fit stage failed. Details belong to this attempt."""
+
+    def __init__(self, errors):
+        self.errors = copy.deepcopy(errors)
+        super().__init__(self.errors)
+
+    def __str__(self):
+        details = [f"{item['stage']}: {item['message']}" for item in self.errors]
+        return "Calibration failed" + (": " + "; ".join(details) if details else "")
 
 
 def get_attr(obj: Any, attr: str, default: Any = None) -> Any:
@@ -752,6 +776,25 @@ class ColorCorrection:
         """
         with self._run_lock:
             return self._run_transaction(Image, White_Image, name_, config)
+
+    def fit_or_raise(
+        self,
+        Image: Union[str, os.PathLike, np.ndarray, ImageData],
+        White_Image: Optional[Union[str, os.PathLike, np.ndarray, ImageData]] = None,
+        name_: str = "",
+        config: Optional[Config] = None,
+    ) -> FitResult:
+        """Return this fit's outputs, or raise CalibrationError for a failed stage.
+
+        Input, configuration and persistence exceptions propagate as in run().
+        A failed attempt leaves the previously active calibration available.
+        """
+        # Capture outputs and diagnostics before a competing fit or load can replace them.
+        with self._run_lock:
+            metrics, images, failed = self.run(Image, White_Image, name_, config)
+            if failed:
+                raise CalibrationError(self.last_run["errors"])
+            return FitResult(name_, self.models, metrics, images, tuple(self.last_run["artifacts"]))
 
     def _run_transaction(self, Image, White_Image, name_, config):
         candidate = copy.copy(self)

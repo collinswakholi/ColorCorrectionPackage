@@ -73,11 +73,9 @@ def new_output(path):
 def fit(chart, white, config):
     pipeline = ColorCorrection()
     started = time.perf_counter()
-    metrics, _, failed = pipeline.run(chart, white, name_="chart", config=config)
+    result = pipeline.fit_or_raise(chart, white, name_="chart", config=config)
     seconds = time.perf_counter() - started
-    if failed:
-        raise RuntimeError(pipeline.last_run["errors"])
-    return pipeline, metrics, seconds
+    return pipeline, result.metrics, seconds
 
 
 def export_and_replay(pipeline, scene, output, dtype="uint8"):

@@ -16,80 +16,53 @@ Example:
     >>> from ColorCorrectionPipeline import ColorCorrection, Config
     >>> config = Config(model="rpcc2", image_options={"frame_index": 0})
     >>> cc = ColorCorrection()
-    >>> metrics, images, failed = cc.run("chart.jpg", "white.jpg", config=config)
-    >>> if failed:
-    ...     raise RuntimeError(cc.last_run["errors"])
+    >>> fit = cc.fit_or_raise("chart.jpg", "white.jpg", config=config)
 
 The example expects a chart capture and its matching white field. Run
 ``python -m ColorCorrectionPipeline.examples.quickstart --output demo``
 to use the included sample images after installing the package.
 """
 
+from importlib import import_module
 import warnings
-from typing import List
 
-# Suppress known warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
-
-# Version information
 from .__version__ import __version__, __version_info__
 
-# Import constants first to avoid circular imports
-from .constants import MODEL_PATH
-from .contracts import ImageData, ReferenceProfile, ChartObservation, ObservationSet
-from .colorimetry import ColorSemantics
-from .stage_policies import StagePolicy, MonotonicToneModel
-from .fitting import FittingPolicy
-from .config_groups import Steps, FFCOptions, GCOptions, WBOptions, CCOptions
-from .bundle import BundleLimits, BundleError
-from .results import BatchItemResult, BatchResult
-from .reporting import save_report
-from .acceleration import ExecutionOptions, PreparedExecution, AcceleratedResult, LutCache, AccuracyBudgetError
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
-# Import main classes
-try:
-    from .config import Config
-    from .flat_field import FlatFieldCorrection
-    from .models import MyModels
-    from .pipeline import ColorCorrection
-except ImportError as e:
-    # Fallback for development/installation issues
-    warnings.warn(
-        f"Failed to import main components: {e}. "
-        "Package may not be properly installed.",
-        ImportWarning,
-    )
-    raise
+# Resolve public names to their original objects and modules on first access.
+# Asking for the package version should not initialize training or image backends.
+_EXPORTS = {
+    "FitResult": "pipeline", "CalibrationError": "pipeline",
+    "ColorCorrection": "pipeline", "Config": "config", "MyModels": "models",
+    "FlatFieldCorrection": "flat_field", "MODEL_PATH": "constants",
+    "ImageData": "contracts", "ReferenceProfile": "contracts",
+    "ChartObservation": "contracts", "ObservationSet": "contracts",
+    "ColorSemantics": "colorimetry", "StagePolicy": "stage_policies",
+    "MonotonicToneModel": "stage_policies", "FittingPolicy": "fitting",
+    "Steps": "config_groups", "FFCOptions": "config_groups", "GCOptions": "config_groups",
+    "WBOptions": "config_groups", "CCOptions": "config_groups",
+    "BundleLimits": "bundle", "BundleError": "bundle", "BatchItemResult": "results",
+    "BatchResult": "results", "save_report": "reporting", "ExecutionOptions": "acceleration",
+    "PreparedExecution": "acceleration", "AcceleratedResult": "acceleration",
+    "LutCache": "acceleration", "AccuracyBudgetError": "acceleration",
+    "core": "core", "io": "io",
+}
+__all__ = ["__version__", "__version_info__", *_EXPORTS]
 
-# Import submodules for convenience
-from . import core
-from . import io
 
-# MCC is now an explicitly selected legacy backend; model detection is independent.
-if not core.HAS_MCC:
-    warnings.warn(
-        "cv2.mcc module not found \u2014 the legacy MCC backend is unavailable. "
-        "Model-based detection remains available with the bundled ONNX model and onnxruntime.",
-        ImportWarning,
-    )
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError("module %r has no attribute %r" % (__name__, name))
+    module = import_module("." + _EXPORTS[name], __name__)
+    value = module if name == _EXPORTS[name] else getattr(module, name)
+    globals()[name] = value
+    return value
 
-# Public API
-__all__: List[str] = [
-    "__version__",
-    "__version_info__",
-    "ColorCorrection",
-    "Config",
-    "MyModels",
-    "FlatFieldCorrection",
-    "MODEL_PATH",
-    "ImageData", "ReferenceProfile", "ChartObservation", "ObservationSet", "ColorSemantics",
-    "StagePolicy", "MonotonicToneModel", "FittingPolicy",
-    "Steps", "FFCOptions", "GCOptions", "WBOptions", "CCOptions",
-    "BundleLimits", "BundleError", "BatchItemResult", "BatchResult", "save_report",
-    "ExecutionOptions", "PreparedExecution", "AcceleratedResult", "LutCache", "AccuracyBudgetError",
-    "core",
-    "io",
-]
+
+def __dir__():
+    return sorted(set(globals()).union(__all__))
+
 
 # Package metadata
 __author__ = "Collins Wakholi"

@@ -83,7 +83,6 @@ def _torch_state(network):
 def inference_identity(model):
     """Return full inference/settings hash, or (None, reason) when opaque."""
     from .correction import Regressor_Model, CustomNN, _predict_direct
-    from . import transforms
     from ..portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
     from ..fitting import DeterministicTorchRegressor
     from ..ui_fitting import UIPredictor
@@ -119,10 +118,13 @@ def inference_identity(model):
         settings = {"degree":model.degree,"grid_size":model._lut_grid_size,"use_lut":model.use_lut,
                     "feature_policy":getattr(model,"fitting_version","legacy-v1"),
                     "portable":getattr(model,"portable_inference",False),
-                    "legacy_cuda":bool(transforms.is_cuda), "legacy_device":str(transforms.device_),
                     "reference_implementation":id(_predict_direct),"prediction_implementation":id(type(estimator).predict),
                     "helper_implementations":[id(getattr(type(estimator),name,None)) for name in ("_decision_function", "_forward_pass_fast")],
                     "estimator_type":type(estimator).__module__+"."+type(estimator).__name__}
+        # Only the historical polynomial feature path depends on Torch's device.
+        if settings["feature_policy"] not in ("reproducible-v1", "ui-compatible-v1") and not settings["portable"]:
+            from . import transforms
+            settings.update(legacy_cuda=bool(transforms.is_cuda), legacy_device=str(transforms.device_))
         digest = hashlib.sha256()
         _update(digest,settings)
         _update(digest,state)

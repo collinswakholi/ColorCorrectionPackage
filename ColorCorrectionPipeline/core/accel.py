@@ -38,7 +38,6 @@ __all__ = [
 
 HAS_NUMBA = False
 HAS_NUMBA_CUDA = False
-HAS_TORCH_CUDA = False
 
 try:
     import numba
@@ -52,11 +51,23 @@ try:
 except ImportError:
     pass
 
-try:
-    import torch
-    HAS_TORCH_CUDA = torch.cuda.is_available()
-except ImportError:
-    pass
+@functools.lru_cache(maxsize=1)
+def _torch_cuda_available():
+    try:
+        import torch
+    except ImportError:
+        return False
+    return torch.cuda.is_available()
+
+
+def __getattr__(name):
+    if name == "HAS_TORCH_CUDA":
+        return _torch_cuda_available()
+    raise AttributeError(name)
+
+
+def __dir__():
+    return sorted(set(globals()).union(__all__))
 
 
 def backend_info() -> dict:
@@ -65,7 +76,7 @@ def backend_info() -> dict:
         "numba": HAS_NUMBA,
         "numba_version": getattr(numba, "__version__", None) if HAS_NUMBA else None,
         "numba_cuda": HAS_NUMBA_CUDA,
-        "torch_cuda": HAS_TORCH_CUDA,
+        "torch_cuda": _torch_cuda_available(),
     }
     if HAS_NUMBA_CUDA:
         try:

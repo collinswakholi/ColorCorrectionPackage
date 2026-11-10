@@ -33,9 +33,7 @@ import os
 from typing import Any, List, Optional, Tuple
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
@@ -447,6 +445,7 @@ class FlatFieldCorrection:
     
     def show_results(self, img_correct: np.ndarray, img_original: np.ndarray):
         """Display side-by-side comparison of corrected vs original image."""
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 2, figsize=(15, 7))
         
         if len(img_correct.shape) == 3:
@@ -515,6 +514,7 @@ class FlatFieldCorrection:
             Z_ = Z
             Z_flat_ = Z_flat
         
+        import plotly.graph_objects as go
         fig = go.Figure(
             data=[
                 go.Surface(z=Z_ - 10, opacity=1, colorscale="Viridis"),
@@ -537,6 +537,7 @@ class FlatFieldCorrection:
     
     def plot_multiplier(self, multiplier: np.ndarray):
         """Display multiplier as 2D heatmap."""
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(15, 10))
         ax.set_title("Multiplier")
         im = ax.imshow(multiplier, cmap="jet")
@@ -552,6 +553,7 @@ class FlatFieldCorrection:
             img_list: List of 2D arrays to plot as surfaces
             names: Optional names for legend
         """
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         

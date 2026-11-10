@@ -13,6 +13,8 @@ Submodules:
     - utils: General utility functions
 """
 
+import warnings
+
 from .color_spaces import (
     adapt_chart,
     convert_to_lab,
@@ -40,7 +42,6 @@ from .metrics import (
     desc_stats,
     get_metrics,
 )
-from .transforms import get_poly_features
 from .utils import (
     HAS_MCC,
     compute_diag,
@@ -56,6 +57,26 @@ from .utils import (
     to_float64,
     to_uint8,
 )
+
+# MCC is now an explicitly selected legacy backend; model detection is independent.
+if not HAS_MCC:
+    warnings.warn(
+        "cv2.mcc module not found \u2014 the legacy MCC backend is unavailable. "
+        "Model-based detection remains available with the bundled ONNX model and onnxruntime.",
+        ImportWarning,
+    )
+
+
+def __getattr__(name):
+    if name == "get_poly_features":
+        from .transforms import get_poly_features
+        return get_poly_features
+    raise AttributeError(name)
+
+
+def __dir__():
+    return sorted(set(globals()).union(__all__))
+
 
 __all__ = [
     # Color spaces

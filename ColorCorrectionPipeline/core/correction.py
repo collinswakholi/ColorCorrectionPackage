@@ -22,17 +22,12 @@ import cv2
 import colour
 from ..conventional import apply_conventional
 from ..checker_compat import make_colour_checker
-import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.utils import check_X_y
-from torch.utils.data import DataLoader, TensorDataset, random_split
 
 try:
     from colour_checker_detection import detect_colour_checkers_segmentation
@@ -42,7 +37,6 @@ except ImportError:
 from ..constants import EPSILON, WP_DEFAULT
 from .color_spaces import convert_to_lab
 from .metrics import arrange_metrics, get_metrics
-from .transforms import get_poly_features
 from .utils import (
     _create_detector,
     _create_cdraw,
@@ -79,8 +73,21 @@ __all__ = [
     "extract_color_chart_ex",
 ]
 
-# CUDA setup
-is_cuda = torch.cuda.is_available()
+_FEATURE_BACKEND = ("is_cuda", "device_", "get_poly_features")
+
+
+def _load_feature_backend():
+    # Historical callers can replace these hooks. Only fill unbound names.
+    from . import transforms
+    for name in _FEATURE_BACKEND:
+        globals().setdefault(name, getattr(transforms, name))
+
+
+def __getattr__(name):
+    if name in _FEATURE_BACKEND:
+        _load_feature_backend()
+        return globals()[name]
+    raise AttributeError(name)
 
 
 def _coerce_hidden_layers(value, default=None):
@@ -139,7 +146,6 @@ def _coerce_bool(value, default):
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "y", "on"}
     return bool(value)
-device_ = torch.device("cuda" if is_cuda else "cpu")
 
 
 # ============================================================================
@@ -296,12 +302,15 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.output_dim = None
         self.temp_path: Optional[str] = None
 
+        import torch.nn as nn
         self.model: Optional[nn.Module] = None
         self.loss_fn = nn.MSELoss()
         self.device: Optional[str] = None
 
     def _build_model(self):
         """Build neural network architecture."""
+        import torch
+        import torch.nn as nn
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
         if self.verbose:
@@ -367,6 +376,10 @@ class CustomNN(BaseEstimator, RegressorMixin):
 
         # Convert to tensors after batch-norm validation so model construction uses
         # the effective normalization setting.
+        import torch
+        import torch.optim as optim
+        from torch.utils.data import DataLoader, TensorDataset, random_split
+
         dataset = TensorDataset(
             torch.tensor(X, dtype=torch.float32),
             torch.tensor(y, dtype=torch.float32)
@@ -497,6 +510,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
             np.ndarray: Predictions (N, K)
         """
         self.model.eval()
+        import torch
         X_tensor = torch.tensor(X, dtype=torch.float32, device=self.device)
         
         with torch.no_grad():
@@ -617,6 +631,7 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     Y = ref_p
 
     # Generate polynomial features
+    _load_feature_backend()
     X, _ = get_poly_features(X, degree=M.degree)
 
     if M.ncomp == -1 or M.ncomp > X.shape[1]:
@@ -708,6 +723,7 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
         from sklearn.preprocessing import PolynomialFeatures
         X = PolynomialFeatures(degree=M.degree, include_bias=True).fit_transform(np.asarray(X, dtype=np.float64))
     else:
+        _load_feature_backend()
         X, _ = get_poly_features(X, degree=M.degree)
     pred = M.model.predict(X)
     return pred.reshape(orig_shape)
@@ -820,6 +836,8 @@ def predict_image(
     img_flat_L = img_flat_lab[:, 0]
 
     # Apply polynomial correction on L channel
+    import torch
+    _load_feature_backend()
     if is_cuda:
         try:
             img_flat_gpu = torch.from_numpy(img_flat_L).to(device_, dtype=torch.float32)
@@ -978,6 +996,9 @@ def estimate_gamma_profile(
 
     # Visualization
     if show:
+        import torch
+        _load_feature_backend()
+        import matplotlib.pyplot as plt
         # Compute predictions for plotting
         if is_cuda:
             free_memory()
@@ -1094,6 +1115,7 @@ def wb_correction(
 
     # Visualization
     if show:
+        import matplotlib.pyplot as plt
         figure = plt.figure(figsize=(10, 5))
         ax = figure.add_subplot(1, 2, 1)
         ax.imshow(img_rgb)
@@ -1636,6 +1658,7 @@ def color_correction(
         )
 
         # Plot
+        import matplotlib.pyplot as plt
         figure = plt.figure(figsize=(10, 5))
         ax = figure.add_subplot(1, 2, 1)
         ax.imshow(img_rgb)
