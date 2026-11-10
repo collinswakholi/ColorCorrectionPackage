@@ -33,7 +33,7 @@ import json
 import os
 import time
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -110,6 +110,42 @@ def get_attr(obj: Any, attr: str, default: Any = None) -> Any:
     return getattr(obj, attr, default)
 
 
+@dataclass(eq=False)
+class _FittedState:
+    """State published together to prediction readers after a successful fit or load."""
+
+    models: MyModels = field(default_factory=MyModels)
+    Models_path: Optional[str] = None
+    color_semantics: ColorSemantics = field(default_factory=ColorSemantics)
+    stage_policy: StagePolicy = field(default_factory=StagePolicy)
+    fitting_policy: FittingPolicy = field(default_factory=FittingPolicy)
+    reference_profile: Optional[ReferenceProfile] = None
+    observations: Optional[ObservationSet] = None
+    stage_observations: dict = field(default_factory=dict)
+    REF_ILLUMINANT: Optional[np.ndarray] = None
+    validation_options: dict = field(default_factory=dict)
+    numerical_report: dict = field(default_factory=dict)
+    _chart_index: int = 0
+
+    # Fit-only inputs, derived views and caches have no counterpart in a bundle.
+    Image: Optional[np.ndarray] = None
+    White_Image: Optional[np.ndarray] = None
+    fitted_config: Optional[Config] = None
+    image_data: Optional[ImageData] = None
+    white_image_data: Optional[ImageData] = None
+    _source_face: Any = None
+    REFERENCE_CHART: Any = None
+    REFERENCE_RGB_PD: Optional[pd.DataFrame] = None
+    REFERENCE_NEUTRAL_PATCHES_PD: Optional[pd.DataFrame] = None
+    REFERENCE_DISPLAY_RGB_PD: Optional[pd.DataFrame] = None
+    _ffc_multiplier_cache: dict = field(default_factory=dict)
+    _ffc_quality_cache: dict = field(default_factory=dict)
+
+    @classmethod
+    def from_fit(cls, candidate):
+        return cls(**{item.name: getattr(candidate, item.name) for item in fields(cls)})
+
+
 class ColorCorrection:
     """
     Main pipeline for color correction.
@@ -145,37 +181,17 @@ class ColorCorrection:
     
     def __init__(self) -> None:
         """Initialize ColorCorrection pipeline."""
-        self.Image: Optional[np.ndarray] = None
-        self.White_Image: Optional[np.ndarray] = None
-        self.models = MyModels()
         self._run_lock = threading.RLock()
         self._state_lock = threading.RLock()
-        self.last_run: Dict[str, Any] = {}
-        self.fitted_config: Optional[Config] = None
-        self._stage_errors: Dict[str, Dict[str, str]] = {}
-        self.color_semantics = ColorSemantics()
-        self.reference_profile = None
-        self.image_data = None
-        self.white_image_data = None
-        self.observations = None
-        self.stage_observations = {}
-        self.REFERENCE_DISPLAY_RGB_PD = None
-        self.Models_path: Optional[str] = None
-        self._ffc_multiplier_cache: Dict[str, np.ndarray] = {}
-        self._ffc_quality_cache = {}
-        self.stage_policy = StagePolicy()
-        self.fitting_policy = FittingPolicy()
-        self.validation_options = {}
-        self.numerical_report = {}
-        self._source_face = None
-        self._chart_index = 0
-        
-        # Reference data placeholders (populated by get_reference_values)
-        self.REFERENCE_CHART: Any = None
-        self.REF_ILLUMINANT: Any = None
-        self.REFERENCE_RGB_PD: Optional[pd.DataFrame] = None
-        self.REFERENCE_NEUTRAL_PATCHES_PD: Optional[pd.DataFrame] = None
-    
+        self.__activate_fitted_state(_FittedState(), {})
+
+    def __activate_fitted_state(self, state: _FittedState, diagnostics: Dict[str, Any]) -> None:
+        with self._state_lock:
+            for name, value in vars(state).items():
+                setattr(self, name, value)
+            self._stage_errors = {}
+            self.last_run = diagnostics
+
     def get_reference_values(
         self, REF_ILLUMINANT: Optional[np.ndarray] = None
     ) -> pd.DataFrame:
@@ -854,16 +870,8 @@ class ColorCorrection:
             # replacing destinations, and preserve the active calibration on error.
             if selected.save:
                 candidate._save_run_outputs(metrics, name_, selected)
-            # Publish the complete context under the lock used by prediction snapshots.
-            with self._state_lock:
-                for attr in ("models", "Image", "White_Image", "REF_ILLUMINANT", "REFERENCE_CHART",
-                             "REFERENCE_RGB_PD", "REFERENCE_NEUTRAL_PATCHES_PD", "Models_path",
-                             "_ffc_multiplier_cache", "fitted_config", "color_semantics", "reference_profile",
-                             "image_data", "white_image_data", "observations", "stage_observations", "REFERENCE_DISPLAY_RGB_PD",
-                             "stage_policy", "fitting_policy", "validation_options", "numerical_report", "_source_face", "_chart_index", "_ffc_quality_cache"):
-                    setattr(self, attr, getattr(candidate, attr))
-                candidate.last_run["success"] = True
-                self.last_run = candidate.last_run
+            state = _FittedState.from_fit(candidate)
+            self.__activate_fitted_state(state, {**candidate.last_run, "success": True})
             return metrics, converted_images, False
         except Exception as exc:
             candidate.last_run["errors"].append({"type": type(exc).__name__, "message": str(exc)})
@@ -1313,38 +1321,25 @@ class ColorCorrection:
         with self._run_lock:
             candidate = load_bundle(path, limits=limits)
             metadata = candidate.metadata
-            semantics = ColorSemantics.from_value(metadata.get("color_semantics"))
-            reference = ReferenceProfile.from_dict(metadata["reference_profile"]) if metadata else None
-            observations = ObservationSet.from_dict(metadata["observations"]) if metadata else None
-            stage_observations = {key: ObservationSet.from_dict(value) for key, value in metadata.get("stage_observations", {}).items()}
-            illuminant = np.asarray(metadata.get("legacy_reference_illuminant", D65))
-            stage_policy = StagePolicy.from_value(metadata.get("stage_policy"))
-            fitting_policy = FittingPolicy.from_value(metadata.get("fitting_policy"))
-            numerical_report = copy.deepcopy(metadata.get("numerical_report", {}))
-            validation_options = copy.deepcopy(metadata.get("validation_options", {}))
+            state = _FittedState(
+                models=candidate, Models_path=os.fspath(path),
+                color_semantics=ColorSemantics.from_value(metadata.get("color_semantics")),
+                reference_profile=ReferenceProfile.from_dict(metadata["reference_profile"]) if metadata else None,
+                observations=ObservationSet.from_dict(metadata["observations"]) if metadata else None,
+                stage_observations={key: ObservationSet.from_dict(value)
+                                    for key, value in metadata.get("stage_observations", {}).items()},
+                REF_ILLUMINANT=np.asarray(metadata.get("legacy_reference_illuminant", D65)),
+                stage_policy=StagePolicy.from_value(metadata.get("stage_policy")),
+                fitting_policy=FittingPolicy.from_value(metadata.get("fitting_policy")),
+                numerical_report=copy.deepcopy(metadata.get("numerical_report", {})),
+                validation_options=copy.deepcopy(metadata.get("validation_options", {})),
+                _chart_index=metadata.get("chart_selection", {}).get("chart_index", 0),
+            )
             loaded_run = {"success": True, "operation": "load_bundle", "source": os.fspath(path),
-                          "contracts": copy.deepcopy(metadata), "numerical_report": copy.deepcopy(numerical_report),
+                          "contracts": copy.deepcopy(metadata), "numerical_report": copy.deepcopy(state.numerical_report),
                           "calibration_id": candidate.bundle_digest, "interpretation": candidate.bundle_interpretation,
                           "stages": {}, "errors": [], "artifacts": [os.fspath(path)]}
-            with self._state_lock:
-                self.models = candidate
-                self.color_semantics = semantics
-                self.reference_profile = reference
-                self.observations = observations
-                self.stage_observations = stage_observations
-                self.Image = self.White_Image = self.image_data = self.white_image_data = None
-                self.fitted_config = None
-                self.REF_ILLUMINANT = illuminant
-                self.Models_path = os.fspath(path)
-                self.stage_policy, self.fitting_policy = stage_policy, fitting_policy
-                self.numerical_report, self.validation_options = numerical_report, validation_options
-                self.last_run = loaded_run
-                self._stage_errors = {}
-                self._ffc_multiplier_cache = {}
-                self._ffc_quality_cache = {}
-                self._source_face = None
-                self._chart_index = metadata.get("chart_selection", {}).get("chart_index", 0)
-                self.REFERENCE_CHART = self.REFERENCE_RGB_PD = self.REFERENCE_NEUTRAL_PATCHES_PD = self.REFERENCE_DISPLAY_RGB_PD = None
+            self.__activate_fitted_state(state, loaded_run)
         return self
 
     def prepare_execution(self, options=None, *, cache=None):

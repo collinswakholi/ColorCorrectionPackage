@@ -6,12 +6,17 @@ Run from a neutral directory with the built package installed:
 The UI reference engine is not a runtime dependency of these checks.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import hashlib
 from importlib.metadata import version
 import json
+import os
 from pathlib import Path
 import tempfile
+from threading import Event
 import time
+from unittest.mock import patch
 import zipfile
 
 import numpy as np
@@ -138,7 +143,6 @@ def legacy_import_contracts():
     import pickle
     import sys
     from types import SimpleNamespace
-    from unittest.mock import patch
     from ColorCorrectionPipeline import key_functions as legacy
 
     model = legacy.Regressor_Model()
@@ -194,15 +198,16 @@ def precision_estimation():
     return {"byte_previews_equal": True, "white_gain_difference": difference}
 
 
-def reject_altered_bundle(bundle, folder, alteration):
+def altered_bundle(bundle, folder, alteration):
     with zipfile.ZipFile(bundle) as archive:
         members = {name: archive.read(name) for name in archive.namelist()}
     manifest = json.loads(members["manifest.json"])
     assert manifest["version"] == 2
     if alteration == "downgraded":
         manifest["version"] = 1
-        expected_error = "require bundle version 2"
-    else:
+    elif alteration == "chart-selection":
+        manifest["metadata"]["chart_selection"] = []
+    elif alteration == "high-lut":
         def enable_lut(value):
             if isinstance(value, dict):
                 for key, item in value.items():
@@ -214,7 +219,8 @@ def reject_altered_bundle(bundle, folder, alteration):
                 for item in value:
                     enable_lut(item)
         enable_lut(manifest)
-        expected_error = "high precision requires direct CC"
+    else:
+        raise ValueError(alteration)
     manifest.pop("content_sha256")
     def encode(value):
         return json.dumps(value, sort_keys=True, ensure_ascii=True, allow_nan=False,
@@ -225,6 +231,13 @@ def reject_altered_bundle(bundle, folder, alteration):
     with zipfile.ZipFile(altered, "w", compression=zipfile.ZIP_STORED) as archive:
         for name, payload in members.items():
             archive.writestr(name, payload)
+    return altered
+
+
+def reject_altered_bundle(bundle, folder, alteration):
+    expected_error = {"downgraded": "require bundle version 2",
+                      "high-lut": "high precision requires direct CC"}[alteration]
+    altered = altered_bundle(bundle, folder, alteration)
     try:
         ColorCorrection().load_bundle(altered)
     except ValueError as exc:
@@ -235,7 +248,6 @@ def reject_altered_bundle(bundle, folder, alteration):
 
 def verify_native_batch_tiles(calibration, scene):
     """Public batch prediction must align spatial gains and respect the tile limit."""
-    from unittest.mock import patch
     from ColorCorrectionPipeline import ui_execution
 
     if not ui_execution.accel.HAS_NUMBA:
@@ -262,6 +274,58 @@ def verify_native_batch_tiles(calibration, scene):
         np.testing.assert_array_equal(item.images[stage], expected[stage])
 
 
+@contextmanager
+def prediction_in_flight(pipe, scene, expected):
+    """Hold one reader after its snapshot, then check it against the old calibration."""
+    captured, resume = Event(), Event()
+    predict = ColorCorrection._predict_image
+
+    def pause(snapshot, *args, **kwargs):
+        captured.set()
+        if not resume.wait(120):
+            raise TimeoutError("prediction was never released")
+        return predict(snapshot, *args, **kwargs)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        try:
+            with patch.object(ColorCorrection, "_predict_image", pause):
+                reader = pool.submit(pipe.predict_image, scene, stages="final")
+                assert captured.wait(30), "prediction did not take its snapshot"
+            yield
+        finally:
+            resume.set()
+        np.testing.assert_array_equal(reader.result()["CC"], expected)
+
+
+def verify_failed_publication(pipe, chart, white, config, artifacts):
+    """Fail the final replacement after a real metrics write to existing destinations."""
+    bundle = Path(pipe.Models_path)
+    replace = os.replace
+    replaced = []
+
+    def reject_bundle(source, destination):
+        destination = Path(destination)
+        if destination == bundle:
+            raise PermissionError("injected bundle replacement failure")
+        replace(source, destination)
+        if destination.parent == bundle.parent:
+            replaced.append(destination.name)
+
+    try:
+        with patch.object(os, "replace", reject_bundle):
+            pipe.run(chart, white, "chart", config)
+    except PermissionError as error:
+        assert "injected bundle replacement failure" in str(error)
+    else:
+        raise AssertionError("failed publication was accepted")
+    assert replaced.count("chart_metrics.csv") == 2  # Publish and restore.
+    assert not pipe.last_run["success"] and not pipe.last_run["artifacts"]
+    assert pipe.last_run["errors"][-1]["type"] == "PermissionError"
+    assert not list(bundle.parent.glob(".ccp-run-*"))
+    for path, digest in artifacts.items():
+        assert hashlib.sha256(path.read_bytes()).digest() == digest
+
+
 def verify_refits(samples, folder, device):
     chart, white, scene = (samples[key] for key in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
     pipe = ColorCorrection()
@@ -273,7 +337,7 @@ def verify_refits(samples, folder, device):
     first = pipe.fit_or_raise(chart, white, "chart", config("ccm"))
     bundle = folder / "chart_models.ccpb"
     assert str(bundle) in first.artifacts and first.name == "chart" and first.images
-    digest = hashlib.sha256(bundle.read_bytes()).digest()
+    artifacts = {Path(path): hashlib.sha256(Path(path).read_bytes()).digest() for path in first.artifacts}
     baseline = pipe.predict_image(scene, stages="final")["CC"]
     previous = ColorCorrection().load_bundle(bundle)
     verify_native_batch_tiles(previous, scene)
@@ -287,17 +351,53 @@ def verify_refits(samples, folder, device):
         raise AssertionError("Missing white field accepted")
     _, _, failed = pipe.run(chart, None, "chart", config("rpcc3"))
     assert failed and not pipe.last_run["artifacts"] and pipe.models is first.models
-    assert hashlib.sha256(bundle.read_bytes()).digest() == digest
+    assert not pipe.last_run["success"] and pipe.last_run["errors"][0]["stage"] == "FFC"
+    for path, digest in artifacts.items():
+        assert hashlib.sha256(path.read_bytes()).digest() == digest
     np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
 
-    second = pipe.fit_or_raise(chart, white, "chart", config("rpcc3"))
+    verify_failed_publication(pipe, chart, white, config("rpcc3"), artifacts)
+    assert pipe.models is first.models and Path(pipe.Models_path) == bundle
+    np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
+
+    invalid = folder / "corrupt.ccpb"
+    invalid.write_bytes(b"invalid bundle")
+    last_attempt = pipe.last_run
+    for bad_bundle in (invalid, altered_bundle(bundle, folder, "chart-selection")):
+        try:
+            pipe.load_bundle(bad_bundle)
+        except (ValueError, AttributeError):
+            pass
+        else:
+            raise AssertionError(f"corrupt load was accepted: {bad_bundle}")
+        assert pipe.last_run is last_attempt and pipe.models is first.models
+        assert Path(pipe.Models_path) == bundle and pipe.fitted_config is not None
+        for path, digest in artifacts.items():
+            assert hashlib.sha256(path.read_bytes()).digest() == digest
+        np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
+
+    with prediction_in_flight(pipe, scene, baseline):
+        second = pipe.fit_or_raise(chart, white, "chart", config("rpcc3"))
+        corrected = pipe.predict_image(scene, stages="final")["CC"]
     assert second.models is pipe.models and second.models is not first.models
-    corrected = pipe.predict_image(scene, stages="final")["CC"]
-    assert not np.array_equal(corrected, baseline)
+    changed_pixels = int(np.count_nonzero(np.any(corrected != baseline, axis=-1)))
+    assert changed_pixels > 0
     np.testing.assert_array_equal(ColorCorrection().load_bundle(bundle).predict_image(scene, stages="final")["CC"], corrected)
     first.models.save_bundle(folder / "first.ccpb")
-    np.testing.assert_array_equal(ColorCorrection().load_bundle(folder / "first.ccpb").predict_image(scene, stages="final")["CC"], baseline)
+    with prediction_in_flight(pipe, scene, corrected):
+        assert pipe.load_bundle(folder / "first.ccpb") is pipe
+        assert Path(pipe.Models_path) == folder / "first.ccpb"
+        assert pipe.last_run["operation"] == "load_bundle" and pipe.last_run["success"]
+        assert pipe.Image is None and pipe.White_Image is None and pipe.fitted_config is None
+        assert pipe.image_data is None and pipe.white_image_data is None
+        assert pipe.REFERENCE_RGB_PD is None and pipe.REFERENCE_DISPLAY_RGB_PD is None
+        assert not pipe._ffc_multiplier_cache and not pipe._ffc_quality_cache
+        assert pipe.observations.to_dict() == previous.observations.to_dict()
+        assert pipe.last_run["contracts"] == previous.last_run["contracts"]
+        np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
     return {"successful_refit": True, "failed_refit_preserved": True, "named_bundle_replay_exact": True,
+            "failed_save_rollback_files": len(artifacts), "corrupt_load_preserved": True, "malformed_metadata_preserved": True,
+            "in_flight_refit_exact": True, "in_flight_load_exact": True, "ccm_rpcc3_distinct_scene_pixels": changed_pixels,
             "ccm_chart_de00": first.metrics["chart_CC"]["delta_e00_after_mean"],
             "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"]}
 
