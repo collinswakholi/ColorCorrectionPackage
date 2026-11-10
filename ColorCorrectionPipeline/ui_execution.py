@@ -6,7 +6,6 @@ to the corresponding reference implementation when a kernel cannot run.
 """
 
 import logging
-import threading
 import numpy as np
 
 from .core import accel
@@ -247,42 +246,6 @@ if accel.HAS_NUMBA:
                 native_codes,
             )
 
-    def _run_serial(
-        flat,
-        gain,
-        knots,
-        coefficients,
-        wb,
-        table,
-        stop,
-        retained,
-        forward,
-        inverse,
-        white,
-        decodes,
-        native,
-        native_codes,
-    ):
-        output = np.empty((len(retained), len(flat), 3), dtype=np.float64)
-        _run_into(
-            output,
-            flat,
-            gain,
-            knots,
-            coefficients,
-            wb,
-            table,
-            stop,
-            retained,
-            forward,
-            inverse,
-            white,
-            decodes,
-            native,
-            native_codes,
-        )
-        return output
-
     def _run(
         flat,
         gain,
@@ -298,73 +261,35 @@ if accel.HAS_NUMBA:
         decodes,
         native,
         native_codes,
+        *,
+        chunk_pixels,
     ):
         from ._cpu_workers import worker_count, ranges, run_slices
 
         workers = worker_count(len(flat), 65536)
-        if workers == 1:
-            return _run_serial(
-                flat,
-                gain,
-                knots,
-                coefficients,
-                wb,
-                table,
-                stop,
-                retained,
-                forward,
-                inverse,
-                white,
-                decodes,
-                native,
-                native_codes,
-            )
         output = np.empty((len(retained), len(flat), 3), dtype=np.float64)
-        # Compile for the actual strides before worker threads enter the same
-        # dispatcher. Every worker then owns disjoint rows of the output.
-        _run_into(
-            output[:, :1],
-            flat[:0],
-            gain[:0],
-            knots,
-            coefficients,
-            wb,
-            table,
-            stop,
-            retained,
-            forward,
-            inverse,
-            white,
-            decodes,
-            native,
-            native_codes,
-        )
+        parameters = (knots, coefficients, wb, table, stop, retained, forward,
+                      inverse, white, decodes, native, native_codes)
+        tile_size = chunk_pixels or len(flat)
 
         def fill(start, end):
-            local_gain = gain[start:end] if len(gain) else gain
-            _run_into(
-                output[:, start:end],
-                flat[start:end],
-                local_gain,
-                knots,
-                coefficients,
-                wb,
-                table,
-                stop,
-                retained,
-                forward,
-                inverse,
-                white,
-                decodes,
-                native,
-                native_codes,
-            )
+            for first in range(start, end, tile_size):
+                last = min(first + tile_size, end)
+                # All three views use absolute image offsets, including tiles
+                # that begin mid-row in the spatial flat-field gain map.
+                _run_into(output[:, first:last], flat[first:last], gain[first:last],
+                          *parameters)
 
-        run_slices(fill, ranges(len(flat), workers), workers)
+        if workers == 1:
+            fill(0, len(flat))
+        else:
+            # Compile the output strides before concurrent workers enter Numba.
+            _run_into(output[:, :1], flat[:0], gain[:0], *parameters)
+            run_slices(fill, ranges(len(flat), workers), workers)
         return output
 
 
-def try_execute(image, models, selected, *, native_codes=False):
+def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=None):
     """Return owned stage arrays, or None to retain the ordinary reference path."""
     global _enabled, _decode_values
     if (
@@ -443,9 +368,7 @@ def try_execute(image, models, selected, *, native_codes=False):
         if _decode_values is None:
             decoded = _build_decode_values()
             _decode_values = np.frombuffer(decoded.tobytes(), dtype=np.float64).reshape(256, 4)
-        # Batch workers already own concurrency; avoid nested native pools.
-        kernel = _run if threading.current_thread() is threading.main_thread() else _run_serial
-        values = kernel(
+        values = _run(
             image.reshape(-1, 3),
             gain,
             knots,
@@ -460,6 +383,7 @@ def try_execute(image, models, selected, *, native_codes=False):
             _decode_values,
             native,
             native_codes,
+            chunk_pixels=chunk_pixels,
         )
     except Exception as error:
         _enabled = False

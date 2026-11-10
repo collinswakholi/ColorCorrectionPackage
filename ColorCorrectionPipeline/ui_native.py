@@ -428,8 +428,9 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     from .ui_execution import try_execute
 
     high = high_precision(models)
-    if chunk_pixels is None and not high:
-        result = try_execute(image, models, selected, native_codes=native_codes)
+    if not high:
+        result = try_execute(image, models, selected, native_codes=native_codes,
+                             chunk_pixels=chunk_pixels)
         if result is not None:
             return result
     from .core.correction import predict_

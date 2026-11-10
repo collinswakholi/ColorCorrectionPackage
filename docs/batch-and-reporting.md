@@ -48,8 +48,14 @@ batch prediction defaults to 65536; ordinary `predict_image` retains its previou
 unchunked default. Direct/LUT selection uses the **whole-image pixel count once**,
 including short final chunks, so chunking does not silently change inference paths.
 Chunked direct linear algebra can have ordinary backend rounding differences;
-the qualified tolerance is `1e-12` for the tested float64 paths. Chunking does not
-tile spatial FFC, file decoding or every GC temporary buffer.
+the qualified tolerance is `1e-12` for the tested float64 paths.
+
+With the performance extra, eligible UI-native byte calibrations can run the
+fused image kernel in tiles of at most `chunk_pixels`. Each tile reads the
+corresponding spatial FFC gains. Batch workers render their own tiles serially.
+High-precision and direct CC fits keep their existing bounded CC path. Decoding,
+the calibration snapshot and each requested output stage still require their
+own memory. Use `iter_predict` or file output to avoid collecting every image.
 
 ## Collect per-image outcomes
 

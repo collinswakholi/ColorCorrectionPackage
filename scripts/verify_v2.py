@@ -233,6 +233,35 @@ def reject_altered_bundle(bundle, folder, alteration):
         raise AssertionError("An incompatible altered calibration was accepted: " + alteration)
 
 
+def verify_native_batch_tiles(calibration, scene):
+    """Public batch prediction must align spatial gains and respect the tile limit."""
+    from unittest.mock import patch
+    from ColorCorrectionPipeline import ui_execution
+
+    if not ui_execution.accel.HAS_NUMBA:
+        return
+    stages = ("FFC", "CC")
+    expected = calibration.predict_image(scene, stages=stages)
+    tile_sizes = []
+    kernel = ui_execution._run_into
+
+    def record_tile(output, pixels, gain, *parameters):
+        tile_sizes.append(len(pixels))
+        assert len(gain) == len(pixels)
+        return kernel(output, pixels, gain, *parameters)
+
+    # Deliberately split scanlines and leave a partial last tile.
+    limit = 65521
+    with patch.object(ui_execution, "_run_into", record_tile):
+        item, = calibration.predict_batch([scene], stages=stages, chunk_pixels=limit,
+                                          max_workers=1).items
+    assert item.status == "succeeded", item.error
+    assert tuple(item.images) == stages
+    assert sum(tile_sizes) == expected["CC"].size // 3 and max(tile_sizes) <= limit
+    for stage in stages:
+        np.testing.assert_array_equal(item.images[stage], expected[stage])
+
+
 def verify_refits(samples, folder, device):
     chart, white, scene = (samples[key] for key in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
     pipe = ColorCorrection()
@@ -247,6 +276,7 @@ def verify_refits(samples, folder, device):
     digest = hashlib.sha256(bundle.read_bytes()).digest()
     baseline = pipe.predict_image(scene, stages="final")["CC"]
     previous = ColorCorrection().load_bundle(bundle)
+    verify_native_batch_tiles(previous, scene)
     np.testing.assert_array_equal(previous.predict_image(scene, stages="final")["CC"], baseline)
 
     try:
