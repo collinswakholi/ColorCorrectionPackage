@@ -15,8 +15,9 @@ numerical behavior. See the [migration guide](https://github.com/collinswakholi/
 pip install --upgrade ColorCorrectionPipeline
 ```
 
-This README describes **ColorCorrectionPipeline 2.0.0**. To pin this release,
-use `pip install ColorCorrectionPipeline==2.0.0`.
+For the published 2.0.0 release, use `pip install ColorCorrectionPipeline==2.0.0`.
+The checkout adds `fit_or_raise()`. To run the Python example below, install this
+revision with `python -m pip install .` from the repository root.
 The distribution and Python import are both named `ColorCorrectionPipeline`;
 the repository is named ColorCorrectionPackage.
 
@@ -25,6 +26,20 @@ Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPyth
 Optional CPU acceleration is available with
 `pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
 prefers a supported GPU provider and falls back to CPU; see [GPU setup](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.0.0/docs/gpu-detection.md).
+
+## Run the sample photographs
+
+```shell
+python -m ColorCorrectionPipeline.examples.quickstart --output demo
+```
+
+The quickstart fits the included chart and white field, explicitly saves
+`demo/calibration.ccpb`, reloads it and writes `demo/corrected.png` and
+`demo/results.json`. To reuse that calibration on your own image in a fresh process:
+
+```shell
+python -m ColorCorrectionPipeline.examples.apply_bundle --bundle demo/calibration.ccpb --image scene.jpg --output replay
+```
 
 ## One complete test example
 
@@ -80,9 +95,7 @@ with ExitStack() as stack:
 
     chart, white, scene = map(sample, ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
     pipeline = ColorCorrection()
-    metrics, _, failed = pipeline.run(chart, white, name_="chart", config=config)
-    if failed:
-        raise RuntimeError(pipeline.last_run["errors"])
+    fit = pipeline.fit_or_raise(chart, white, name_="chart", config=config)
 
     bundle = output / "chart_models.ccpb"
     restored = ColorCorrection().load_bundle(bundle)
@@ -97,10 +110,22 @@ with ExitStack() as stack:
     )
     assert record.maximum_codec_error == 0
 
-    print("Training-chart mean Delta E00:", metrics["chart_CC"]["delta_e00_after_mean"])
+    print("Training-chart mean Delta E00:", fit.metrics["chart_CC"]["delta_e00_after_mean"])
     print("Bundle replay: exact; PNG codec error:", record.maximum_codec_error)
     print("Outputs:", output.resolve())
 ```
+
+With automatic persistence, set the format explicitly to `bundle` and
+use the fit name to locate the file. Here it is `sample-results/chart_models.ccpb`.
+The result's `artifacts` lists the paths written by that fit. With saving enabled,
+omitting the format selects the historical pickle format. With saving disabled,
+call `pipeline.save_bundle(path)` after a successful fit to choose the filename,
+as the quickstart does.
+
+`fit_or_raise()` raises `CalibrationError` for a failed stage and propagates
+configuration and filesystem exceptions. After a failed refit, the pipeline still
+holds the last successful calibration. Existing callers can continue using
+`metrics, images, failed = pipeline.run(...)`.
 
 The PNG is an explicitly quantized preview; zero codec error means its stored
 samples survived readback unchanged. Use a suitable TIFF export when retaining

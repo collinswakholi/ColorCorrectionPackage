@@ -3,6 +3,9 @@
 Run with pip install ColorCorrectionPipeline, then:
 python -m ColorCorrectionPipeline.examples.quickstart --output results-rpcc2
 
+The example explicitly saves results-rpcc2/calibration.ccpb, reloads it and writes
+results-rpcc2/corrected.png. Use a new output directory for each run.
+
 Add --chart chart.tiff --white white.tiff --scene scene.tiff for your own captures.
 Omit --white with a caller-supplied chart to disable flat-field correction.
 """

@@ -1,7 +1,8 @@
 # Prepared execution
 
-Existing prediction methods retain their numerical/default policies. Repeated
-application can opt into an owned, reusable execution snapshot:
+For the default UI-native calibration, use `predict_image()` or `predict_batch()`.
+Those APIs apply the recorded precision and LUT settings. The prepared execution
+example below requires a calibration outside the UI-native execution family:
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, LutCache

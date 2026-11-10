@@ -11,7 +11,6 @@ import math
 import threading
 
 import numpy as np
-from sklearn.preprocessing import PolynomialFeatures
 
 _TORCH_FIT_LOCK = threading.RLock()
 _UI_SAMPLING_POLICIES = {
@@ -333,6 +332,7 @@ def fit_observations(X, Y, groups, parameters=None, policy=None, synthetic_mask=
     X, Y, groups, synthetic = X[retained], Y[retained], groups[retained], synthetic[retained]
     if np.count_nonzero(~synthetic) < 3:
         raise ValueError("at least three independent measured cells are required")
+    from sklearn.preprocessing import PolynomialFeatures
     features = PolynomialFeatures(degree=p["degree"], include_bias=True).fit_transform(X)
     design = _design_report(features, policy, require_full_rank=p["mtd"] == "linear")
     if policy.anchor_weight and p["mtd"] != "linear":

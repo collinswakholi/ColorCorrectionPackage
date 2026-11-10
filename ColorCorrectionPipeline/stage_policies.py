@@ -9,7 +9,6 @@ from dataclasses import asdict, dataclass, fields
 import math
 
 import numpy as np
-from scipy.interpolate import PchipInterpolator
 
 
 @dataclass(frozen=True)
@@ -132,6 +131,7 @@ class MonotonicToneModel:
         values = np.asarray(lightness, dtype=np.float64)
         if not np.isfinite(values).all():
             raise ValueError("tone input lightness must be finite")
+        from scipy.interpolate import PchipInterpolator
         result = PchipInterpolator(self.measured_knots, self.target_knots, extrapolate=False)(np.clip(values, 0, 100))
         # Polynomial endpoint evaluation can round just below 100. These are
         # explicit model assumptions, so honor them exactly at the boundaries.

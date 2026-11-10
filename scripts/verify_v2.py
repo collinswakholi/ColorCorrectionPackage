@@ -16,7 +16,7 @@ import zipfile
 
 import numpy as np
 
-from ColorCorrectionPipeline import Config, ColorCorrection, ImageData
+from ColorCorrectionPipeline import CalibrationError, Config, ColorCorrection, ImageData
 from ColorCorrectionPipeline import ui_fitting
 from ColorCorrectionPipeline.colorimetry import srgb_to_linear
 from ColorCorrectionPipeline.examples._common import sample_paths, json_value
@@ -233,10 +233,50 @@ def reject_altered_bundle(bundle, folder, alteration):
         raise AssertionError("An incompatible altered calibration was accepted: " + alteration)
 
 
+def verify_refits(samples, folder, device):
+    chart, white, scene = (samples[key] for key in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
+    pipe = ColorCorrection()
+
+    def config(model):
+        return Config(model=model, input={"frame_index": 0}, chart={"device": device},
+                      persistence={"enabled": True, "directory": str(folder), "format": "bundle"})
+
+    first = pipe.fit_or_raise(chart, white, "chart", config("ccm"))
+    bundle = folder / "chart_models.ccpb"
+    assert str(bundle) in first.artifacts and first.name == "chart" and first.images
+    digest = hashlib.sha256(bundle.read_bytes()).digest()
+    baseline = pipe.predict_image(scene, stages="final")["CC"]
+    previous = ColorCorrection().load_bundle(bundle)
+    np.testing.assert_array_equal(previous.predict_image(scene, stages="final")["CC"], baseline)
+
+    try:
+        pipe.fit_or_raise(chart, None, "chart", config("rpcc3"))
+    except CalibrationError as error:
+        assert error.errors[0]["stage"] == "FFC" and "White_Image" in str(error)
+    else:
+        raise AssertionError("Missing white field accepted")
+    _, _, failed = pipe.run(chart, None, "chart", config("rpcc3"))
+    assert failed and not pipe.last_run["artifacts"] and pipe.models is first.models
+    assert hashlib.sha256(bundle.read_bytes()).digest() == digest
+    np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
+
+    second = pipe.fit_or_raise(chart, white, "chart", config("rpcc3"))
+    assert second.models is pipe.models and second.models is not first.models
+    corrected = pipe.predict_image(scene, stages="final")["CC"]
+    assert not np.array_equal(corrected, baseline)
+    np.testing.assert_array_equal(ColorCorrection().load_bundle(bundle).predict_image(scene, stages="final")["CC"], corrected)
+    first.models.save_bundle(folder / "first.ccpb")
+    np.testing.assert_array_equal(ColorCorrection().load_bundle(folder / "first.ccpb").predict_image(scene, stages="final")["CC"], baseline)
+    return {"successful_refit": True, "failed_refit_preserved": True, "named_bundle_replay_exact": True,
+            "ccm_chart_de00": first.metrics["chart_CC"]["delta_e00_after_mean"],
+            "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"]}
+
+
 def photos(device):
     results = []
     with sample_paths() as samples, tempfile.TemporaryDirectory(prefix="ccp-v2-images-") as name:
         folder = Path(name)
+        results.append(verify_refits(samples, folder, device))
         for model, basis, degree in (("rpcc2", None, None), ("pls", "root", 3), ("nn", "hybrid", 2)):
             settings = {"model": model}
             cc = {"use_lut": False}

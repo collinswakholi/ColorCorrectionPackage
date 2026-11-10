@@ -229,10 +229,8 @@ def main():
         new_output(output)
         pipeline = ColorCorrection()
         started = time.perf_counter()
-        metrics, _, failed = pipeline.run(chart, white, name_="chart", config=config)
+        fit = pipeline.fit_or_raise(chart, white, name_="chart", config=config)
         calibration_seconds = time.perf_counter() - started
-        if failed:
-            raise RuntimeError(pipeline.last_run["errors"])
 
         # A safe bundle owns the fitted recipe, including the resolved precision.
         bundle = output / "calibration.ccpb"
@@ -261,7 +259,7 @@ def main():
             "requested_config": config.to_dict(),
             "effective_fitting_policy": pipeline.models.metadata["fitting_policy"],
             "numerical_report": pipeline.numerical_report,
-            "training_chart_metrics": metrics,
+            "training_chart_metrics": fit.metrics,
             "metric_scope": "Training-chart scores; when enabled, CC-only held-out colors "
                             "conditional on fitted upstream stages. Scene pixels have no "
                             "measured reference.",
