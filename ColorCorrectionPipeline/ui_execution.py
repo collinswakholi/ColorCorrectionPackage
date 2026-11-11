@@ -16,31 +16,27 @@ _decode_values = None
 
 
 if accel.HAS_NUMBA:
+    from numba.extending import register_jitable
+
     from .core.execution import _tone_lightness
 
-    # Numba 0.58 repeatedly deep-copies nested always-inline image IR. Keep
-    # helpers separate on older compilers; this changes compilation, not math.
-    try:
-        _compiler_version = tuple(int(v) for v in accel.numba.__version__.split(".")[:2])
-        _inline = "always" if _compiler_version >= (0, 60) else "never"
-    except (AttributeError, ValueError):
-        _inline = "never"
-
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
+    # Let LLVM decide which helpers to inline. Forcing inlining in Numba's
+    # frontend duplicates the colour and LUT equations before type inference.
+    @register_jitable
     def _decode(v):
         return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
 
-    @accel.nb_njit(cache=True, fastmath=False)
     def _build_decode_values():
+        # This one-time, 256-entry table is cheaper to build than to JIT.
         values = np.empty((256, 4), dtype=np.float64)
         for code in range(256):
-            staged = np.float64(np.float32(code / 255.0))
-            native = np.float64(np.float32(code) * np.float32(1.0 / 255.0))
+            staged = float(np.float32(code / 255.0))
+            native = float(np.float32(code) * np.float32(1.0 / 255.0))
             values[code, 0], values[code, 1] = staged, _decode(staged)
             values[code, 2], values[code, 3] = native, _decode(native)
         return values
 
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
+    @accel.nb_njit(cache=True, fastmath=False)
     def _decode_cached(v, values):
         index = int(v * 255.0 + 0.5)
         if 0 <= index < 256:
@@ -50,7 +46,7 @@ if accel.HAS_NUMBA:
                 return values[index, 3]
         return _decode(v)
 
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
+    @accel.nb_njit(cache=True, fastmath=False)
     def _encode(v):
         absolute = abs(v)
         value = (
@@ -60,7 +56,7 @@ if accel.HAS_NUMBA:
         )
         return min(1.0, max(0.0, value))
 
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
+    @accel.nb_njit(cache=True, fastmath=False)
     def _color(r, g, b, gain, knots, coefficients, gamma, forward, inverse, white, decodes, native):
         r, g, b = _decode_cached(r, decodes), _decode_cached(g, decodes), _decode_cached(b, decodes)
         x = (r * forward[0, 0] + g * forward[0, 1] + b * forward[0, 2]) / white[0]
@@ -98,8 +94,8 @@ if accel.HAS_NUMBA:
             np.float32(_encode(x * inverse[2, 0] + y * inverse[2, 1] + z * inverse[2, 2])),
         )
 
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
-    def _lookup(r, g, b, table, channel):
+    @accel.nb_njit(cache=True, fastmath=False)
+    def _write_lut(rgb, r, g, b, table):
         size = table.shape[0]
         # Division by the stored grid step preserves the existing interpolator's
         # rounding; multiplying by size-1 can change boundary samples.
@@ -108,105 +104,13 @@ if accel.HAS_NUMBA:
         r0, g0, b0 = int(min(rf, size - 2)), int(min(gf, size - 2)), int(min(bf, size - 2))
         rd, gd, bd = rf - r0, gf - g0, bf - b0
         wr, wg, wb = 1.0 - rd, 1.0 - gd, 1.0 - bd
-        c00 = table[r0, g0, b0, channel] * wr + table[r0 + 1, g0, b0, channel] * rd
-        c01 = table[r0, g0, b0 + 1, channel] * wr + table[r0 + 1, g0, b0 + 1, channel] * rd
-        c10 = table[r0, g0 + 1, b0, channel] * wr + table[r0 + 1, g0 + 1, b0, channel] * rd
-        c11 = table[r0, g0 + 1, b0 + 1, channel] * wr + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
-        c0, c1 = c00 * wg + c10 * gd, c01 * wg + c11 * gd
-        return np.float32(min(1.0, max(0.0, c0 * wb + c1 * bd)))
-
-    @accel.nb_njit(cache=True, fastmath=False, inline=_inline)
-    def _pixel(
-        row,
-        output,
-        flat,
-        gain,
-        knots,
-        coefficients,
-        wb,
-        table,
-        stop,
-        retained,
-        forward,
-        inverse,
-        white,
-        decodes,
-        native,
-        native_codes,
-    ):
-        r, g, b = (
-            np.float64(np.float32(flat[row, 0])),
-            np.float64(np.float32(flat[row, 1])),
-            np.float64(np.float32(flat[row, 2])),
-        )
-        # Canonical inputs store code/255 in float64; recover the byte before
-        # the native float32 reciprocal multiply, without a full-frame copy.
-        if native_codes:
-            r = np.float64(np.float32(np.rint(flat[row, 0] * 255.0)) * np.float32(1.0 / 255.0))
-            g = np.float64(np.float32(np.rint(flat[row, 1] * 255.0)) * np.float32(1.0 / 255.0))
-            b = np.float64(np.float32(np.rint(flat[row, 2] * 255.0)) * np.float32(1.0 / 255.0))
-        source_r, source_g, source_b = r, g, b
-        position = 0
-        for stage in range(stop + 1):
-            if (
-                stage == 0
-                and len(gain)
-                and not (native and len(knots) and stop >= 1 and retained[0] != 0)
-            ):
-                rr, gg, bb = _color(
-                    r,
-                    g,
-                    b,
-                    gain[row],
-                    knots,
-                    coefficients,
-                    False,
-                    forward,
-                    inverse,
-                    white,
-                    decodes,
-                    native,
-                )
-                r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
-            elif stage == 1 and len(knots):
-                gamma_gain = 1.0
-                if native and len(gain):
-                    r, g, b = source_r, source_g, source_b
-                    gamma_gain = gain[row]
-                rr, gg, bb = _color(
-                    r,
-                    g,
-                    b,
-                    gamma_gain,
-                    knots,
-                    coefficients,
-                    True,
-                    forward,
-                    inverse,
-                    white,
-                    decodes,
-                    native,
-                )
-                r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
-            elif stage == 2 and len(wb):
-                rr = np.float32(min(1.0, max(0.0, r * wb[0] + g * 0.0 + b * 0.0)))
-                gg = np.float32(min(1.0, max(0.0, r * 0.0 + g * wb[1] + b * 0.0)))
-                bb = np.float32(min(1.0, max(0.0, r * 0.0 + g * 0.0 + b * wb[2])))
-                r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
-            elif stage == 3 and table.shape[0]:
-                rr, gg, bb = (
-                    _lookup(r, g, b, table, 0),
-                    _lookup(r, g, b, table, 1),
-                    _lookup(r, g, b, table, 2),
-                )
-                r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
-            if position < len(retained) and stage == retained[position]:
-                output[position, row, 0], output[position, row, 1], output[position, row, 2] = (
-                    r,
-                    g,
-                    b,
-                )
-                position += 1
+        for channel in range(3):
+            c00 = table[r0, g0, b0, channel] * wr + table[r0 + 1, g0, b0, channel] * rd
+            c01 = table[r0, g0, b0 + 1, channel] * wr + table[r0 + 1, g0, b0 + 1, channel] * rd
+            c10 = table[r0, g0 + 1, b0, channel] * wr + table[r0 + 1, g0 + 1, b0, channel] * rd
+            c11 = table[r0, g0 + 1, b0 + 1, channel] * wr + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
+            c0, c1 = c00 * wg + c10 * gd, c01 * wg + c11 * gd
+            rgb[channel] = np.float32(min(1.0, max(0.0, c0 * wb + c1 * bd)))
 
     @accel.nb_njit(cache=True, fastmath=False, nogil=True)
     def _run_into(
@@ -225,26 +129,52 @@ if accel.HAS_NUMBA:
         decodes,
         native,
         native_codes,
+        start,
     ):
+        joint_gamma = native and len(knots) > 0 and stop >= 1
+        # GC reads the original pixel and gain, so compute a separate FFC
+        # result only when the caller requested that intermediate stage.
+        apply_ffc = len(gain) > 0 and (not joint_gamma or retained[0] == 0)
         for row in range(len(flat)):
-            _pixel(
-                row,
-                output,
-                flat,
-                gain,
-                knots,
-                coefficients,
-                wb,
-                table,
-                stop,
-                retained,
-                forward,
-                inverse,
-                white,
-                decodes,
-                native,
-                native_codes,
+            r, g, b = (
+                np.float64(np.float32(flat[row, 0])),
+                np.float64(np.float32(flat[row, 1])),
+                np.float64(np.float32(flat[row, 2])),
             )
+            # Canonical inputs store code/255 in float64; recover the byte before
+            # the native float32 reciprocal multiply, without a full-frame copy.
+            if native_codes:
+                r = np.float64(np.float32(np.rint(flat[row, 0] * 255.0)) * np.float32(1.0 / 255.0))
+                g = np.float64(np.float32(np.rint(flat[row, 1] * 255.0)) * np.float32(1.0 / 255.0))
+                b = np.float64(np.float32(np.rint(flat[row, 2] * 255.0)) * np.float32(1.0 / 255.0))
+            source_r, source_g, source_b = r, g, b
+            position = 0
+            for stage in range(stop + 1):
+                ffc = stage == 0 and apply_ffc
+                gamma = stage == 1 and len(knots) > 0
+                if ffc or gamma:
+                    stage_gain = 1.0
+                    if ffc or (native and len(gain)):
+                        stage_gain = gain[row]
+                    if gamma and native:
+                        r, g, b = source_r, source_g, source_b
+                    rr, gg, bb = _color(
+                        r, g, b, stage_gain, knots, coefficients, gamma,
+                        forward, inverse, white, decodes, native,
+                    )
+                    r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
+                elif stage == 2 and len(wb):
+                    rr = np.float32(min(1.0, max(0.0, r * wb[0] + g * 0.0 + b * 0.0)))
+                    gg = np.float32(min(1.0, max(0.0, r * 0.0 + g * wb[1] + b * 0.0)))
+                    bb = np.float32(min(1.0, max(0.0, r * 0.0 + g * 0.0 + b * wb[2])))
+                    r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
+                if position < len(retained) and stage == retained[position]:
+                    rgb = output[position, start + row]
+                    if stage == 3 and table.shape[0]:
+                        _write_lut(rgb, r, g, b, table)
+                    else:
+                        rgb[0], rgb[1], rgb[2] = r, g, b
+                    position += 1
 
     def _run(
         flat,
@@ -275,16 +205,15 @@ if accel.HAS_NUMBA:
         def fill(start, end):
             for first in range(start, end, tile_size):
                 last = min(first + tile_size, end)
-                # All three views use absolute image offsets, including tiles
-                # that begin mid-row in the spatial flat-field gain map.
-                _run_into(output[:, first:last], flat[first:last], gain[first:last],
-                          *parameters)
+                # Keep the output contiguous across stage selections. The tile offset
+                # also aligns the output with spatial gains when a tile splits a row.
+                _run_into(output, flat[first:last], gain[first:last], *parameters, first)
 
         if workers == 1:
             fill(0, len(flat))
         else:
-            # Compile the output strides before concurrent workers enter Numba.
-            _run_into(output[:, :1], flat[:0], gain[:0], *parameters)
+            # Compile once before concurrent workers write their disjoint output ranges.
+            _run_into(output, flat[:0], gain[:0], *parameters, 0)
             run_slices(fill, ranges(len(flat), workers), workers)
         return output
 
