@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0] - 2026-11-10
+
+- Added `ColorCorrection.fit_or_raise()` for callers that want a calibration result on success and a `CalibrationError` on failure. Existing `run()` callers retain their return contract.
+- Unified activation of fitted and reloaded calibrations so failed refits and bundle loads preserve the active calibration. Updated the examples to save a bundle, reload it and verify its prediction.
+- Reduced first-prediction compilation time with the optional Numba backend. Across four models on the 1152 × 768 Windows sample, first prediction with strict PNG export fell from 12.9–21.7 seconds to 2.38–4.78 seconds.
+- Bounded native batch execution by the requested tile size, including tiles that split image rows.
+- Added a source-checkout tool and protocol for evaluating a calibration on independent chart captures and reporting held-out CIEDE2000 separately from fit residuals.
+
 ## [2.0.0] - 2026-11-09
 
 - Default new calibrations to UI-native RPCC2 with calibration-time image precision selection.
