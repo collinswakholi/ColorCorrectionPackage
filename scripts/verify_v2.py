@@ -253,9 +253,14 @@ def verify_native_batch_tiles(calibration, scene):
     if not ui_execution.accel.HAS_NUMBA:
         return
     stages = ("FFC", "CC")
-    expected = calibration.predict_image(scene, stages=stages)
-    tile_sizes = []
     kernel = ui_execution._run_into
+    final = calibration.predict_image(scene, stages="final")["CC"]
+    signatures = tuple(kernel.signatures)
+    expected = calibration.predict_image(scene, stages=stages)
+    # Retaining FFC changes the output count, but needs no second JIT kernel.
+    assert signatures and tuple(kernel.signatures) == signatures
+    np.testing.assert_array_equal(expected["CC"], final)
+    tile_sizes = []
 
     def record_tile(output, pixels, gain, *parameters):
         tile_sizes.append(len(pixels))
