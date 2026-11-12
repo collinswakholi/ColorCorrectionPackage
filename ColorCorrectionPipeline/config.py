@@ -66,6 +66,9 @@ class Config:
     when deliberately constructing a new config from an unversioned mapping.
     """
 
+    # Configs saved before the fit notice have no record of an inferred policy.
+    _inferred_legacy_policy = False
+
     def __init__(
         self,
         do_ffc: bool = UNSET,
@@ -168,6 +171,7 @@ class Config:
                 raise ValueError("Top-level model/basis/degree/precision require the v2 profile")
             if fitting_policy is None:
                 fitting_policy = "legacy-v1"
+                self._inferred_legacy_policy = True
         if check_saturation is None:
             check_saturation = True
         self.do_ffc = do_ffc
