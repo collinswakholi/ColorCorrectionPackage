@@ -304,11 +304,12 @@ def delta_e00_reference(rgb, canonical_lab_d50, *, input_encoding="srgb", evalua
 
 @dataclass(frozen=True)
 class ColorSemantics:
-    """An explicit, JSON-serializable interpretation; no estimator changes implied.
+    """Describe image encodings, reference whites and the CC fitting domain.
 
-    The current correction stages fit encoded sRGB. Linear-light input/output
-    denotes conversion at the boundary, not a silent new regression algorithm.
-    Pipeline code must reject output policies its stages cannot implement.
+    Input and output encodings describe pixels at the pipeline boundaries.
+    UI-compatible and UI-native fits use linear RGB with sRGB primaries.
+    The legacy-v1 and reproducible-v1 policies fit encoded sRGB. Config
+    validates the declared fitting domain against the selected policy.
     """
     version: str = "legacy-v1"
     input_encoding: str = "srgb"

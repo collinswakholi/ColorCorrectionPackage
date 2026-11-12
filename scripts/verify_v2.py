@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import hashlib
 from importlib.metadata import version
 import json
+import logging
 import os
 from pathlib import Path
 import tempfile
@@ -407,11 +408,49 @@ def verify_refits(samples, folder, device):
             "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"]}
 
 
+def verify_legacy_conv_notice(samples, folder, device):
+    chart, scene = samples["Image_1.JPG"], samples["Sample_1.JPG"]
+    options = dict(do_ffc=False, do_gc=False, do_wb=False, check_saturation=False,
+                   chart_detection={"device": device}, CC_kwargs={"cc_method": "CoNv"})
+    logger = logging.getLogger("ColorCorrectionPipeline.pipeline")
+    with patch.object(logger, "warning", wraps=logger.warning) as notice:
+        implicit = Config.from_dict(options)
+        explicit = Config(fitting_policy="legacy-v1", **options)
+        assert implicit.to_dict() == explicit.to_dict()
+        implicit.validate()
+        pipe = ColorCorrection()
+        notice.assert_not_called()
+
+        _, _, failed = pipe.run(chart, config=implicit)
+        assert not failed, pipe.last_run
+        notice.assert_called_once()
+        message = notice.call_args[0][0]
+        assert "encoded sRGB" in message and 'Config(model="3x3")' in message
+        assert 'fitting_policy="legacy-v1"' in message
+        notice.reset_mock()
+
+        expected = pipe.predict_image(scene, stages="final")["CC"]
+        bundle = folder / "legacy-conv.ccpb"
+        pipe.save_bundle(bundle)
+        restored = ColorCorrection().load_bundle(bundle)
+        np.testing.assert_array_equal(restored.predict_image(scene, stages="final")["CC"], expected)
+        for cfg in (explicit, Config.from_dict(implicit.to_dict())):
+            restored.fit_or_raise(chart, config=cfg)
+            np.testing.assert_array_equal(restored.models.model_cc[0], pipe.models.model_cc[0])
+            np.testing.assert_array_equal(restored.predict_image(scene, stages="final")["CC"], expected)
+        implicit.do_cc = False
+        restored.fit_or_raise(chart, config=implicit)
+        notice.assert_not_called()
+    return {"implicit_conv_notices": 1, "explicit_and_replay_quiet": True,
+            "legacy_matrix_and_prediction_exact": True}
+
+
 def photos(device):
     results = []
     with sample_paths() as samples, tempfile.TemporaryDirectory(prefix="ccp-v2-images-") as name:
         folder = Path(name)
         results.append(verify_refits(samples, folder, device))
+        results.append(verify_legacy_conv_notice(samples, folder, device))
         for model, basis, degree in (("rpcc2", None, None), ("pls", "root", 3), ("nn", "hybrid", 2)):
             settings = {"model": model}
             cc = {"use_lut": False}

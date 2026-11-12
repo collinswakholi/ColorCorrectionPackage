@@ -31,6 +31,41 @@ needed.
 To reproduce a released 1.x environment, pin the
 original package and dependencies, for example `pip install ColorCorrectionPipeline==1.5.0`.
 
+## Migrating a conventional CCM trained on JPEGs
+
+Use 2.x for new calibrations. In the PyPI releases from 1.1.7 through 1.4.6,
+the conventional (`conv`) path fitted and applied its matrix in encoded sRGB.
+Version 1.5.0 added an opt-in linear-light CCM using
+`Config(fitting_policy="ui-compatible-v1", CC_kwargs={"model": "ccm"}, check_saturation=False)`.
+In 2.x, new fits use linear RGB by default. Choose `model="3x3"` for a matrix
+or leave the model unspecified for RPCC2.
+
+For an ordinary sRGB JPEG, keep the default sRGB input encoding. The modern
+CCM decodes each measured patch's mean sRGB value, fits against linear-sRGB
+reference targets, and re-encodes corrected pixels for sRGB output. The GC
+stage estimates a separate tone adjustment from the neutral patches.
+
+```python
+from ColorCorrectionPipeline import ColorCorrection, Config
+
+pipeline = ColorCorrection()
+config = Config(model="3x3", input={"frame_index": 0})
+pipeline.fit_or_raise("chart.jpg", "white.jpg", config=config)
+pipeline.save_bundle("linear-3x3.ccpb")  # Choose a new path for the refit.
+```
+
+Supply the chart and matching white-field capture used for calibration. If
+you calibrated without a white field, set `do_ffc=False` and omit `"white.jpg"`.
+Carry over the applicable stage and reference settings for your captures.
+
+To reproduce a historical result, load the original bundle. Its coefficients
+belong to the domain in which they were fitted. For a new fit using the old
+recipe, keep its CC options and specify `fitting_policy="legacy-v1"`. An
+old-style `CC_kwargs={"cc_method": "conv"}` with an omitted fitting policy
+still selects encoded sRGB. The package logs a warning when that fit reaches
+the CC stage. A saved configuration with a recorded policy can be used for a quiet
+refit. Loading and applying a bundle uses its recorded calibration.
+
 ## Group existing controls by step
 
 ```python

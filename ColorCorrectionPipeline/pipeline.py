@@ -978,12 +978,24 @@ class ColorCorrection:
                 return {}, {}, True
         metrics, images = {}, {}
         current = self.Image
+
+        def fit_color(image):
+            method = get_attr(config.CC_kwargs, "cc_method", "ours")
+            if (config._inferred_legacy_policy and self.fitting_policy.version == "legacy-v1"
+                    and isinstance(method, str) and method.lower() == "conv"):
+                logging.getLogger(__name__).warning(
+                    "Implicit legacy conv fit uses encoded sRGB. For a linear-light 3x3 CCM, "
+                    "refit with Config(model=\"3x3\"). To keep this recipe explicitly, "
+                    "set fitting_policy=\"legacy-v1\"."
+                )
+            return self.do_color_correction(image, True, method, config.CC_kwargs)
+
         stages = (
             ("FFC", config.do_ffc, lambda x: self.do_flat_field_correction(x, True, config.FFC_kwargs)),
             ("saturation", config.check_saturation, None),
             ("GC", config.do_gc, lambda x: self.do_gamma_correction(x, True, config.GC_kwargs)),
             ("WB", config.do_wb, lambda x: self.do_white_balance(x, True, config.WB_kwargs)),
-            ("CC", config.do_cc, lambda x: self.do_color_correction(x, True, get_attr(config.CC_kwargs, "cc_method", "ours"), config.CC_kwargs)),
+            ("CC", config.do_cc, fit_color),
         )
         for stage, enabled, operation in stages:
             if not enabled:

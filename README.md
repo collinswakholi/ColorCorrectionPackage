@@ -6,8 +6,9 @@ captured under the same conditions.
 
 **Version 2.x defaults to the UI-native RPCC2 workflow.** Legacy methodology is
 retired as the default, along with `ours`/`conv` naming in the primary API.
-Historical training configurations and saved calibrations retain their original
-numerical behavior. See the [migration guide](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.1.0/docs/migration-2.md).
+For a linear-light 3×3 CCM, use `Config(model="3x3")` when fitting the chart.
+Historical `conv` configurations retain their encoded-sRGB fit, and saved
+calibrations retain their original predictions. See the [conventional CCM migration note](https://github.com/collinswakholi/ColorCorrectionPackage/blob/main/docs/migration-2.md#migrating-a-conventional-ccm-trained-on-jpegs).
 
 ## Install
 
