@@ -174,7 +174,12 @@ class BatchStream:
             return
         next_yield = 0
         stopped = False
-        executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="ccp-batch")
+        from ._cpu_workers import image_worker_limit, set_image_worker_limit
+        # Only a batch with one runnable image may use the caller's inner workers.
+        # Concurrent images and arbitrary external worker threads stay bounded.
+        limit = image_worker_limit() if min(self.max_workers, self.max_in_flight) == 1 else 1
+        executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="ccp-batch",
+                                      initializer=set_image_worker_limit, initargs=(limit,))
         try:
             while True:
                 if self._cancel_event.is_set():

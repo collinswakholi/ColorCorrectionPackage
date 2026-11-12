@@ -213,7 +213,14 @@ class Config:
                 else:
                     self.reference_profile = default_reference()
             self.chart_detection.setdefault("sampling_policy", policy.sampling_policy)
-            self.chart_detection.setdefault("samples_per_axis", 9)
+            for option in ("samples_per_patch", "sampling_seed"):
+                if option in self.chart_detection and self.chart_detection[option] is None:
+                    raise ValueError(f"{option} must be an integer when supplied")
+            if "samples_per_patch" in self.chart_detection:
+                if "samples_per_axis" in self.chart_detection:
+                    raise ValueError("choose samples_per_patch or samples_per_axis, not both")
+            else:
+                self.chart_detection.setdefault("samples_per_axis", 9)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -359,6 +366,8 @@ class Config:
         semantics = ColorSemantics.from_value(self.color_semantics)
         stages = StagePolicy.from_value(self.stage_policy)
         fitting = FittingPolicy.from_value(self.fitting_policy)
+        if self.chart_detection.get("samples_per_patch") is not None and fitting.version != "ui-compatible-v1":
+            raise ValueError("samples_per_patch requires UI fitting; remove it to use the selected fitting policy")
         if self.api_version == 2:
             if self.precision not in ("auto", "native-byte", "high"):
                 raise ValueError("precision must be auto, native-byte or high")

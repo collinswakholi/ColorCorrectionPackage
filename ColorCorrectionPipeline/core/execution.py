@@ -6,9 +6,8 @@ contract. Fastmath is disabled. Diagnostics describe the backend actually used.
 import numpy as np
 
 from . import accel
-from ..stage_policies import MonotonicToneModel as _ToneModel
+from ..stage_policies import is_standard_tone
 
-_TONE_PREDICT = _ToneModel.predict
 _STANDARD_TONE = None
 _STANDARD_AFFINE = None
 
@@ -16,10 +15,7 @@ _STANDARD_AFFINE = None
 def _tone_parameters(model):
     """Derive runtime-only PCHIP coefficients from known, unmodified models."""
     from scipy.interpolate import PchipInterpolator
-    if (type(model) is not _ToneModel or model.version != "neutral-pchip-v1"
-            or "predict" in vars(model) or _ToneModel.predict is not _TONE_PREDICT
-            or _TONE_PREDICT.__module__ != "ColorCorrectionPipeline.stage_policies"
-            or _TONE_PREDICT.__qualname__ != "MonotonicToneModel.predict"):
+    if not is_standard_tone(model):
         return None
     curve = PchipInterpolator(model.measured_knots, model.target_knots, extrapolate=False)
     coefficients = np.ascontiguousarray(curve.c, dtype=np.float64)

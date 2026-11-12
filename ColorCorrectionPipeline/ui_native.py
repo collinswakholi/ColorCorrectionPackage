@@ -336,12 +336,22 @@ def ordered_mean(samples):
     return value / samples.shape[1]
 
 
-def points(quads, count):
-    half = count // 2
-    axis = 0.5 + (np.arange(count) - half) / max(half, 1) * 0.5 * 0.70
-    u, v = np.meshgrid(axis, axis)
-    u = u.ravel()[None, :, None]
-    v = v.ravel()[None, :, None]
+def points(quads, count, random_seed=None):
+    """Use the historical grid or a fixed, portable per-patch PRNG stream."""
+    if random_seed is None:
+        half = count // 2
+        axis = 0.5 + (np.arange(count) - half) / max(half, 1) * 0.5 * 0.70
+        u, v = np.meshgrid(axis, axis)
+        u, v = u.ravel()[None, :, None], v.ravel()[None, :, None]
+    else:
+        # Unsigned LCG arithmetic is shared with the UI worker. A patch keeps
+        # the same coordinate sequence across stages and requested counts.
+        state = np.arange(len(quads), dtype=np.uint64) * 2654435761 + random_seed
+        uv = np.empty((len(quads), count * 2))
+        for i in range(count * 2):
+            state = (1664525 * state + 1013904223) & np.uint64(0xffffffff)
+            uv[:, i] = 0.15 + 0.70 * (state.astype(np.float64) / 4294967296.0)
+        u, v = uv[:, ::2, None], uv[:, 1::2, None]
     q = np.asarray(quads)[:, None]
     return (
         (1 - u) * (1 - v) * q[:, :, 0]
@@ -351,10 +361,11 @@ def points(quads, count):
     )
 
 
-def sample_regions_float64(rgb, quads, count):
+def sample_regions_float64(rgb, quads, count, *, xy=None):
     """Use the native sampling geometry against original float64 pixels."""
     image = np.asarray(rgb, dtype=np.float64)
-    xy = points(quads, count)
+    if xy is None:
+        xy = points(quads, count)
     h, w = image.shape[:2]
     x, y = np.clip(xy[..., 0], 0, w - 1), np.clip(xy[..., 1], 0, h - 1)
     x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
@@ -369,13 +380,18 @@ def sample_regions_float64(rgb, quads, count):
     return np.clip(samples, 0, 1)
 
 
+def face_sample_points(face):
+    seed = face.provenance.get("sampling_seed")
+    count = int(round(math.sqrt(face.sample_count))) if seed is None else face.sample_count
+    return count, points(face.quadrilaterals, count, seed)
+
+
 def sample_ffc(owner, face):
     from .ui_fitting import sample_regions
 
-    count = int(round(math.sqrt(face.sample_count)))
+    count, xy = face_sample_points(face)
     high = high_precision(owner)
-    samples = (sample_regions_float64 if high else sample_regions)(owner.Image, face.quadrilaterals, count)
-    xy = points(face.quadrilaterals, count)
+    samples = (sample_regions_float64 if high else sample_regions)(owner.Image, face.quadrilaterals, count, xy=xy)
     h, w = owner.Image.shape[:2]
     dtype = np.float64 if high else np.float32
     x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(dtype)

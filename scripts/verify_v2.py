@@ -38,6 +38,17 @@ def expect_invalid(**options):
 
 
 def numerical_contracts():
+    from ColorCorrectionPipeline.ui_native import points
+    quad = np.array([[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]])
+    # Frozen coordinates also exercise unsigned overflow in the UI worker.
+    first = points(quad, 1, 42)[0, 0]
+    np.testing.assert_allclose(first, [0.32664162234868854, 0.21168753178790212], atol=1e-15, rtol=0)
+    for n in (1, 10, 20, 50):
+        pts = points(quad, n, 42)
+        assert pts.shape == (1, n, 2) and np.all((pts >= .15) & (pts < .85))
+        assert np.array_equal(pts, points(quad, 50, 42)[:, :n])
+        assert not np.array_equal(pts, points(quad, n, 43))
+
     from colour.characterisation import polynomial_expansion_Finlayson2015
 
     rng = np.random.default_rng(20261106)
@@ -96,6 +107,13 @@ def configurations():
     old = Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "custom", "degree": 2})
     old.validate()
     assert Config.from_dict(old.to_dict()).fitting_policy["version"] == "legacy-v1"
+    # A detector sampling override cannot give a legacy fit a random sampler.
+    for sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
+        legacy = Config(fitting_policy="legacy-v1", chart_detection={
+            "sampling_policy": sampling_policy, "samples_per_patch": 20, "sampling_seed": 42,
+        })
+        with np.testing.assert_raises_regex(ValueError, "samples_per_patch"):
+            legacy.validate()
     new = Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 3})
     new.validate()
     replay = Config.from_dict(new.to_dict())
@@ -445,10 +463,78 @@ def verify_legacy_conv_notice(samples, folder, device):
             "legacy_matrix_and_prediction_exact": True}
 
 
+def verify_batch_worker_budget():
+    from ColorCorrectionPipeline.batch import BatchStream
+    from ColorCorrectionPipeline._cpu_workers import image_worker_limit
+    def limits(workers, in_flight):
+        seen = []
+        def work(item, index):
+            seen.append(image_worker_limit())
+            return {}
+        with BatchStream([0, 1], work, calibration_id="threads", max_workers=workers,
+                         max_in_flight=in_flight) as stream:
+            assert all(item.status == "succeeded" for item in stream)
+        return seen
+    limit = image_worker_limit()
+    assert limits(1, 2) == limits(2, 1) == [limit, limit]
+    assert limits(2, 2) == [1, 1]
+    with ThreadPoolExecutor(max_workers=1) as external:
+        assert external.submit(limits, 1, 1).result() == [1, 1]
+    return {"caller_limit": limit, "concurrent_or_external": 1}
+
+
+def verify_mpo_budget(path):
+    """The shipped chart is a two-frame RGB MPO; use the real decoder at the boundary."""
+    from PIL import Image
+    with Image.open(path) as im:
+        assert im.format == "MPO" and im.n_frames == 2
+        budget = im.width * im.height * (3 + 3 * 8)
+    expected = read_image_data(path, frame_index=0)
+    assert read_image_data(path, frame_index=0, max_decoded_bytes=budget).pixel_digest == expected.pixel_digest
+    with patch("cv2.imdecode", side_effect=AssertionError("rejected frame was decoded")):
+        try:
+            read_image_data(path, frame_index=0, max_decoded_bytes=budget - 1)
+        except ValueError as error:
+            assert "max_decoded_bytes" in str(error)
+        else:
+            raise AssertionError("under-budget decode accepted")
+    return {"mpo_frame_budget": budget, "rgb_unchanged": True}
+
+
+def verify_seeded_batch_replay(samples, folder, device):
+    """A reloaded seeded calibration must produce the same strict final export."""
+    cfg = Config(model="rpcc3", input={"frame_index": 0},
+                 chart={"device": device, "samples_per_patch": 20, "sampling_seed": 42},
+                 do_ffc=True, do_gc=True, do_wb=True, do_cc=True,
+                 validation_options={"enabled": False})
+    pipe = ColorCorrection()
+    pipe.fit_or_raise(samples["Image_1.JPG"], samples["white.JPG"], "seeded", cfg)
+    face = pipe.observations.observations[0]
+    assert face.sample_count == 20 and face.provenance["sampling_seed"] == 42
+    scene = samples["Sample_1.JPG"]
+    reference = pipe.predict_image(scene, stages="final")["CC"]
+    bundle = folder / "seeded.ccpb"
+    pipe.save_bundle(bundle)
+    restored = ColorCorrection().load_bundle(bundle)
+    np.testing.assert_array_equal(reference, restored.predict_image(scene, stages="final")["CC"])
+    with restored.iter_predict([scene], stages="final", max_workers=1, max_in_flight=1,
+                               output_dir=folder / "seeded-batch", output_ext=".png",
+                               export_options={"dtype": "uint8", "allow_precision_loss": True}) as stream:
+        item = next(iter(stream))
+        assert item.status == "succeeded", item.error
+        record = item.exports["CC"]
+        assert record["maximum_codec_error"] == 0
+    decoded = read_image_data(record["path"]).pixels
+    np.testing.assert_array_equal(np.rint(decoded * 255), np.rint(reference * 255))
+    return {"exact_random_samples": face.sample_count, "seed": 42, "strict_batch_replay": True}
+
+
 def photos(device):
     results = []
     with sample_paths() as samples, tempfile.TemporaryDirectory(prefix="ccp-v2-images-") as name:
         folder = Path(name)
+        results.append(verify_mpo_budget(samples["Image_1.JPG"]))
+        results.append(verify_seeded_batch_replay(samples, folder, device))
         results.append(verify_refits(samples, folder, device))
         results.append(verify_legacy_conv_notice(samples, folder, device))
         for model, basis, degree in (("rpcc2", None, None), ("pls", "root", 3), ("nn", "hybrid", 2)):
@@ -549,6 +635,7 @@ def main():
         assert args.forbid_source.resolve() not in package.parents, package
     result = {"version": version("ColorCorrectionPipeline"), "package": str(package),
               "configurations": configurations(), "models": numerical_contracts(),
+              "batch_worker_budget": verify_batch_worker_budget(),
               "historical_trainers": historical_trainers(),
               "legacy_import_contracts": legacy_import_contracts(),
               "precision_estimation": precision_estimation()}

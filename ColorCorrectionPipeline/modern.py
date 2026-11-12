@@ -10,7 +10,7 @@ import numpy as np
 from .colorimetry import D65, rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb
 from .observations import capture_observations
 from .sampling import sample_quadrilaterals
-from .stage_policies import fit_monotonic_tone, fit_neutral_wb, saturation_selection
+from .stage_policies import fit_monotonic_tone, fit_neutral_wb, is_standard_tone, saturation_selection
 
 
 def selected_face(owner, rgb, stage):
@@ -31,9 +31,10 @@ def prepare_source(owner, *, required):
     owner._source_face = face
     if owner.fitting_policy.version == "ui-compatible-v1":
         from .ui_fitting import sample_regions
-        from .ui_native import high_precision, sample_regions_float64
+        from .ui_native import face_sample_points, high_precision, sample_regions_float64
         sampler = sample_regions_float64 if high_precision(owner) else sample_regions
-        samples = sampler(owner.Image, face.quadrilaterals, int(np.sqrt(face.sample_count)))
+        count, xy = face_sample_points(face)
+        samples = sampler(owner.Image, face.quadrilaterals, count, xy=xy)
     else:
         samples = sample_quadrilaterals(owner.Image, face.quadrilaterals, face.sample_count)
     per_channel = np.mean(samples >= face.clipping_threshold, axis=1)
@@ -55,8 +56,24 @@ def clipping(owner, face):
     return np.maximum(source.clipped_fractions, face.clipped_fractions)
 
 
+_TONE_BLOCK_PIXELS = 192 * 1024
+
+
 def apply_tone(rgb, model):
     image = np.asarray(rgb, dtype=np.float64)
+    # The reference Lab conversions hold several float64 arrays. Bound their
+    # working set by rows without changing the fitted curve or RGB equations.
+    if image.ndim == 3 and image.shape[0] * image.shape[1] > _TONE_BLOCK_PIXELS and is_standard_tone(model):
+        output = np.empty_like(image)
+        rows = max(1, _TONE_BLOCK_PIXELS // image.shape[1])
+        for y in range(0, len(image), rows):
+            block = image[y:y + rows]
+            output[y:y + rows] = _tone_block(block, model)
+        return output
+    return _tone_block(image, model)
+
+
+def _tone_block(image, model):
     lab = xyz_to_lab(rgb_to_xyz(image, encoding="srgb"), white=D65)
     lab[..., 0] = model.predict(lab[..., 0])
     return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip")
