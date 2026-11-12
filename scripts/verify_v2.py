@@ -107,6 +107,13 @@ def configurations():
     old = Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "custom", "degree": 2})
     old.validate()
     assert Config.from_dict(old.to_dict()).fitting_policy["version"] == "legacy-v1"
+    # A detector sampling override cannot give a legacy fit a random sampler.
+    for sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
+        legacy = Config(fitting_policy="legacy-v1", chart_detection={
+            "sampling_policy": sampling_policy, "samples_per_patch": 20, "sampling_seed": 42,
+        })
+        with np.testing.assert_raises_regex(ValueError, "samples_per_patch"):
+            legacy.validate()
     new = Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 3})
     new.validate()
     replay = Config.from_dict(new.to_dict())

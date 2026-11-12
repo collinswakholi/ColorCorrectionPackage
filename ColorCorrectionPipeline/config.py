@@ -366,6 +366,8 @@ class Config:
         semantics = ColorSemantics.from_value(self.color_semantics)
         stages = StagePolicy.from_value(self.stage_policy)
         fitting = FittingPolicy.from_value(self.fitting_policy)
+        if self.chart_detection.get("samples_per_patch") is not None and fitting.version != "ui-compatible-v1":
+            raise ValueError("samples_per_patch requires UI fitting; remove it to use the selected fitting policy")
         if self.api_version == 2:
             if self.precision not in ("auto", "native-byte", "high"):
                 raise ValueError("precision must be auto, native-byte or high")
