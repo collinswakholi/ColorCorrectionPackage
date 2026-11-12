@@ -674,9 +674,9 @@ def round_image(rgb):
     return np.asarray(rgb, dtype=np.float32).astype(np.float64)
 
 
-def sample_regions(rgb, quads, samples_per_axis=9):
+def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
     """Sample the UI's inner 70% on its native odd/even per-axis grid."""
-    count = _integer(samples_per_axis, "samples_per_axis", 1, 63)
+    count = _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
     image = np.asarray(rgb, dtype=np.float32)
     q = np.asarray(quads, dtype=np.float64)
     if image.ndim != 3 or image.shape[-1] != 3 or q.ndim != 3 or q.shape[1:] != (4, 2):
@@ -689,19 +689,11 @@ def sample_regions(rgb, quads, samples_per_axis=9):
         or np.any(image > 1)
     ):
         raise ValueError("UI sampling requires normalized finite RGB")
-    half = count // 2
-    axis = 0.5 + (np.arange(count) - half) / max(half, 1) * 0.5 * 0.70
-    u, v = np.meshgrid(axis, axis)
-    u, v = u.ravel()[None, :, None], v.ravel()[None, :, None]
-    quad = q[:, None]
-    points = (
-        (1 - u) * (1 - v) * quad[:, :, 0]
-        + u * (1 - v) * quad[:, :, 1]
-        + u * v * quad[:, :, 2]
-        + (1 - u) * v * quad[:, :, 3]
-    )
+    if xy is None:
+        from .ui_native import points
+        xy = points(q, count)
     h, w = image.shape[:2]
-    x, y = np.clip(points[..., 0], 0, w - 1), np.clip(points[..., 1], 0, h - 1)
+    x, y = np.clip(xy[..., 0], 0, w - 1), np.clip(xy[..., 1], 0, h - 1)
     x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
     x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
     dx, dy = (x - x0)[..., None], (y - y0)[..., None]

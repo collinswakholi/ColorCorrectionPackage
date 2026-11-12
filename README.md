@@ -24,7 +24,7 @@ Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPyth
 3.13 or 3.14 for a new environment; see [Python compatibility](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.1.0/docs/python-compatibility.md).
 Optional CPU acceleration is available with
 `pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
-prefers a supported GPU provider and falls back to CPU; see [GPU setup](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.1.0/docs/gpu-detection.md).
+automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](docs/gpu-detection.md).
 
 ## Run the sample photographs
 
@@ -161,6 +161,14 @@ Grouped options are immutable snapshots over the existing flat configuration.
 Old constructor arguments and kwargs remain supported; contradictory aliases
 fail explicitly. Unversioned flat dictionaries retain their historical API-1
 interpretation. A loaded calibration owns its recorded numerical recipe.
+
+### Reproducible random chart sampling
+
+```python
+Config(model="3x3", chart={"samples_per_patch": 20, "sampling_seed": 42})
+```
+
+For a UI-native fit, omit both settings for the default 9 × 9 grid (81 points per patch). Set `samples_per_patch` (1–4096) for an exact count inside the inner 70% of each detected patch. The unsigned 32-bit seed defaults to zero. The same positions are reused across stages; the fitter still receives one mean RGB per patch. Do not combine a grid size with a random count. These settings affect calibration, not application of a saved model.
 
 ## Further usage
 

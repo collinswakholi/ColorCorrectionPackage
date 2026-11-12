@@ -213,7 +213,14 @@ class Config:
                 else:
                     self.reference_profile = default_reference()
             self.chart_detection.setdefault("sampling_policy", policy.sampling_policy)
-            self.chart_detection.setdefault("samples_per_axis", 9)
+            for option in ("samples_per_patch", "sampling_seed"):
+                if option in self.chart_detection and self.chart_detection[option] is None:
+                    raise ValueError(f"{option} must be an integer when supplied")
+            if "samples_per_patch" in self.chart_detection:
+                if "samples_per_axis" in self.chart_detection:
+                    raise ValueError("choose samples_per_patch or samples_per_axis, not both")
+            else:
+                self.chart_detection.setdefault("samples_per_axis", 9)
 
     def to_dict(self) -> Dict[str, Any]:
         """

@@ -141,6 +141,15 @@ class MonotonicToneModel:
         return (type(self), (self.measured_knots, self.target_knots, self.version))
 
 
+_TONE_PREDICT = MonotonicToneModel.predict
+
+
+def is_standard_tone(model):
+    """Only the package's unmodified, pointwise curve may be tiled or fused."""
+    return (type(model) is MonotonicToneModel and model.version == "neutral-pchip-v1"
+            and "predict" not in vars(model) and MonotonicToneModel.predict is _TONE_PREDICT)
+
+
 def fit_monotonic_tone(measured_L, reference_L, cell_ids, neutral_ids, *, clipped_fractions=None, policy=None):
     policy = StagePolicy.from_value(policy)
     cells, neutral = _cells(cell_ids, neutral_ids)

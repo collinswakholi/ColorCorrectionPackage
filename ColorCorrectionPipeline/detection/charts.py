@@ -62,6 +62,8 @@ class DetectionOptions:
     webgpu_library: Optional[str] = None
     sampling_policy: str = "default"
     samples_per_axis: int = 9
+    samples_per_patch: Optional[int] = None
+    sampling_seed: Optional[int] = None
 
     def __post_init__(self):
         if self.sampling_policy not in ("default", "ui-compatible-v1", "ui-native-v1"):
@@ -70,6 +72,14 @@ class DetectionOptions:
             raise ValueError("samples_per_axis must be an integer in [1,63]")
         if self.sampling_policy == "default" and self.samples_per_axis != 9:
             raise ValueError("samples_per_axis requires ui-compatible-v1 sampling")
+        if self.samples_per_patch is not None:
+            if self.sampling_policy == "default" or self.samples_per_axis != 9:
+                raise ValueError("random sampling requires UI fitting and replaces the grid")
+            if type(self.samples_per_patch) is not int or not 1 <= self.samples_per_patch <= 4096:
+                raise ValueError("samples_per_patch must be an integer from 1 to 4096")
+        if self.sampling_seed is not None and (self.samples_per_patch is None or
+                type(self.sampling_seed) is not int or not 0 <= self.sampling_seed <= 0xffffffff):
+            raise ValueError("sampling_seed requires samples_per_patch and an unsigned 32-bit integer")
         validate_device_options(self.device, self.device_id, self.allow_cpu_fallback,
                                 self.cpu_threads, self.webgpu_library)
         if isinstance(self.chart_index, bool) or not isinstance(self.chart_index, int) or not 0 <= self.chart_index <= 63:

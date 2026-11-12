@@ -77,8 +77,11 @@ def _png_metadata_snapshot(data):
 
 def _pillow_allocation(image, data, maximum_pixels, maximum_bytes):
     fmt, mode = image.format, image.mode
+    # MPO is a container. Only narrow the estimate for an identified
+    # 8-bit RGB JPEG frame; keep the conservative estimate for other modes.
+    rgb_mpo = fmt == "MPO" and mode == "RGB" and getattr(image, "bits", None) == 8
     sample_bytes = (2 if fmt == "PNG" and len(data) > 24 and data[24] == 16 else
-                    1 if fmt in ("PNG", "JPEG", "WEBP", "GIF", "BMP") else 8)
+                    1 if rgb_mpo or fmt in ("PNG", "JPEG", "WEBP", "GIF", "BMP") else 8)
     channels = (4 if mode in ("RGBA", "RGBa", "LA", "La", "CMYK") or "transparency" in image.info else
                 1 if mode in ("1", "L", "I", "F", "I;16", "I;16B", "I;16L") else 3)
     _check_allocation(image.width, image.height, image.width*image.height*channels*sample_bytes,

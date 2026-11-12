@@ -36,14 +36,20 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
         "sha256", "provider", "runtime_version", "graphics_backend", "cpu_fallback",
         "execution_verified", "execution_evidence", "node_provider_counts", "geometry_source") if key in last_detection}
     for index, geometry in enumerate(state.geometry):
+        sampling = {}
         if explicit:
             if state.options.sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
-                if getattr(state, "measurement_runtime", None) == "precision-f64-v1":
-                    from .ui_native import sample_regions_float64
-                    samples = sample_regions_float64(rgb, geometry["patches"], state.options.samples_per_axis)
-                else:
-                    from .ui_fitting import sample_regions
-                    samples = sample_regions(rgb, geometry["patches"], state.options.samples_per_axis)
+                from .ui_native import points, sample_regions_float64
+                from .ui_fitting import sample_regions
+                count = state.options.samples_per_axis
+                xy = None
+                if state.options.samples_per_patch is not None:
+                    count = state.options.samples_per_patch
+                    seed = state.options.sampling_seed or 0
+                    xy = points(geometry["patches"], count, seed)
+                    sampling = {"sampling_pattern": "random-lcg32-v1", "sampling_seed": seed}
+                sampler = sample_regions_float64 if getattr(state, "measurement_runtime", None) == "precision-f64-v1" else sample_regions
+                samples = sampler(rgb, geometry["patches"], count, xy=xy)
             else:
                 samples = sample_quadrilaterals(rgb, geometry["patches"], 81)
         else:
@@ -53,7 +59,7 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
             reference_digest=reference.digest, cell_ids=tuple("r%dc%d" % (row+1, col+1) for row in range(4) for col in range(6)),
             quadrilaterals=geometry["patches"], confidence=geometry["score"], image_shape=rgb.shape[:2],
             stage=stage, template_id="classic_4x6", layout=(4, 6),
-            provenance={"identity_scope": "one source capture and fixed geometry; not physical chart serial identity",
+            provenance={**sampling, "identity_scope": "one source capture and fixed geometry; not physical chart serial identity",
                         "measurement_policy": ("ui-compatible-v1" if state.options.sampling_policy == "ui-compatible-v1" else "float64-bilinear") if explicit else "legacy-uint8-opencv-grid",
                         "detector": detector_provenance,
                         "detector_face_index": index})

@@ -120,3 +120,20 @@ requirements, fusion semantics and prepared-execution limits.
 Final regression qualification passed 1,450 checks. Wheel/sdist and isolated
 Python 3.8/3.12 installations, with and without optional performance kernels,
 passed source-equivalence, numerical, safe-reload and distribution checks.
+
+### Large captures and strict batch export
+
+For a multi-frame camera MPO with a JPEG filename, select the intended frame
+explicitly, for example `Config(model="rpcc3", input={"frame_index": 0})`.
+Verified 8-bit RGB MPO frames use the decoded RGB size plus canonical float64
+RGB in the byte preflight. This is not a peak-RAM estimate. Other modes retain
+the conservative bound; invalid selections, dimensions and byte budgets still
+fail before pixel decode.
+
+For memory-bound captures start with `iter_predict(..., max_workers=1,
+max_in_flight=1)`. A single runnable image can use the caller's bounded CPU
+workers for native pixel kernels; concurrent images and external executor
+threads do not multiply that budget. Strict export still reads back the PNG.
+On the reproducible fitting path, the built-in neutral GC curve processes
+large frames in row blocks to bound temporary Lab arrays. Custom curves keep
+their existing whole-input semantics.

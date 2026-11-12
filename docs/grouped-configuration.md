@@ -157,7 +157,7 @@ does not make an unsupported backend or solver combination valid.
 | `Config` group | Meaning / existing equivalent |
 | --- | --- |
 | `input` | Decode/frame/orientation/ICC/alpha/grayscale/allocation settings; aliases `image_options`. Uses those existing field names. |
-| `chart` | Chart model, selection, sampling and provider settings; aliases `chart_detection`. Names include `sampling_inset`, `samples_per_axis`, `device`, `allow_cpu_fallback` and `cpu_threads`. |
+| `chart` | Chart model, selection, sampling and provider settings; aliases `chart_detection`. Use either `samples_per_axis` for the grid or `samples_per_patch` with optional `sampling_seed` for exact random counts. Provider options include `device`, `allow_cpu_fallback` and `cpu_threads`; `sampling_inset` controls the detector geometry. |
 | `reference` | A validated `ReferenceProfile` or its canonical dictionary; aliases `reference_profile`. Physical reference construction still uses `ReferenceProfile.from_values`. |
 | `color` | Partial `ColorSemantics` controls, merged with the selected modern recipe; aliases `color_semantics`. |
 | `numerics` | `precision`: `auto`, `native-byte` or `high`. Precision affects original measurements, FFC and stage boundaries, so it is not only a CC setting. |
@@ -167,6 +167,14 @@ does not make an unsupported backend or solver combination valid.
 Chart inference device, color-fitting device and optional image kernels are
 different capabilities. In particular, an eight-thread OpenMP/BLAS environment
 does not override the chart detector's explicit `chart.cpu_threads` setting.
+For a UI-native fit, the default grid is 9 points per axis (81 per patch).
+`chart={"samples_per_patch": 20, "sampling_seed": 42}` instead draws exactly
+20 bilinear samples inside the inner 70% of each sampling quadrilateral.
+Counts may be 1–4096; the seed is an unsigned 32-bit integer and defaults to
+zero. The draw is repeated at the same positions across stages and reduced
+to one mean RGB per patch. Leave out `samples_per_axis` when setting a count.
+Sampling affects new fits; applying a saved model does not draw new points.
+
 See [chart detection](chart-detection.md), [image I/O](image-io-policies.md), and
 [color semantics](color-semantics.md) for the unchanged underlying contracts.
 
