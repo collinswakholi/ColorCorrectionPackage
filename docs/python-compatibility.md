@@ -45,7 +45,7 @@ Build the wheel with a qualified interpreter, create an isolated environment
 using the target interpreter, and install the wheel with binary dependencies:
 
 ```shell
-python -m pip install --only-binary=:all: dist/colorcorrectionpipeline-2.1.0-py3-none-any.whl
+python -m pip install --only-binary=:all: dist/colorcorrectionpipeline-2.2.0-py3-none-any.whl
 python -m pip check
 python -I scripts/verify_installed.py --expect-numba no --photo Images/Image_1.JPG --output base.json
 python -I scripts/verify_v2.py --photos --output base-v2.json

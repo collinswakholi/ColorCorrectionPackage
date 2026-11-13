@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.0]
+
+- Add reproducible random chart sampling with an exact sample count per patch and a recorded seed for UI-native fits. Existing grid recipes keep their sampling behavior. Incompatible fitting policies report an error when exact sampling is requested.
+- Reduce full-frame processing during calibration and strict batch export while retaining verified PNG writes and bundle replay.
+- Document the linear-light 3×3 CCM workflow and flag implicit legacy conventional fits, which still use their original encoded-sRGB objective.
+
 ## [2.1.0] - 2026-11-10
 
 - Added `ColorCorrection.fit_or_raise()` for callers that want a calibration result on success and a `CalibrationError` on failure. Existing `run()` callers retain their return contract.
