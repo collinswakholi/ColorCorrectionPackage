@@ -99,14 +99,14 @@ def fit_gamma(owner, image):
     owner.models.model_gc = model
     owner.numerical_report["GC"] = report
     if native_enabled(owner):
-        from .ui_native import apply_color, high_precision, runtime
+        from .ui_native import render_fit_stage, runtime
         report["ui_runtime"] = runtime(owner)
         report["training_observation"] = face.to_dict()
-        result = apply_color(owner.Image, owner.models.model_ffc, model, rounded=not high_precision(owner))
+        result = render_fit_stage(owner, owner.Image, "GC")
     else:
         result = apply_tone(image, model)
     from .ui_native import high_precision
-    if owner.fitting_policy.version == "ui-compatible-v1" and not high_precision(owner):
+    if owner.fitting_policy.version == "ui-compatible-v1" and not native_enabled(owner) and not high_precision(owner):
         from .ui_fitting import round_image
         result = round_image(result)
     return result, {}, False

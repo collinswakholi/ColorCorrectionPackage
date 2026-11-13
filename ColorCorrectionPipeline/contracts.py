@@ -386,9 +386,7 @@ class ImageData(_ImmutableContract):
             layout = _orient(layout, orientation)
         if source.dtype == np.dtype("<f8") and lo == 0.0 and not np.signbit(lo) and hi == 1.0:
             normalized = _immutable_image_snapshot(layout)
-            low, high = _image_bounds(normalized)
-            if not math.isfinite(low) or not math.isfinite(high) or low < lo or high > hi:
-                raise ValueError("source pixels lie outside the declared finite value_range")
+            # The constructor validates this exact immutable, already-normalized snapshot.
         else:
             normalized = _normalized_image_snapshot(layout, lo, hi)
         return cls(normalized, color_space=color_space, source_dtype=source.dtype.name,

@@ -43,12 +43,14 @@ def _resize(coarse, height, width, dtype=np.float32):
     ix, iy = np.floor(x).astype(int), np.floor(y).astype(int)
     wx, wy = _cubic_weights(x - ix.astype(dtype)), _cubic_weights(y - iy.astype(dtype))
     result = np.zeros((height, width), dtype=dtype)
-    for row in range(4):
-        for col in range(4):
-            values = coarse[
-                np.clip(iy[:, None] - 1 + row, 0, n - 1), np.clip(ix[None, :] - 1 + col, 0, n - 1)
-            ]
-            result += values * wy[row][:, None] * wx[col][None, :]
+    columns = [np.clip(ix - 1 + col, 0, n - 1) for col in range(4)]
+    rows = max(1, 65536 // width)
+    for start in range(0, height, rows):
+        tile = slice(start, start + rows)
+        for row in range(4):
+            ys = np.clip(iy[tile] - 1 + row, 0, n - 1)[:, None]
+            for col, xs in enumerate(columns):
+                result[tile] += coarse[ys, xs] * wy[row][tile, None] * wx[col]
     return result
 
 
@@ -101,17 +103,20 @@ def fit_ffc(owner, image, parameters):
     guard._validate_safe_crop()
     quality = deepcopy(guard.quality_report)
     x1, y1, x2, y2 = guard.crop_rect
-    source = owner.white_image_data.to_srgb() if high_precision_mode else round_image(owner.white_image_data.to_srgb())
+    white = owner.white_image_data
+    source = white.pixels if white.color_space == "srgb" else white.to_srgb()
     h, w = source.shape[:2]
     if source.shape != image.shape:
         raise ValueError("FFC white and source images must have identical dimensions")
-    from .ui_native import enabled as native_enabled, working_input, lab as native_lab
+    from .ui_native import enabled as native_enabled, working_input
     if native_enabled(owner):
-        source = working_input(owner.white_image_data, owner.white_image_data.to_srgb(), high=high_precision_mode)
-        lab = native_lab(source[y1:y2, x1:x2])
+        crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
+        from .ui_native import lightness as native_lightness
+        lightness = native_lightness(crop, dtype)
     else:
-        lab = xyz_to_lab(rgb_to_xyz(source[y1:y2, x1:x2], encoding="srgb"), white=D65)
-    lightness = lab[..., 0].astype(dtype)
+        crop = source[y1:y2, x1:x2]
+        lab = xyz_to_lab(rgb_to_xyz(round_image(crop), encoding="srgb"), white=D65)
+        lightness = lab[..., 0].astype(dtype)
     if lightness.min() / 100 < guard.min_signal:
         raise ValueError("safe UI FFC white plane has insufficient signal")
     epsilon = dtype(1e-12)
@@ -180,6 +185,6 @@ def fit_ffc(owner, image, parameters):
     owner.models.model_ffc = gain
     owner.numerical_report["FFC"] = quality
     if native_enabled(owner):
-        from .ui_native import apply_color
-        return apply_color(image, gain, rounded=not high_precision_mode), {}, False
+        from .ui_native import render_fit_stage
+        return render_fit_stage(owner, image, "FFC"), {}, False
     return apply_ffc(image, gain), {}, False

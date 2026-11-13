@@ -5,7 +5,6 @@ publish files. Failed qualification or execution selects the NumPy calculation.
 """
 from functools import lru_cache
 import logging
-import threading
 
 import numpy as np
 
@@ -126,9 +125,8 @@ def try_normalize_unsigned(source, output, lo, hi):
             or source.dtype.itemsize not in (1, 2) or not source.dtype.isnative
             or lo != 0.0 or np.signbit(lo) or hi != float(np.iinfo(source.dtype).max)):
         return False
-    # Worker calls release the GIL without creating nested native worker pools.
-    kernel = (_normalize_unsigned if threading.current_thread() is threading.main_thread()
-              else _normalize_unsigned_serial)
+    # The shared scheduler grants inner workers only to a single runnable image.
+    kernel = _normalize_unsigned
     if kernel is None or not _normalizer_qualified(kernel, source.dtype.name):
         return False
     try:
@@ -144,8 +142,7 @@ def try_quantize_unsigned(values, storage, maximum):
             or not values.flags.c_contiguous or storage.dtype.kind != "u"
             or storage.dtype.itemsize not in (1, 2) or not storage.dtype.isnative):
         return None
-    kernel = (_quantize_unsigned if threading.current_thread() is threading.main_thread()
-              else _quantize_unsigned_serial)
+    kernel = _quantize_unsigned
     if kernel is None or not _quantizer_qualified(kernel, storage.dtype.name):
         return None
     try:

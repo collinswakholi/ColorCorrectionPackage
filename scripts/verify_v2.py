@@ -99,6 +99,50 @@ def numerical_contracts():
     return rows
 
 
+def render_contracts():
+    from types import SimpleNamespace
+    from ColorCorrectionPipeline.models import MyModels
+    from ColorCorrectionPipeline import ui_native
+    from ColorCorrectionPipeline.stage_policies import MonotonicToneModel
+    from ColorCorrectionPipeline.ui_stages import _resize
+    from ColorCorrectionPipeline.fitting import FittingPolicy
+
+    rng = np.random.default_rng(606)
+    # A strided crop spans multiple resize/white-field tiles.
+    white = rng.random((260, 546, 3))[:, ::2]
+    for dtype in (np.float32, np.float64):
+        np.testing.assert_array_equal(ui_native.lightness(white, dtype),
+                                      ui_native.lab(white)[..., 0].astype(dtype))
+        coarse = np.full((4, 4), 1.0, dtype=dtype)
+        np.testing.assert_allclose(_resize(coarse, 260, 273, dtype), 1, rtol=1e-6, atol=1e-6)
+    # Stage methods accept an explicit image, even outside the top-level fit.
+    codes = rng.integers(0, 256, (257, 260, 3), dtype=np.uint8)
+    codes[:, 1::2] = codes[:, ::2]
+    canonical = codes.astype(np.float64) / 255
+    image = ui_native.normalize_codes(canonical)
+    models = MyModels()
+    policy = FittingPolicy.from_value({"version": "ui-compatible-v1", "ui_runtime": "native-v1"})
+    owner = SimpleNamespace(Image=np.zeros_like(image), models=models, fitting_policy=policy)
+    gain = rng.uniform(.75, 1.6, image.shape[:2])
+    models.model_ffc = np.frombuffer(gain.tobytes(), dtype=gain.dtype).reshape(gain.shape)
+    curve = MonotonicToneModel(np.array([0., 18, 40, 72, 100]), np.array([0., 22, 45, 75, 100]))
+    models.model_gc = curve
+    models.metadata = {"fitting_policy": policy.to_dict()}
+    for stage, tone in (("FFC", None), ("GC", curve)):
+        expected = ui_native.apply_color(image, gain, tone)
+        actual = ui_native.render_fit_stage(owner, image, stage)
+        np.testing.assert_allclose(actual, expected, rtol=0, atol=np.finfo(np.float32).eps)
+        replayed = ui_native.predict(canonical, models, (stage,), native_codes=True)[stage]
+        np.testing.assert_array_equal(replayed, actual)
+    q = np.array([[[0., 0.], [3., 0.], [3., 3.], [0., 3.]]])
+    for bad in (float("nan"), float("inf"), -0.25, 1.25):
+        source = np.zeros((10, 10, 3))
+        source[-1, -1, 0] = bad
+        with np.testing.assert_raises(ValueError):
+            ui_fitting.sample_regions(source, q)
+    return True
+
+
 def configurations():
     cfg = Config()
     cfg.validate()
@@ -635,6 +679,7 @@ def main():
         assert args.forbid_source.resolve() not in package.parents, package
     result = {"version": version("ColorCorrectionPipeline"), "package": str(package),
               "configurations": configurations(), "models": numerical_contracts(),
+              "fit_rendering": render_contracts(),
               "batch_worker_budget": verify_batch_worker_budget(),
               "historical_trainers": historical_trainers(),
               "legacy_import_contracts": legacy_import_contracts(),

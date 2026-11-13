@@ -141,7 +141,8 @@ class ExportRecord:
 
 
 def _png_chunk(kind, payload):
-    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff)
+    crc = zlib.crc32(payload, zlib.crc32(kind)) & 0xffffffff
+    return b"".join((struct.pack(">I", len(payload)), kind, payload, struct.pack(">I", crc)))
 
 
 def _png_metadata(payload, encoding):
@@ -203,10 +204,10 @@ def _encode_png_fast(pixels, encoding):
     compressed = zlib.compress(memoryview(rows), 0)
     header = struct.pack(">IIBBBBB", width, height, pixels.dtype.itemsize * 8, 2, 0, 0, 0)
     # Bounded IDAT chunks also keep each CRC workspace bounded.
-    chunks = [_png_chunk(b"IDAT", compressed[start:start + 1024*1024])
-              for start in range(0, len(compressed), 1024*1024)]
-    payload = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header) + b"".join(chunks) + _png_chunk(b"IEND", b"")
-    return _png_metadata(payload, encoding)
+    view = memoryview(compressed)
+    header = _png_metadata(b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header), encoding)
+    return b"".join([header, *(_png_chunk(b"IDAT", view[start:start + 1024*1024])
+                               for start in range(0, len(view), 1024*1024)), _png_chunk(b"IEND", b"")])
 
 
 _EXPORT_CHUNK_VALUES = 3 * 65536
