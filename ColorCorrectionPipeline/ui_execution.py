@@ -218,13 +218,14 @@ if accel.HAS_NUMBA:
         return output
 
 
-def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=None):
+def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=None, fit_policy=None):
     """Return owned stage arrays, or None to retain the ordinary reference path."""
     global _enabled, _decode_values
+    policy = models.metadata.get("fitting_policy", {}) if fit_policy is None else fit_policy
     if (
         not _enabled
-        or models.metadata.get("fitting_policy", {}).get("version") != "ui-compatible-v1"
-        or models.metadata.get("fitting_policy", {}).get("ui_runtime") == "precision-f64-v1"
+        or policy.get("version") != "ui-compatible-v1"
+        or policy.get("ui_runtime") == "precision-f64-v1"
     ):
         return None
     from . import modern, ui_stages
@@ -286,9 +287,9 @@ def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=Non
         ):
             return None
         table = model._lut
-    from .ui_native import enabled as native_enabled
+    from .ui_native import RUNTIME
 
-    native = native_enabled(models)
+    native = policy.get("ui_runtime") == RUNTIME
     if native:
         from .ui_native import RGB_TO_XYZ as forward, XYZ_TO_RGB as inverse, WHITE as white
     else:

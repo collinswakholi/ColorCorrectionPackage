@@ -677,16 +677,19 @@ def round_image(rgb):
 def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
     """Sample the UI's inner 70% on its native odd/even per-axis grid."""
     count = _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
-    image = np.asarray(rgb, dtype=np.float32)
+    image = np.asarray(rgb)
+    # Validate the full image, including unsampled pixels. Casting its extrema
+    # preserves the original float32 range check without copying a float64 frame.
+    if image.dtype not in (np.dtype("float32"), np.dtype("float64")):
+        image = np.asarray(rgb, dtype=np.float32)
     q = np.asarray(quads, dtype=np.float64)
     if image.ndim != 3 or image.shape[-1] != 3 or q.ndim != 3 or q.shape[1:] != (4, 2):
         raise ValueError("invalid UI sampling image or quadrilaterals")
     if (
         min(image.shape[:2]) < 1
         or not np.isfinite(q).all()
-        or not np.isfinite(image).all()
-        or np.any(image < 0)
-        or np.any(image > 1)
+        or not np.float32(image.min()) >= 0
+        or not np.float32(image.max()) <= 1
     ):
         raise ValueError("UI sampling requires normalized finite RGB")
     if xy is None:
@@ -697,8 +700,8 @@ def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
     x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
     x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
     dx, dy = (x - x0)[..., None], (y - y0)[..., None]
-    top = image[y0, x0] * (1 - dx) + image[y0, x1] * dx
-    bottom = image[y1, x0] * (1 - dx) + image[y1, x1] * dx
+    top = image[y0, x0].astype(np.float32, copy=False) * (1 - dx) + image[y0, x1].astype(np.float32, copy=False) * dx
+    bottom = image[y1, x0].astype(np.float32, copy=False) * (1 - dx) + image[y1, x1].astype(np.float32, copy=False) * dx
     return top * (1 - dy) + bottom * dy
 
 

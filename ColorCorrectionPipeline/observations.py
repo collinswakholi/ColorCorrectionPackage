@@ -22,7 +22,12 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
     state = _scope.get()
     if state is None:
         raise RuntimeError("observations require a detection context")
-    bgr8 = np.clip(np.asarray(rgb)[:, :, ::-1] * 255, 0, 255).astype(np.uint8)
+    bgr8 = None
+    if not explicit or (force and state.geometry is None):
+        if explicit and state.source_image is not None and state.source_image.shape == rgb.shape:
+            bgr8 = state.source_image
+        else:
+            bgr8 = np.clip(np.asarray(rgb)[:, :, ::-1] * 255, 0, 255).astype(np.uint8)
     if state.geometry is None and force:
         try:
             _model_charts(bgr8)

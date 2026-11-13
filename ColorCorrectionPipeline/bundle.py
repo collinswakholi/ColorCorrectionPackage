@@ -697,8 +697,8 @@ def loads_models(data, *, limits=None):
         raise BundleError("invalid calibration bundle: %s" % exc) from exc
 
 
-def dumps_models(models, *, limits=None):
-    """Serialize supported inference parameters, never executable training state."""
+def _snapshot_archive(models, *, limits=None):
+    """Serialize once and independently reconstruct the checked inference state."""
     limits = _limits(limits)
     try:
         _, manifest, arrays = _encode(models, limits)
@@ -710,12 +710,18 @@ def dumps_models(models, *, limits=None):
                 archive.writestr(info, raw)
         result = buffer.getvalue()
         validation = loads_models(result, limits=limits)
-        _drop_transient_callbacks(validation)
-        return result
+        return result, validation
     except BundleError:
         raise
     except (ValueError, TypeError, AttributeError, OverflowError) as exc:
         raise BundleError("unsupported calibration export: %s" % exc) from exc
+
+
+def dumps_models(models, *, limits=None):
+    """Serialize supported inference parameters, never executable training state."""
+    raw, validation = _snapshot_archive(models, limits=limits)
+    _drop_transient_callbacks(validation)
+    return raw
 
 
 def digest_models(models, *, limits=None):
@@ -735,7 +741,7 @@ def digest_models(models, *, limits=None):
 
 def snapshot_models(models, *, limits=None):
     """Owned, independently reconstructed inference snapshot for a batch/run."""
-    return loads_models(dumps_models(models, limits=limits), limits=limits)
+    return _snapshot_archive(models, limits=limits)[1]
 
 
 def load_bundle(path, *, limits=None):

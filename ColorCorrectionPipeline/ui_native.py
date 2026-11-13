@@ -151,6 +151,19 @@ def lab(values, scalar=False):
     )
 
 
+def lightness(rgb, dtype):
+    """Compute only the native Lab L* needed by the white-field fit, in row blocks."""
+    light = np.empty(rgb.shape[:2], dtype=dtype)
+    ry, gy, by = RGB_TO_XYZ[1]
+    rows = max(1, 65536 // rgb.shape[1])
+    for start in range(0, len(rgb), rows):
+        block = _decode(rgb[start:start + rows])
+        y = block[..., 0] * ry + block[..., 1] * gy + block[..., 2] * by
+        f = np.where(y > EPSILON, np.cbrt(y), (KAPPA * y + 16.0) / 116.0)
+        light[start:start + rows] = 116.0 * f - 16.0
+    return light
+
+
 def reference(profile):
     """Recover physical source values when retained; validate them against truth."""
     from .colorimetry import reference_values_to_lab_d50, white_xy
@@ -421,6 +434,18 @@ def sample_ffc(owner, face):
             "sample_reduction": "row-order-f64",
         },
     )
+
+
+def render_fit_stage(owner, image, stage):
+    # Fit metadata is committed only after all stages succeed. Use the resolved
+    # policy and the same guarded byte-runtime renderer as bundle prediction.
+    if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
+        from .ui_execution import try_execute
+        result = try_execute(image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict())
+        if result is not None:
+            return result[stage]
+    return apply_color(image, owner.models.model_ffc, owner.models.model_gc if stage == "GC" else None,
+                       rounded=not high_precision(owner))
 
 
 def apply_color(image, gain=None, curve=None, scalar=False, rounded=True):
