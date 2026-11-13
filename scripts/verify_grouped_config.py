@@ -327,7 +327,22 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
             grouped.save = True
             grouped.save_path = str(destination)
             current, metrics, images = fitted(grouped, chart, white)
-            assert encoded(ordinary_metrics) == encoded(metrics)
+            a, b = encoded(ordinary_metrics), encoded(metrics)
+            if a != b:
+                def compare(path, x, y):
+                    if isinstance(x, dict) and isinstance(y, dict):
+                        for k in x.keys() | y.keys(): compare(path+[k], x.get(k), y.get(k))
+                    elif isinstance(x, list) and isinstance(y, list) and len(x)==len(y):
+                        for j,(i,k) in enumerate(zip(x,y)): compare(path+[j],i,k)
+                    elif x != y:
+                        print("METRIC", method, path,repr(x),repr(y),flush=True)
+                compare([],a,b)
+                for stage in ("fit_FFC","fit_GC","fit_WB","fit_CC"):
+                    delta=np.abs(images[stage]-ordinary_images[stage])
+                    print("STAGE",method,stage,float(delta.max()),int(np.count_nonzero(delta)),flush=True)
+                delta=np.abs(ordinary.predict_image(scene,stages="final")["CC"]-current.predict_image(scene,stages="final")["CC"])
+                print("SCENE",method,float(delta.max()),int(np.count_nonzero(delta)),flush=True)
+                raise AssertionError("metric mismatch")
             for stage in ("fit_FFC", "fit_GC", "fit_WB", "fit_CC"):
                 np.testing.assert_array_equal(images[stage], ordinary_images[stage])
             expected = ordinary.predict_image(scene, stages="final")["CC"]
