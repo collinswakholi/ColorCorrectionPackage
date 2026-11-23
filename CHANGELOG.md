@@ -18,7 +18,7 @@
   - Lab conversion of sRGB values adapts to a non-D65 `REF_ILLUMINANT`, which removes a bias in Lab and ΔE (sRGB white read as b*=−19 under D50). D65 results are identical.
 - Add a pytest suite with golden-output tests for eleven configurations (kept out of the sdist and wheel).
 
-## [2.2.0]
+## [2.2.0] - 2026-11-13
 
 - Add reproducible random chart sampling with an exact sample count per patch and a recorded seed for UI-native fits. Existing grid recipes keep their sampling behavior. Incompatible fitting policies report an error when exact sampling is requested.
 - Reduce full-frame processing during calibration and strict batch export while retaining verified PNG writes and bundle replay.

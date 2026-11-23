@@ -16,6 +16,7 @@ config = Config(
     stage_policy="modern-v1", fitting_policy="reproducible-v1",
     CC_kwargs={"degree": 1},
     save=True, save_path="calibration-results", model_format="bundle",
+    image_options={"frame_index": 0},  # camera JPEGs often carry a preview frame
 )
 pipeline = ColorCorrection()
 metrics, stages, failed = pipeline.run(chart_image, name_="camera", config=config)

@@ -26,6 +26,47 @@ Optional CPU acceleration is available with
 `pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
 automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/gpu-detection.md).
 
+## Quick start
+
+> Available from the next release after 2.2.0 (on the `main` branch today).
+
+```python
+from ColorCorrectionPipeline import calibrate, correct
+
+cal = calibrate("chart.jpg", white="white.jpg", save_to="calibration.ccpb")
+print("Chart Delta E00 after correction:", cal.delta_e)
+
+corrected = correct("scene.jpg", cal)                  # float RGB in 0–1
+corrected = correct("scene.jpg", "calibration.ccpb")   # later, from the saved bundle
+```
+
+`calibrate` fits FFC → GC → WB → CC on a ColorChecker Classic 24 photograph and raises
+`CalibrationError` if a stage fails (for example, when no chart is found). Leave out
+`white=` to skip flat-field correction. It reads frame 0 of multi-frame files, which
+many camera JPEGs need because they embed a preview frame.
+
+Choose a model with `calibrate(..., model=...)` or build the same configuration with
+`Config.from_preset(...)` to adjust it further:
+
+| Preset | Model | Use when |
+| --- | --- | --- |
+| `rpcc2` (default) | Root-polynomial, degree 2 | General use; robust to exposure changes. |
+| `rpcc3` | Root-polynomial, degree 3 | More flexibility with a well-exposed chart. |
+| `ccm` / `3x3` | Linear-light 3×3 matrix | Simplest, most predictable transform. |
+| `pls` | Partial least squares | Many correlated features. |
+| `high-precision` | RPCC2 in float64 | 16-bit or float scenes from a byte chart. |
+
+```python
+from ColorCorrectionPipeline import Config, ColorCorrection
+
+config = Config.from_preset("rpcc2", white=False, chart={"samples_per_patch": 20, "sampling_seed": 42})
+pipeline = ColorCorrection()
+fit = pipeline.fit("chart.jpg", config=config)          # same as fit_or_raise
+outputs = pipeline.predict("scene.jpg")                 # same as predict_image
+```
+
+The rest of this page uses the full API, which these shortcuts call.
+
 ## Run the sample photographs
 
 ```shell
@@ -42,9 +83,9 @@ python -m ColorCorrectionPipeline.examples.apply_bundle --bundle demo/calibratio
 
 ## One complete test example
 
-Save this as `test_calibration.py` outside the source checkout and run
-`python test_calibration.py` so it imports the installed package.
-It uses the installed sample photographs, fits all four steps, saves and reloads
+Save this as `test_calibration.py` and run `python test_calibration.py`.
+It uses the sample photographs installed with the wheel (or, in a source checkout,
+the copies in `Images/`), fits all four steps, saves and reloads
 a safe calibration bundle, checks exact replay, and writes a verified PNG.
 Choose a new output directory for each run.
 
@@ -86,11 +127,18 @@ with ExitStack() as stack:
     def sample(name):
         # Keep packaged files alive until calibration and prediction finish.
         package = "ColorCorrectionPipeline.examples.data"
-        if hasattr(resources, "files"):
-            source = resources.as_file(resources.files(package).joinpath(name))
-        else:  # Python 3.8
-            source = resources.path(package, name)
-        return stack.enter_context(source)
+        try:
+            if hasattr(resources, "files"):
+                source = resources.as_file(resources.files(package).joinpath(name))
+            else:  # Python 3.8
+                source = resources.path(package, name)
+            path = stack.enter_context(source)
+            if Path(path).is_file():
+                return path
+        except (ModuleNotFoundError, FileNotFoundError):
+            pass
+        # Editable installs and source checkouts keep the samples in Images/.
+        return Path("Images") / name
 
     chart, white, scene = map(sample, ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
     pipeline = ColorCorrection()
@@ -184,6 +232,18 @@ For a UI-native fit, omit both settings for the default 9 × 9 grid (81 points p
 A desktop interface is available in
 [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
 This package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
+
+## Development
+
+```shell
+pip install -e ".[dev,performance]"
+pytest tests                       # unit, regression and golden-output tests
+python tests/golden/capture.py     # compare against the stored 2.2.0 baseline only
+```
+
+`tests/golden` stores metrics and thumbnails for eleven configurations captured from
+2.2.0. Regenerate them with `--write` only for an intentional, documented change. The
+`tests/` folder is not shipped in the sdist or wheel.
 
 ## License and citation
 

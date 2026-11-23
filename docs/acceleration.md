@@ -2,7 +2,20 @@
 
 For the default UI-native calibration, use `predict_image()` or `predict_batch()`.
 Those APIs apply the recorded precision and LUT settings. The prepared execution
-example below requires a calibration outside the UI-native execution family:
+example below requires a calibration outside the UI-native execution family, for
+example one fitted with the reproducible policy (a default fit raises "native UI
+models use predict_image/predict_batch"):
+
+```python
+from ColorCorrectionPipeline import ColorCorrection, Config
+
+config = Config(do_ffc=False, color_semantics={"version": "explicit-v1"},
+                stage_policy="modern-v1", fitting_policy="reproducible-v1",
+                CC_kwargs={"degree": 1}, image_options={"frame_index": 0})
+ColorCorrection().fit("chart.jpg", config=config).models.save_bundle("calibration.ccpb")
+```
+
+Then prepare and reuse execution:
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, LutCache

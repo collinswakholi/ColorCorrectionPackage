@@ -19,6 +19,7 @@ config = Config(
     fitting_policy={"version": "reproducible-v1", "random_state": 42},
     CC_kwargs={"mtd": "linear", "degree": 1},
     validation_options={"enabled": True, "n_splits": 4},
+    image_options={"frame_index": 0},  # camera JPEGs often carry a preview frame
 )
 pipeline = ColorCorrection()
 metrics, stages, failed = pipeline.run(image, config=config)

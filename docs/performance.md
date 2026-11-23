@@ -1,5 +1,22 @@
 # Measured performance
 
+> **2.2.0 re-measurement (2026-11-23, review branch).** The figures below were taken on
+> 2026-10-29, before 2.0–2.2. A re-run of the same calls on 2.2.0 (Windows, Python 3.12,
+> 32 cores, CPU chart detection, warm `.pyc`/Numba caches) measured:
+>
+> | Operation | 2.2.0 |
+> | --- | --- |
+> | `from ColorCorrectionPipeline import ColorCorrection` | 3.6 s (colour-science pulls in matplotlib) |
+> | Calibration, new process / warm | 2.0–2.4 s / 1.4–1.7 s |
+> | `predict_image` on `Sample_1.JPG` (four stages) | 100–129 ms |
+> | 4K uint8 prediction, native byte runtime, final stage | 0.56–0.59 s |
+> | 4K prediction with `precision="high"` | 8.3–12.1 s (single-threaded float64) |
+> | `predict_batch`, 10 × 1152×768 | 0.95–0.98 s |
+>
+> Float input needs `numerics={"precision": "high"}`; the native byte runtime accepts
+> full-range uint8 sRGB only. The CHANGELOG 2.1.0 cold first-prediction range
+> (2.38–4.78 s) supersedes the 12.00 s NN100 figure below.
+
 Measured on Windows with an Intel Core i9-14900K, Python 3.12.10 and eight
 numerical worker threads on 2026-10-29. These are wall-clock measurements of
 actual package calls, with no simultaneous test/build workload. Disk cache and
