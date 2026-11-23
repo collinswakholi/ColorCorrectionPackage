@@ -1,5 +1,58 @@
-# Historical utility entry points remain importable for saved models and callers.
-# The current pipeline implementation lives in pipeline.py and core/.
+"""Legacy 1.x utility module, kept importable for historical scripts and pickles.
+
+The current pipeline lives in ``pipeline.py`` and ``core/``. This module stays
+importable because pickles written by 1.x reference classes defined here
+(``Regressor_Model``, ``CustomNN`` and the scikit-learn/torch objects they hold),
+and because scripts call its functions directly. Its public functions keep their
+1.x behaviour.
+
+Shared with core
+----------------
+These were identical to ``core.utils`` and are re-exported from there:
+``_create_detector_params``, ``_set_param_safe``, ``poly_func``, ``compute_diag``.
+
+Intentionally different from core
+---------------------------------
+The functions below share a name with a ``core`` function but are NOT the same, and
+are kept so that legacy callers and pickles get the results they were written
+against. Do not replace them with the core versions.
+
+- Different signature or return contract: ``get_attr`` (also reads dict keys and
+  ``None``), ``adapt_chart`` (positional ``CHART, ILLUMINANT``; core adds ``cmfs`` and
+  an adaptation transform), ``compute_temperature`` (legacy CCT estimate from RGB;
+  core raises ``NotImplementedError``), ``estimate_fit`` (least squares on
+  ``measured``/``reference`` with ``degree=3`` default; core is ``np.polyfit``),
+  ``to_float64`` (floats assumed 0-255; core guesses 0-1 and accepts ``scale=``),
+  ``which_is_saturated`` / ``nan_if_saturated`` (integer mask, modifies the input in
+  place; core returns a boolean mask and a copy), ``extrapolate_if_sat_image``
+  (``mat_ref`` required), ``extract_color_chart`` / ``extract_color_charts`` /
+  ``detect_refine_charts`` (OpenCV MCC only with ``params=CDP``; core uses the
+  bundled model detector by default),
+  ``extract_neutral_patches`` (no ``neutral_indices``), ``predict_image`` (no
+  ``explicit_color``), ``estimate_gamma_profile`` / ``wb_correction`` /
+  ``color_correction_1`` / ``color_correction`` (no ``require_chart``,
+  ``neutral_indices`` or reference-lightness options; legacy gamma, white-balance and
+  CC numerics), ``srgb_to_cielab_D50`` / ``do_color_adaptation`` (no
+  ``adaptation_transform``).
+- Same signature, different numerics or side effects: ``convert_to_lab`` and
+  ``convert_to_LCHab`` (keyword matching of ``c_space``; legacy xyY handling),
+  ``metrics`` / ``get_metrics`` / ``arrange_metrics`` / ``compute_mae`` (legacy metric
+  table layout), ``extrapolate_if_saturated_mat``, ``to_uint8`` (identical rounding but
+  accepts array-likes), ``free_memory`` (uses this module's lock and CUDA globals),
+  ``extract_color_chart_ex``.
+- Torch/GPU helpers bound to this module's eager ``torch`` import and ``device_``:
+  ``poly_func_torch``, ``generate_powers_with_combinations_torch``,
+  ``process_in_chunks``, ``estimate_chunk_size`` (legacy GPU-memory heuristic and
+  ``log_`` output), ``get_poly_features``, ``fit_model``, ``predict_``.
+- Pickled classes: ``Regressor_Model`` and ``CustomNN``. Their pickled state and
+  methods differ from ``core.correction.Regressor_Model`` and
+  ``core._custom_nn.CustomNN``; old pickles must unpickle into these definitions.
+
+The reporting helpers (``get_stats``, ``save_stats``, ``other_plots``,
+``plot_raincloud``, ``metrics.print``, ``log_`` and grid-search output in ``fit_model``) print to
+stdout as part of their 1.x contract; they were not moved to ``logging``.
+"""
+
 import gc
 import glob
 import itertools
@@ -8,7 +61,6 @@ import os
 import re
 import tempfile
 import threading
-import warnings
 from typing import Dict, List, Tuple
 
 import colour
@@ -28,6 +80,15 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.utils import check_X_y
 from torch.utils.data import DataLoader, TensorDataset, random_split
+
+# Identical to the core implementations (verified in tests/test_key_functions_compat.py);
+# re-exported so ``key_functions.<name>`` keeps resolving for old callers and pickles.
+from .core.utils import (  # noqa: F401
+    _create_detector_params,
+    _set_param_safe,
+    compute_diag,
+    poly_func,
+)
 
 
 def log_(message, *args, **kwargs):
@@ -169,32 +230,11 @@ def _require_mcc():
         )
 
 
-def _create_detector_params():
-    for factory in [
-        lambda: cv2.mcc.DetectorParameters.create(),
-        lambda: cv2.mcc.DetectorParameters_create(),
-        lambda: cv2.mcc.DetectorParameters(),
-        lambda: cv2.mcc.DetectorParametersMCC(),  # OpenCV >= 4.11 / 5.x
-    ]:
-        try:
-            return factory()
-        except Exception:
-            continue
-    return None
-
-
 def _mcc_draw(checker):
     """Version-safe CCheckerDraw (OpenCV >= 4.11 draws through the detector)."""
     from .core.utils import _create_cdraw
 
     return _create_cdraw(checker)
-
-
-def _set_param_safe(params, name, value):
-    try:
-        setattr(params, name, value)
-    except Exception:
-        pass
 
 
 # checker detection parameters
@@ -1156,13 +1196,6 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
         return Neutral_Patches, All_Patches
 
 
-def poly_func(x, coeffs):  # horner's method
-    result = 0
-    for c in coeffs:
-        result = result * x + c
-    return result
-
-
 def poly_func_torch(x: torch.Tensor, coeffs: torch.Tensor) -> torch.Tensor:
     result = torch.zeros_like(x)  # Initialize result as a tensor of zeros with the same shape as x
     for c in coeffs:
@@ -1697,26 +1730,6 @@ def predict_(RGB, M):
     pred = M.model.predict(X)
 
     return pred.reshape(RGB.shape)
-
-
-def compute_diag(mat_ref, mat_det, rf=0.95):
-
-    mat_ref = np.asarray(mat_ref, dtype=np.float64)
-    mat_det = np.asarray(mat_det, dtype=np.float64)
-    ratios = np.divide(
-        mat_ref,
-        mat_det,
-        out=np.full_like(mat_ref, np.nan, dtype=np.float64),
-        where=np.abs(mat_det) > np.finfo(np.float64).eps,
-    )
-    ratios[~np.isfinite(ratios)] = np.nan
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        factors = np.nanmedian(ratios, axis=0)
-    factors = np.where(np.isfinite(factors), factors, 1.0)
-    diag = np.diag(rf * factors)
-
-    return diag
 
 
 def get_illuminant_from(type_="", var=None, CMFS="CIE 1931 2 Degree Standard Observer"):
