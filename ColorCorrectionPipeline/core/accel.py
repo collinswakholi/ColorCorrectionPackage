@@ -182,6 +182,20 @@ def _linear_to_srgb(linear: np.ndarray) -> np.ndarray:
     out[~mask] = 1.055 * (linear[~mask] ** (1.0 / 2.4)) - 0.055
     return out
 
+
+def apply_srgb_to_linear_image(img: np.ndarray) -> np.ndarray:
+    """Decode an sRGB-encoded float image (0-1 scale) to linear light.
+
+    Listed in ``__all__`` since 1.4.0 but previously undefined, which made
+    ``from ColorCorrectionPipeline.core.accel import *`` raise AttributeError.
+    """
+    return _srgb_to_linear(np.asarray(img, dtype=np.float64))
+
+
+def apply_linear_to_srgb_image(img: np.ndarray) -> np.ndarray:
+    """Encode a linear-light float image (0-1 scale) with the sRGB transfer curve."""
+    return _linear_to_srgb(np.asarray(img, dtype=np.float64))
+
 def _f_lab(t: np.ndarray) -> np.ndarray:
     """CIE Lab forward transform helper."""
     out = np.empty_like(t)
