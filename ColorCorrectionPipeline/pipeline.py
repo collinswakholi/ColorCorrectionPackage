@@ -1065,7 +1065,7 @@ class ColorCorrection:
             "validation_options": copy.deepcopy(self.validation_options),
             "numerical_report": copy.deepcopy(self.numerical_report),
             "legacy_reference_illuminant": np.asarray(self.REF_ILLUMINANT).tolist(),
-            "algorithms": {"GC": "all-patch-polynomial-explicit-D65-Lab" if self.color_semantics.version == "explicit-v1" else "legacy-all-patch-polynomial", "WB": "diagonal-with-0.95-headroom", "CC": "encoded-rgb-fit", "FFC": "legacy-uint8-Lab-lightness", "saturation": "legacy-fit-only-pixel-scale-0.95"},
+            "algorithms": {"GC": "all-patch-polynomial-explicit-D65-Lab" if self.color_semantics.version == "explicit-v1" else "legacy-all-patch-polynomial", "WB": "diagonal-with-0.95-headroom", "CC": "encoded-rgb-fit", "FFC": "legacy-uint8-Lab-lightness", "saturation": "legacy-fit-only-highlight-knee-0.90-0.95"},
         }
         if self.stage_policy.version == "modern-v1":
             self.models.metadata["algorithms"].update({

@@ -84,11 +84,23 @@ def to_uint8(img: np.ndarray) -> np.ndarray:
         # Already uint8, return as is
         return img
     else:
-        # Assume float in [0, 1] range, clip and convert
-        return np.clip(img * 255.0, 0, 255).astype(np.uint8)
+        # Assume float in [0, 1] range; round to the nearest code (truncation
+        # biased every value down by half a code before 2.3).
+        return np.rint(np.clip(img * 255.0, 0, 255)).astype(np.uint8)
 
-def to_float64(img: np.ndarray) -> np.ndarray:
-    """Convert image to float64 [0, 1] range."""
+def to_float64(img: np.ndarray, scale: "float | None" = None) -> np.ndarray:
+    """Convert image to float64 [0, 1] range.
+
+    Args:
+        img: Image of any numeric dtype.
+        scale: Full-scale value of ``img`` (e.g. 1.0, 255.0, 65535.0). When
+            omitted, integer images use their dtype range and float images are
+            assumed to be 0-1 unless their maximum exceeds 1, in which case a
+            0-255 scale is assumed. That guess depends on image content, so pass
+            ``scale`` for float data that may overshoot 1.
+    """
+    if scale is not None:
+        return np.asarray(img, dtype=np.float64) / float(scale)
     if img.dtype == np.uint8:
         # uint8: divide by 255
         return img.astype(np.float64) / 255.0

@@ -464,57 +464,51 @@ def extrapolate_if_saturated_mat(
     return result
 
 
+_SAT_THRESHOLD = 0.99
+_SAT_KNEE = 0.90
+_SAT_CEILING = 0.95
+
+
 def extrapolate_if_sat_image(
     img: np.ndarray,
-    mat_ref: np.ndarray,
+    mat_ref: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
     """
-    Extrapolate saturated pixels in image using reference color patches.
-    
+    Compress highlights of a chart image that contains clipped pixels.
+
+    When any channel of any pixel reaches 0.99, every channel value above a
+    knee of 0.90 is mapped linearly from [0.90, 1.0] onto [0.90, 0.95]. This
+    keeps the historical 5% headroom at full scale (1.0 -> 0.95) while staying
+    continuous and monotonic, and leaves values below the knee untouched.
+    Before 2.3 whole pixels with a clipped channel were scaled by 0.95, which
+    jumped at 0.99 (0.989 -> 0.989 but 0.99 -> 0.9405) and also darkened their
+    unclipped channels.
+
     Args:
-        img: Image array (H, W, C) with potential saturated pixels
-        mat_ref: Reference color patch values (N, C)
-        
+        img: Image array (H, W, C), float 0-1.
+        mat_ref: Ignored. Kept for backward compatibility with callers that
+            pass the reference patch values.
+
     Returns:
         tuple: (corrected_image, saturated_values, saturated_ids)
-            - corrected_image: Image with extrapolated saturated pixels
-            - saturated_values: Values of saturated pixels (or None if none found)
-            - saturated_ids: Indices of saturated pixels (or None if none found)
-        
-    Example:
-        >>> img = np.random.rand(100, 100, 3)
-        >>> img[50:60, 50:60] = 1.0  # Saturated region
-        >>> ref_patches = np.random.rand(24, 3) * 0.9
-        >>> result, vals, ids = extrapolate_if_sat_image(img, ref_patches)
-        >>> result.shape
-        (100, 100, 3)
-        
-    Note:
-        Flattens image, applies extrapolation, then reshapes.
+            - corrected_image: ``img`` itself when nothing is clipped
+            - saturated_values: original values of pixels with a clipped channel
+            - saturated_ids: flat pixel indices of those pixels
     """
     orig_shape = img.shape
-    
-    # Flatten image to (N, C)
     img_flat = img.reshape(-1, img.shape[-1])
-    
-    # Check for saturation
-    is_saturated, saturated_mask = which_is_saturated(img_flat, threshold=0.99)
-    
+
+    is_saturated, saturated_mask = which_is_saturated(img_flat, threshold=_SAT_THRESHOLD)
     if not is_saturated:
         return img, None, None
-    
-    # Vectorised extrapolation: scale all saturated pixels at once
-    img_flat_corrected = img_flat.copy()
-    
+
     saturated_indices = np.where(saturated_mask)[0]
     saturated_values = img_flat[saturated_indices].copy()
-    
-    # Scale down saturated pixels by 5% (vectorised, no Python loop)
-    img_flat_corrected[saturated_mask] = np.clip(
-        img_flat[saturated_mask] * 0.95, 0, 1
-    )
-    
-    # Reshape back
+
+    img_flat_corrected = np.array(img_flat, dtype=np.float64, copy=True)
+    above = img_flat_corrected > _SAT_KNEE
+    slope = (_SAT_CEILING - _SAT_KNEE) / (1.0 - _SAT_KNEE)
+    img_flat_corrected[above] = _SAT_KNEE + (np.minimum(img_flat_corrected[above], 1.0) - _SAT_KNEE) * slope
+
     result = img_flat_corrected.reshape(orig_shape)
-    
     return result, saturated_values, saturated_indices

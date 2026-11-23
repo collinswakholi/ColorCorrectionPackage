@@ -745,7 +745,8 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
         list_ = detector.getListColorChecker()
         if len(list_) < 0.5:
             log_("No color chart found in Image", "red", "italic", "warn")
-            assert False
+            # Explicit raise: ``assert False`` vanished under ``python -O``.
+            raise RuntimeError("No color chart found in Image")
         return detector
 
     try:
@@ -1099,10 +1100,22 @@ def compute_temperature(rgb):
 
 
 def to_uint8(img: np.ndarray) -> np.ndarray:
-    return (img * 255).astype(np.uint8)
+    """Legacy 0-1 float to uint8: clip and round (values used to wrap around)."""
+    img = np.asarray(img)
+    if img.dtype == np.uint8:
+        return img
+    return np.rint(np.clip(img * 255.0, 0, 255)).astype(np.uint8)
 
 
 def to_float64(img: np.ndarray) -> np.ndarray:
+    """Legacy conversion to float64.
+
+    Integer images are scaled by their dtype range (uint16 used to be divided
+    by 255). Float images keep the historical 0-255 assumption of this module.
+    """
+    img = np.asarray(img)
+    if np.issubdtype(img.dtype, np.integer):
+        return img.astype(np.float64) / float(np.iinfo(img.dtype).max)
     return img.astype(np.float64) / 255.0
 
 
