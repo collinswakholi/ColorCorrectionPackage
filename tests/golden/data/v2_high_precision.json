@@ -1,0 +1,49 @@
+{
+ "failed": false,
+ "final_dtype": "float64",
+ "final_key": "CC",
+ "final_mean": [
+  0.7697538206215273,
+  0.7750828125049722,
+  0.7706626444109936
+ ],
+ "final_shape": [
+  768,
+  1152,
+  3
+ ],
+ "image_keys": [
+  "chart_CC",
+  "chart_FFC",
+  "chart_GC",
+  "chart_WB"
+ ],
+ "metrics": {
+  "chart_CC.cells": 24.0,
+  "chart_CC.delta_e00_after_max": 3.605895457936598,
+  "chart_CC.delta_e00_after_mean": 1.1984512987816547,
+  "chart_CC.delta_e00_after_median": 1.0536354706546236,
+  "chart_CC.delta_e00_before_mean": 3.307059904462438,
+  "chart_FFC.cells": 24.0,
+  "chart_FFC.delta_e00_after_max": 13.595022890525582,
+  "chart_FFC.delta_e00_after_mean": 10.044993178667728,
+  "chart_FFC.delta_e00_after_median": 9.908844127683373,
+  "chart_FFC.delta_e00_before_mean": 10.645814572240797,
+  "chart_GC.cells": 24.0,
+  "chart_GC.delta_e00_after_max": 11.462802233636824,
+  "chart_GC.delta_e00_after_mean": 4.331169985785618,
+  "chart_GC.delta_e00_after_median": 3.8055293128287255,
+  "chart_GC.delta_e00_before_mean": 10.044993178667728,
+  "chart_WB.cells": 24.0,
+  "chart_WB.delta_e00_after_max": 8.120022347280733,
+  "chart_WB.delta_e00_after_mean": 3.307059904462438,
+  "chart_WB.delta_e00_after_median": 2.725560228520826,
+  "chart_WB.delta_e00_before_mean": 4.331169985785618
+ },
+ "predict_keys": [
+  "CC",
+  "FFC",
+  "GC",
+  "WB"
+ ]
+}

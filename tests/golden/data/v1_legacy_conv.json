@@ -1,0 +1,38 @@
+{
+ "failed": false,
+ "final_dtype": "float64",
+ "final_key": "CC",
+ "final_mean": [
+  0.7179399374825645,
+  0.7227047999398306,
+  0.7184687393255331
+ ],
+ "final_shape": [
+  768,
+  1152,
+  3
+ ],
+ "image_keys": [
+  "chart_CC"
+ ],
+ "metrics": {
+  "chart_CC.CC_M1_deltaE_after_mean": 2.3620269269040874,
+  "chart_CC.CC_M1_deltaE_after_median": 2.1025533997073547,
+  "chart_CC.CC_M1_deltaE_after_std": 1.5294189056734218,
+  "chart_CC.CC_M1_deltaE_before_mean": 10.610337921886961,
+  "chart_CC.CC_M1_deltaE_before_median": 10.86549440820294,
+  "chart_CC.CC_M1_deltaE_before_std": 2.0072083400040217,
+  "chart_CC.CC_M1_deltaE_improvement_percent": 77.73843826376435,
+  "chart_CC.CC_M1_deltaE_reduction": 8.248310994982873,
+  "chart_CC.CC_M1_mae_after_mean": 1.0857370644747109,
+  "chart_CC.CC_M1_mae_before_mean": 4.902379258277541,
+  "chart_CC.CC_M1_mse_after_mean": 0.001230913762141519,
+  "chart_CC.CC_M1_mse_before_mean": 0.01393471463261021
+ },
+ "predict_keys": [
+  "CC",
+  "FFC",
+  "GC",
+  "WB"
+ ]
+}

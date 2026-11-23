@@ -101,7 +101,7 @@ exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt"]
 "Images/Sample_1.JPG" = "ColorCorrectionPipeline/examples/data/Sample_1.JPG"
 
 [tool.hatch.build.targets.sdist]
-exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt", ".github/**", "uv.lock"]
+exclude = ["ColorCorrectionPipeline/flat_field/models/*.pt", ".github/**", "uv.lock", "tests/**"]
 
 [tool.ruff]
 line-length = 100
