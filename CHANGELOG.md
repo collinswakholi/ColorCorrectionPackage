@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.3.0]
 
 - New two-call API: `calibrate(chart, white=..., save_to=...)` returns a `Calibration` (fitted pipeline, metrics, `delta_e`, `correct()`, `save()`), and `correct(image, calibration_or_bundle_path)` returns float RGB. Both are thin layers over `Config` and `ColorCorrection` and give identical results.
 - `Config.from_preset("rpcc2" | "rpcc3" | "ccm" | "3x3" | "pls" | "high-precision", ...)` builds a v2 configuration with `frame_index=0`, flat-field on or off, and merged `input`/`chart` overrides.
