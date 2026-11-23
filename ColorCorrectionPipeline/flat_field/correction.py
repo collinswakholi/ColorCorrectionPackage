@@ -30,17 +30,15 @@ Example:
 
 import gc
 import os
-from typing import Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import cv2
 import numpy as np
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.linear_model import LinearRegression
-from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.svm import SVR
 
 from ..constants import MODEL_PATH
+
+if TYPE_CHECKING:  # annotation only; imported inside methods at run time
+    from sklearn.preprocessing import PolynomialFeatures
 
 __all__ = ["FlatFieldCorrection"]
 
@@ -760,7 +758,7 @@ class FlatFieldCorrection:
 
     def polynomial_features(
         self, X: np.ndarray, **kwargs
-    ) -> Tuple[np.ndarray, np.ndarray, PolynomialFeatures]:
+    ) -> Tuple[np.ndarray, np.ndarray, "PolynomialFeatures"]:
         """
         Generate polynomial features from coordinates.
 
@@ -776,6 +774,8 @@ class FlatFieldCorrection:
         degree = kwargs.get("degree", 5)
         interactions = kwargs.get("interactions", False)
         if interactions:
+            from sklearn.preprocessing import PolynomialFeatures  # deferred: ~1 s import
+
             poly = PolynomialFeatures(degree=degree, interaction_only=False)
         else:
             poly = _PowersOnlyFeatures(degree=degree)
@@ -869,6 +869,12 @@ class FlatFieldCorrection:
                     "learning_rate": float(learning_rate),
                 }
             )
+
+        # Deferred so importing the pipeline does not import scikit-learn (~1 s).
+        from sklearn.cross_decomposition import PLSRegression
+        from sklearn.linear_model import LinearRegression
+        from sklearn.neural_network import MLPRegressor
+        from sklearn.svm import SVR
 
         model_dict = {
             "linear": LinearRegression(fit_intercept=True, n_jobs=8),

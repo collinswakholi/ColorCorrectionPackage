@@ -15,11 +15,11 @@ Preserves backwards compatibility with the original package.
 
 from typing import Any, Dict, Optional
 
-import colour
+from .._lazy import colour  # loads colour-science on first use
 import numpy as np
-import pandas as pd
-from scipy import stats
-from sklearn import metrics as sklearn_metrics
+from .._lazy import pandas as pd  # deferred: only used inside functions
+from .._lazy import scipy_stats as stats
+from .._lazy import sklearn_metrics
 
 from ..constants import EPSILON
 from .color_spaces import convert_to_lab

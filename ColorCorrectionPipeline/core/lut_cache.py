@@ -4,6 +4,7 @@ This module never serializes executable objects or invokes a prediction callback
 to fingerprint it. Unknown callback/estimator state is deliberately uncacheable.
 """
 
+import sys
 import hashlib
 import json
 import threading
@@ -105,15 +106,28 @@ def _torch_state(network):
     return layers, parameters
 
 
+def _loaded_class(module, name):
+    """Return ``module.name`` if that module is already imported, else None.
+
+    An estimator of a class can only exist once its module has been imported, so exact
+    ``type(x) is cls`` checks do not need to import scikit-learn (~1 s) or CustomNN for
+    calibrations that use neither.
+    """
+    loaded = sys.modules.get(module)
+    return getattr(loaded, name, None) if loaded is not None else None
+
+
 def inference_identity(model):
     """Return full inference/settings hash, or (None, reason) when opaque."""
-    from .correction import Regressor_Model, CustomNN, _predict_direct
+    from .correction import Regressor_Model, _predict_direct
     from ..portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
     from ..fitting import DeterministicTorchRegressor
     from ..ui_fitting import UIPredictor
-    from sklearn.linear_model import LinearRegression
-    from sklearn.cross_decomposition import PLSRegression
-    from sklearn.neural_network import MLPRegressor
+
+    CustomNN = _loaded_class("ColorCorrectionPipeline.core._custom_nn", "CustomNN")
+    LinearRegression = _loaded_class("sklearn.linear_model", "LinearRegression")
+    PLSRegression = _loaded_class("sklearn.cross_decomposition", "PLSRegression")
+    MLPRegressor = _loaded_class("sklearn.neural_network", "MLPRegressor")
 
     callback = getattr(model, "_lut_predict_fn", None)
     if callback is not None and not (

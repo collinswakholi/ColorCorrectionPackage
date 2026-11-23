@@ -2,6 +2,7 @@
 
 ## [2.3.0]
 
+- Faster startup: `from ColorCorrectionPipeline import ColorCorrection` takes about 1.1 s instead of 3.7 s, and loading a saved bundle and correcting an image in a new process takes about 2.5 s instead of 4.9 s. colour-science (with matplotlib), scikit-learn and pandas now load on first use; fitting still loads them, so a full calibration takes about the same time. `CustomNN` keeps its import path and existing pickles load unchanged.
 - New two-call API: `calibrate(chart, white=..., save_to=...)` returns a `Calibration` (fitted pipeline, metrics, `delta_e`, `correct()`, `save()`), and `correct(image, calibration_or_bundle_path)` returns float RGB. Both are thin layers over `Config` and `ColorCorrection` and give identical results.
 - `Config.from_preset("rpcc2" | "rpcc3" | "ccm" | "3x3" | "pls" | "high-precision", ...)` builds a v2 configuration with `frame_index=0`, flat-field on or off, and merged `input`/`chart` overrides.
 - `ColorCorrection.fit(chart, white=None, *, name="", config=None)` and `ColorCorrection.predict(image, ...)` are lowercase aliases of `fit_or_raise` and `predict_image`; the original methods are unchanged.

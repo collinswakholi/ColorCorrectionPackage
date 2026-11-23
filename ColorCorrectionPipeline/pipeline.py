@@ -37,10 +37,10 @@ from dataclasses import dataclass, field, fields
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import colour
+from ._lazy import colour  # loads colour-science on first use
 import cv2
 import numpy as np
-import pandas as pd
+from ._lazy import pandas as pd  # deferred: only used inside functions
 
 try:
     from threadpoolctl import threadpool_limits
@@ -141,9 +141,9 @@ class _FittedState:
     white_image_data: Optional[ImageData] = None
     _source_face: Any = None
     REFERENCE_CHART: Any = None
-    REFERENCE_RGB_PD: Optional[pd.DataFrame] = None
-    REFERENCE_NEUTRAL_PATCHES_PD: Optional[pd.DataFrame] = None
-    REFERENCE_DISPLAY_RGB_PD: Optional[pd.DataFrame] = None
+    REFERENCE_RGB_PD: Optional["pd.DataFrame"] = None
+    REFERENCE_NEUTRAL_PATCHES_PD: Optional["pd.DataFrame"] = None
+    REFERENCE_DISPLAY_RGB_PD: Optional["pd.DataFrame"] = None
     _ffc_multiplier_cache: dict = field(default_factory=dict)
     _ffc_quality_cache: dict = field(default_factory=dict)
 
@@ -198,7 +198,7 @@ class ColorCorrection:
             self._stage_errors = {}
             self.last_run = diagnostics
 
-    def get_reference_values(self, REF_ILLUMINANT: Optional[np.ndarray] = None) -> pd.DataFrame:
+    def get_reference_values(self, REF_ILLUMINANT: Optional[np.ndarray] = None) -> "pd.DataFrame":
         """
         Precompute reference patch RGB under a given illuminant.
 

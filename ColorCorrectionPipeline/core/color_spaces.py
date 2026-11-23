@@ -15,7 +15,7 @@ All functions preserve backwards compatibility with the original package.
 
 from typing import Optional, Tuple
 
-import colour
+from .._lazy import colour  # loads colour-science on first use
 import numpy as np
 
 from ..constants import CMFS_DEFAULT, WP_DEFAULT
@@ -209,12 +209,12 @@ def srgb_to_cielab_D50(
 
 
 def adapt_chart(
-    color_chart: colour.characterisation.ColourChecker,
+    color_chart: "colour.characterisation.ColourChecker",
     target_illuminant: np.ndarray,
     cmfs: str = CMFS_DEFAULT,
     *,
     adaptation_transform: Optional[str] = None,
-) -> colour.characterisation.ColourChecker:
+) -> "colour.characterisation.ColourChecker":
     """
     Adapt ColorChecker chart to target illuminant using chromatic adaptation.
 

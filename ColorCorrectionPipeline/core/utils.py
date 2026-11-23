@@ -15,9 +15,9 @@ import hashlib
 import warnings
 
 import numpy as np
-import pandas as pd
+from .._lazy import pandas as pd  # deferred: only used inside functions
 import cv2
-import colour
+from .._lazy import colour  # loads colour-science on first use
 
 # ── MCC module availability (follows accel.py HAS_NUMBA pattern) ───────────
 HAS_MCC = False

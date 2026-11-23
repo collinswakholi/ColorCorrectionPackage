@@ -24,7 +24,6 @@ from .color_spaces import (
     srgb_to_cielab_D50,
 )
 from .correction import (
-    CustomNN,
     Regressor_Model,
     color_correction,
     color_correction_1,
@@ -72,6 +71,12 @@ def __getattr__(name):
         from .transforms import get_poly_features
 
         return get_poly_features
+    if name == "CustomNN":
+        # Deferred so importing ColorCorrectionPipeline.core does not import scikit-learn.
+        from ._custom_nn import CustomNN
+
+        globals()["CustomNN"] = CustomNN
+        return CustomNN
     raise AttributeError(name)
 
 

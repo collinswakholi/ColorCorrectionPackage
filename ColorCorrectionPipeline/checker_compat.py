@@ -2,7 +2,7 @@
 
 import inspect
 
-import colour
+from ._lazy import colour  # loads colour-science on first use
 
 
 def make_colour_checker(name, data, illuminant, rows=None, columns=None):
