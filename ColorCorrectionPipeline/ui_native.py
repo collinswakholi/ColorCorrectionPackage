@@ -157,10 +157,10 @@ def lightness(rgb, dtype):
     ry, gy, by = RGB_TO_XYZ[1]
     rows = max(1, 65536 // rgb.shape[1])
     for start in range(0, len(rgb), rows):
-        block = _decode(rgb[start:start + rows])
+        block = _decode(rgb[start : start + rows])
         y = block[..., 0] * ry + block[..., 1] * gy + block[..., 2] * by
         f = np.where(y > EPSILON, np.cbrt(y), (KAPPA * y + 16.0) / 116.0)
-        light[start:start + rows] = 116.0 * f - 16.0
+        light[start : start + rows] = 116.0 * f - 16.0
     return light
 
 
@@ -362,7 +362,7 @@ def points(quads, count, random_seed=None):
         state = np.arange(len(quads), dtype=np.uint64) * 2654435761 + random_seed
         uv = np.empty((len(quads), count * 2))
         for i in range(count * 2):
-            state = (1664525 * state + 1013904223) & np.uint64(0xffffffff)
+            state = (1664525 * state + 1013904223) & np.uint64(0xFFFFFFFF)
             uv[:, i] = 0.15 + 0.70 * (state.astype(np.float64) / 4294967296.0)
         u, v = uv[:, ::2, None], uv[:, 1::2, None]
     q = np.asarray(quads)[:, None]
@@ -404,7 +404,9 @@ def sample_ffc(owner, face):
 
     count, xy = face_sample_points(face)
     high = high_precision(owner)
-    samples = (sample_regions_float64 if high else sample_regions)(owner.Image, face.quadrilaterals, count, xy=xy)
+    samples = (sample_regions_float64 if high else sample_regions)(
+        owner.Image, face.quadrilaterals, count, xy=xy
+    )
     h, w = owner.Image.shape[:2]
     dtype = np.float64 if high else np.float32
     x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(dtype)
@@ -441,11 +443,18 @@ def render_fit_stage(owner, image, stage):
     # policy and the same guarded byte-runtime renderer as bundle prediction.
     if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
         from .ui_execution import try_execute
-        result = try_execute(image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict())
+
+        result = try_execute(
+            image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict()
+        )
         if result is not None:
             return result[stage]
-    return apply_color(image, owner.models.model_ffc, owner.models.model_gc if stage == "GC" else None,
-                       rounded=not high_precision(owner))
+    return apply_color(
+        image,
+        owner.models.model_ffc,
+        owner.models.model_gc if stage == "GC" else None,
+        rounded=not high_precision(owner),
+    )
 
 
 def apply_color(image, gain=None, curve=None, scalar=False, rounded=True):
@@ -470,17 +479,22 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
 
     high = high_precision(models)
     if not high:
-        result = try_execute(image, models, selected, native_codes=native_codes,
-                             chunk_pixels=chunk_pixels)
+        result = try_execute(
+            image, models, selected, native_codes=native_codes, chunk_pixels=chunk_pixels
+        )
         if result is not None:
             return result
     from .core.correction import predict_
     from .prediction import chunked_cc
 
-    source = np.asarray(image, dtype=np.float64) if high else (
-        normalize_codes(image)
-        if native_codes
-        else np.asarray(image, dtype=np.float32).astype(np.float64)
+    source = (
+        np.asarray(image, dtype=np.float64)
+        if high
+        else (
+            normalize_codes(image)
+            if native_codes
+            else np.asarray(image, dtype=np.float32).astype(np.float64)
+        )
     )
     current = source
     result = {}

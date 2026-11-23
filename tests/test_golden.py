@@ -1,4 +1,5 @@
 """Characterization tests: outputs must match the 2.2.0 baseline (see tests/golden)."""
+
 import sys
 from pathlib import Path
 

@@ -19,12 +19,11 @@ import pandas as pd
 import cv2
 import colour
 
-
 # ── MCC module availability (follows accel.py HAS_NUMBA pattern) ───────────
 HAS_MCC = False
 try:
     _mcc = cv2.mcc
-    HAS_MCC = hasattr(_mcc, 'CCheckerDetector') or hasattr(_mcc, 'CCheckerDetector_create')
+    HAS_MCC = hasattr(_mcc, "CCheckerDetector") or hasattr(_mcc, "CCheckerDetector_create")
 except AttributeError:
     pass
 
@@ -33,16 +32,17 @@ except AttributeError:
 # CHART DETECTION CACHE
 # ============================================================================
 
+
 class _ChartCache:
     """Cache chart detection results keyed by image content hash.
-    
+
     MCC detection is the most frequently called expensive operation
     (6-10 times per pipeline run, ~1-2s each). Caching the detection
     result saves 5-15s per pipeline run.
     """
 
     def __init__(self, max_entries: int = 8):
-        self._cache = {}        # hash -> (best_checker_data, img_draw, src_patches)
+        self._cache = {}  # hash -> (best_checker_data, img_draw, src_patches)
         self._max = max_entries
 
     @staticmethod
@@ -78,6 +78,7 @@ _chart_cache = _ChartCache()
 # TYPE CONVERSION FUNCTIONS
 # ============================================================================
 
+
 def to_uint8(img: np.ndarray) -> np.ndarray:
     """Convert image to uint8 [0, 255] range."""
     if img.dtype == np.uint8:
@@ -87,6 +88,7 @@ def to_uint8(img: np.ndarray) -> np.ndarray:
         # Assume float in [0, 1] range; round to the nearest code (truncation
         # biased every value down by half a code before 2.3).
         return np.rint(np.clip(img * 255.0, 0, 255)).astype(np.uint8)
+
 
 def to_float64(img: np.ndarray, scale: "float | None" = None) -> np.ndarray:
     """Convert image to float64 [0, 1] range.
@@ -120,23 +122,28 @@ def to_float64(img: np.ndarray, scale: "float | None" = None) -> np.ndarray:
         max_val = np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else img.max()
         return img.astype(np.float64) / max_val
 
+
 def get_attr(obj, attr: str, default=None):
     """Get attribute from object with default."""
     return getattr(obj, attr, default)
+
 
 def free_memory():
     """Free GPU memory if available."""
     try:
         import torch
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     except:
         pass
     gc.collect()
 
+
 # ============================================================================
 # COLOR CHART DETECTION (OpenCV MCC)
 # ============================================================================
+
 
 def _create_detector_params():
     """Create MCC DetectorParameters with version-safe fallback."""
@@ -163,7 +170,9 @@ def _create_detector():
             return factory()
         except Exception:
             continue
-    raise RuntimeError("Cannot create cv2.mcc.CCheckerDetector — check opencv-contrib-python install")
+    raise RuntimeError(
+        "Cannot create cv2.mcc.CCheckerDetector — check opencv-contrib-python install"
+    )
 
 
 def _create_cdraw(checker):
@@ -289,19 +298,20 @@ def detect_refine_charts(detector, img, n_charts, params=None):
     else:
         return None
 
+
 def _extract_color_chart_mcc(img: np.ndarray, get_patch_size: bool = False):
     """
     Extract color patches from a ColorChecker chart in the image (from v1_2_01).
-    
+
     Uses a per-image cache so repeated calls on the same image (different
     pipeline stages) skip the expensive MCC detection.
-    
+
     Args:
         img: BGR image (uint8)
         get_patch_size: If True, return patch size info
-        
+
     Returns:
-        tuple: (patches, img_draw, dims) 
+        tuple: (patches, img_draw, dims)
             - patches: RGB values (24, 3) float64 in [0,1] range or None
             - img_draw: Image with drawn chart
             - dims: Patch size info
@@ -343,21 +353,22 @@ def _extract_color_chart_mcc(img: np.ndarray, get_patch_size: bool = False):
     if get_patch_size:
         img_roi = img[y1:y2, x1:x2]
         # Simple patch size estimation
-        dims = [(x2-x1)//6, (y2-y1)//4]
+        dims = [(x2 - x1) // 6, (y2 - y1) // 4]
 
     # ── Store in cache ──
     _chart_cache.put(img, (np.array(src), img_draw.copy(), dims))
 
     return np.array(src), img_draw, dims
 
+
 def _extract_color_charts_mcc(img: np.ndarray, n_charts: int = 1):
     """
     Extract multiple color charts from image (from v1_2_01).
-    
+
     Args:
         img: BGR image (uint8)
         n_charts: Number of charts to extract
-        
+
     Returns:
         tuple: (charts_list, img_draw)
             - charts_list: List of (24, 3) arrays with RGB values
@@ -377,7 +388,7 @@ def _extract_color_charts_mcc(img: np.ndarray, n_charts: int = 1):
     for i, checker in enumerate(checkers):
         cdraw = _create_cdraw(checker)
         cdraw.draw(img_draw)
-        
+
         # Add text to chart
         box_pts = checker.getBox()
         x1, x2 = int(min(box_pts[:, 0])), int(max(box_pts[:, 0]))
@@ -430,18 +441,21 @@ def extract_color_charts(img: np.ndarray, n_charts: int = 1):
     samples, drawing, _ = detected
     return samples, drawing
 
-def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool = False, neutral_indices=None):
+
+def extract_neutral_patches(
+    img: np.ndarray, return_one: bool = True, show: bool = False, neutral_indices=None
+):
     """
     Extract neutral (gray) patches from a ColorChecker chart (from v1_2_01).
-    
+
     A standard ColorChecker has 6 neutral patches (grayscale) in the bottom row:
     patches 18-23 (0-indexed).
-    
+
     Args:
         img: BGR image (uint8)
         return_one: If True, return single chart as DataFrame; if False, return list
         show: Whether to display detected chart
-        
+
     Returns:
         tuple: (neutral_patches, all_patches) as pandas DataFrames (or lists of DataFrames)
     """
@@ -449,12 +463,20 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
         colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"].data.keys()
     )
     from ..detection.charts import _scope
+
     scope = _scope.get()
     profile = getattr(scope, "reference_profile", None)
     if profile is not None:
         patch_names = list(profile.names)
-    neutral_indices = (list(profile.neutral_indices) if profile is not None else list(range(18, 24))) if neutral_indices is None else list(neutral_indices)
-    if len(set(neutral_indices)) != len(neutral_indices) or any(isinstance(i, bool) or not isinstance(i, (int, np.integer)) or not 0 <= i < 24 for i in neutral_indices):
+    neutral_indices = (
+        (list(profile.neutral_indices) if profile is not None else list(range(18, 24)))
+        if neutral_indices is None
+        else list(neutral_indices)
+    )
+    if len(set(neutral_indices)) != len(neutral_indices) or any(
+        isinstance(i, bool) or not isinstance(i, (int, np.integer)) or not 0 <= i < 24
+        for i in neutral_indices
+    ):
         raise ValueError("neutral_indices must be unique Classic24 cell positions")
     names_rows = [patch_names[index] for index in neutral_indices]
     names_columns = ["R", "G", "B"]
@@ -467,9 +489,10 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
     if show:
         try:
             import colour.plotting as cplt
+
             cplt.plot_image(
-                to_float64(img_draw[:, :, ::-1]), 
-                title=f"Charts found: {len(src_charts) if isinstance(src_charts, list) else 1}"
+                to_float64(img_draw[:, :, ::-1]),
+                title=f"Charts found: {len(src_charts) if isinstance(src_charts, list) else 1}",
             )
         except:
             pass
@@ -480,8 +503,11 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
 
     if return_one:
         # will return only the first chart as DataFrame
-        srgb_chart = (np.asarray(src_charts, dtype=np.float64) / 255.0
-                      if getattr(scope, "measurement_image", None) is not None else to_float64(src_charts))
+        srgb_chart = (
+            np.asarray(src_charts, dtype=np.float64) / 255.0
+            if getattr(scope, "measurement_image", None) is not None
+            else to_float64(src_charts)
+        )
         n_patch = srgb_chart[neutral_indices, :]
         n_patch_df = pd.DataFrame(n_patch, columns=names_columns, index=names_rows)
         n_patch_all = pd.DataFrame(srgb_chart, columns=names_columns, index=patch_names)
@@ -494,23 +520,26 @@ def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool
         All_Patches = []
 
         for chart in src_charts:
-            srgb_chart = (np.asarray(chart, dtype=np.float64) / 255.0
-                          if getattr(scope, "measurement_image", None) is not None else to_float64(chart))
+            srgb_chart = (
+                np.asarray(chart, dtype=np.float64) / 255.0
+                if getattr(scope, "measurement_image", None) is not None
+                else to_float64(chart)
+            )
 
             n_patch = srgb_chart[neutral_indices, :]
             n_patch_df = pd.DataFrame(n_patch, columns=names_columns, index=names_rows)
-            n_patch_all = pd.DataFrame(
-                srgb_chart, columns=names_columns, index=patch_names
-            )
+            n_patch_all = pd.DataFrame(srgb_chart, columns=names_columns, index=patch_names)
 
             Neutral_Patches.append(n_patch_df)
             All_Patches.append(n_patch_all)
 
         return Neutral_Patches, All_Patches
 
+
 # ============================================================================
 # MATHEMATICAL FUNCTIONS
 # ============================================================================
+
 
 def compute_diag(mat_ref, mat_det, rf=0.95):
     """Compute a finite diagonal correction matrix."""
@@ -530,13 +559,16 @@ def compute_diag(mat_ref, mat_det, rf=0.95):
     diag = np.diag(rf * factors)
     return diag
 
+
 def compute_temperature(xyz: np.ndarray) -> float:
     """Compute color temperature."""
     raise NotImplementedError("compute_temperature requires ColorCorrectionPipeline package")
 
+
 def estimate_fit(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
     """Fit polynomial (from v1_2_01)."""
     return np.polyfit(x, y, degree)
+
 
 def poly_func(x, coeffs):
     """Evaluate polynomial using Horner's method (from v1_2_01)."""
@@ -545,16 +577,19 @@ def poly_func(x, coeffs):
         result = result * x + c
     return result
 
+
 def poly_func_torch(x, coeffs):
     """Evaluate polynomial using torch and Horner's method (from v1_2_01)."""
     try:
         import torch
+
         result = torch.zeros_like(x)
         for c in coeffs:
             result = result * x + c
         return result
     except:
         raise NotImplementedError("poly_func_torch requires torch")
+
 
 __all__ = [
     "clear_chart_cache",

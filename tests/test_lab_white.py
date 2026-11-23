@@ -1,4 +1,5 @@
 """Legacy Lab conversion must be consistent for non-D65 reference whites."""
+
 import numpy as np
 import pytest
 

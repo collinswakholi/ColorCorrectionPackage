@@ -1,4 +1,5 @@
 """Legacy OpenCV MCC chart detection must work across OpenCV API generations."""
+
 from pathlib import Path
 
 import cv2
@@ -28,9 +29,15 @@ def test_key_functions_mcc_extracts_classic24():
 def test_legacy_pipeline_with_mcc_backend_fits():
     from ColorCorrectionPipeline import ColorCorrection, Config
 
-    config = Config(fitting_policy="legacy-v1", do_ffc=False, do_gc=False, do_wb=False,
-                    check_saturation=False, chart_detection={"backend": "mcc"},
-                    CC_kwargs={"mtd": "linear", "degree": 2})
+    config = Config(
+        fitting_policy="legacy-v1",
+        do_ffc=False,
+        do_gc=False,
+        do_wb=False,
+        check_saturation=False,
+        chart_detection={"backend": "mcc"},
+        CC_kwargs={"mtd": "linear", "degree": 2},
+    )
     pipe = ColorCorrection()
     _, _, failed = pipe.run(str(CHART), None, "chart", config)
     assert not failed, pipe.last_run["errors"]

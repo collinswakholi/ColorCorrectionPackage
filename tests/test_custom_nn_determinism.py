@@ -1,4 +1,5 @@
 """CustomNN must be reproducible for a fixed ``random_state`` (documented contract)."""
+
 import numpy as np
 import pytest
 
@@ -16,8 +17,14 @@ def _data(n=96, seed=0):
 
 def _fit(random_state, **kw):
     X, Y = _data()
-    model = CustomNN(hidden_layers=[16], max_epochs=25, batch_size=16, patience=50,
-                     random_state=random_state, **kw)
+    model = CustomNN(
+        hidden_layers=[16],
+        max_epochs=25,
+        batch_size=16,
+        patience=50,
+        random_state=random_state,
+        **kw,
+    )
     return model.fit(X, Y).predict(X)
 
 

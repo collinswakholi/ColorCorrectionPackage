@@ -1,4 +1,5 @@
 """Shared file handling for the executable tutorials."""
+
 import argparse
 from contextlib import ExitStack, contextmanager
 import hashlib
@@ -44,13 +45,21 @@ def sample_paths():
 
 def input_arguments(description):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--chart", type=Path, help="Classic24 chart capture. Omit to use the sample.")
+    parser.add_argument(
+        "--chart", type=Path, help="Classic24 chart capture. Omit to use the sample."
+    )
     parser.add_argument("--white", type=Path, help="Matching flat-field capture.")
-    parser.add_argument("--scene", type=Path, help="Image captured under the calibrated conditions.")
+    parser.add_argument(
+        "--scene", type=Path, help="Image captured under the calibrated conditions."
+    )
     parser.add_argument("--no-white", action="store_true", help="Disable flat-field correction.")
     parser.add_argument("--output", type=Path, required=True, help="New output directory.")
-    parser.add_argument("--device", default="auto", choices=("auto", "cpu"),
-                        help="Chart detection backend. Color fitting uses its recorded CPU profile.")
+    parser.add_argument(
+        "--device",
+        default="auto",
+        choices=("auto", "cpu"),
+        help="Chart detection backend. Color fitting uses its recorded CPU profile.",
+    )
     return parser
 
 
@@ -90,16 +99,27 @@ def export_and_replay(pipeline, scene, output, dtype="uint8"):
     np.testing.assert_array_equal(replay, direct)
     suffix = ".png" if dtype in ("uint8", "uint16") else ".tiff"
     started = time.perf_counter()
-    record = write_image_data(output / ("corrected" + suffix), replay, dtype=dtype,
-                              allow_precision_loss=True,
-                              input_encoding=(pipeline.models.metadata.get("color_semantics") or {}).get("output_encoding", "srgb"),
-                              png_profile="fast-lossless" if suffix == ".png" else "compatible")
+    record = write_image_data(
+        output / ("corrected" + suffix),
+        replay,
+        dtype=dtype,
+        allow_precision_loss=True,
+        input_encoding=(pipeline.models.metadata.get("color_semantics") or {}).get(
+            "output_encoding", "srgb"
+        ),
+        png_profile="fast-lossless" if suffix == ".png" else "compatible",
+    )
     export_seconds = time.perf_counter() - started
     if record.maximum_codec_error != 0:
         raise RuntimeError("Strict export readback changed stored samples.")
-    return replay, {"bundle": str(bundle), "corrected": str(record.path),
-                    "replay_exact": True, "maximum_codec_error": record.maximum_codec_error,
-                    "apply_seconds": apply_seconds, "verified_export_seconds": export_seconds}
+    return replay, {
+        "bundle": str(bundle),
+        "corrected": str(record.path),
+        "replay_exact": True,
+        "maximum_codec_error": record.maximum_codec_error,
+        "apply_seconds": apply_seconds,
+        "verified_export_seconds": export_seconds,
+    }
 
 
 def json_value(value):
@@ -113,12 +133,15 @@ def json_value(value):
 
 
 def report(output, result):
-    (output / "results.json").write_text(json.dumps(result, indent=2, default=json_value) + "\n",
-                                          encoding="utf8")
+    (output / "results.json").write_text(
+        json.dumps(result, indent=2, default=json_value) + "\n", encoding="utf8"
+    )
     print(json.dumps(result, indent=2, default=json_value))
 
 
 def scores(metrics):
     cc = metrics["chart_CC"]
-    return {"training_chart_de00_before_cc": cc["delta_e00_before_mean"],
-            "training_chart_de00_after_cc": cc["delta_e00_after_mean"]}
+    return {
+        "training_chart_de00_before_cc": cc["delta_e00_before_mean"],
+        "training_chart_de00_after_cc": cc["delta_e00_after_mean"],
+    }

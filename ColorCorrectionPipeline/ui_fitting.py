@@ -126,7 +126,9 @@ def options(parameters=None):
     if p.get("device", "cpu") != "cpu" or p.get("random_state", 42) != 42:
         raise ValueError("UI-compatible training uses CPU and fixed seed 42")
     combinations = p.get("include_combinations", True)
-    if type(combinations) is not bool or ((kind != "linear" or basis is not None) and combinations is not True):
+    if type(combinations) is not bool or (
+        (kind != "linear" or basis is not None) and combinations is not True
+    ):
         raise ValueError(
             "include_combinations=False is supported only by UI polynomial linear fitting"
         )
@@ -198,8 +200,10 @@ def features(linear_rgb, settings):
     if basis is not None:
         root = _root_features(values, settings["degree"])
         if basis == "hybrid":
-            polynomial = features(values, {"model": "linear", "degree": settings["degree"],
-                                           "include_combinations": True})
+            polynomial = features(
+                values,
+                {"model": "linear", "degree": settings["degree"], "include_combinations": True},
+            )
             expanded = np.concatenate((polynomial, root[..., 3:]), axis=-1)
         else:
             expanded = root
@@ -565,7 +569,9 @@ class UIPredictor:
         values = np.asarray(design, dtype=np.float64)
         if self.settings["model"] == "nn":
             out = _forward(values, self.weights, self.biases)[0][-1]
-            residual = values[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+            residual = (
+                values[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+            )
             if residual.shape != out.shape or not np.isfinite(residual).all():
                 raise ValueError("NN residual must contain the original linear RGB triples")
             return out + residual
@@ -583,8 +589,15 @@ class UIPredictor:
         shape = values.shape
         source = srgb_to_linear(values.reshape(-1, 3))
         design = features(source, self.settings)
-        linear = np.clip(self.predict(design, linear_rgb=source) if "basis" in self.settings
-                         else self.predict(design), 0, 1)
+        linear = np.clip(
+            (
+                self.predict(design, linear_rgb=source)
+                if "basis" in self.settings
+                else self.predict(design)
+            ),
+            0,
+            1,
+        )
         return linear_to_srgb(linear).reshape(shape)
 
 
@@ -626,9 +639,7 @@ def fit_ui(X, Y, parameters=None):
         matrix = np.column_stack((design, np.ones(len(design)))) if affine else design
         coefficients = _solve(matrix.T @ matrix + np.eye(matrix.shape[1]) * _RIDGE, matrix.T @ Y)
         intercept = coefficients[-1] if affine else np.zeros(3)
-        predictor = UIPredictor(
-            settings, coefficients[:-1] if affine else coefficients, intercept
-        )
+        predictor = UIPredictor(settings, coefficients[:-1] if affine else coefficients, intercept)
     if "basis" in settings:
         condition = float(np.linalg.cond(design))
         detail.update(
@@ -676,7 +687,9 @@ def round_image(rgb):
 
 def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
     """Sample the UI's inner 70% on its native odd/even per-axis grid."""
-    count = _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
+    count = (
+        _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
+    )
     image = np.asarray(rgb)
     # Validate the full image, including unsampled pixels. Casting its extrema
     # preserves the original float32 range check without copying a float64 frame.
@@ -694,14 +707,21 @@ def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
         raise ValueError("UI sampling requires normalized finite RGB")
     if xy is None:
         from .ui_native import points
+
         xy = points(q, count)
     h, w = image.shape[:2]
     x, y = np.clip(xy[..., 0], 0, w - 1), np.clip(xy[..., 1], 0, h - 1)
     x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
     x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
     dx, dy = (x - x0)[..., None], (y - y0)[..., None]
-    top = image[y0, x0].astype(np.float32, copy=False) * (1 - dx) + image[y0, x1].astype(np.float32, copy=False) * dx
-    bottom = image[y1, x0].astype(np.float32, copy=False) * (1 - dx) + image[y1, x1].astype(np.float32, copy=False) * dx
+    top = (
+        image[y0, x0].astype(np.float32, copy=False) * (1 - dx)
+        + image[y0, x1].astype(np.float32, copy=False) * dx
+    )
+    bottom = (
+        image[y1, x0].astype(np.float32, copy=False) * (1 - dx)
+        + image[y1, x1].astype(np.float32, copy=False) * dx
+    )
     return top * (1 - dy) + bottom * dy
 
 
@@ -727,7 +747,9 @@ def fit_stage(owner, image, method, parameters):
         params.setdefault("use_lut", False)
     predictor, report = fit_ui(x, y, params)
     if native_enabled(owner):
-        report["details"]["ui_runtime"] = "precision-f64-v1" if high_precision(owner) else "native-v1"
+        report["details"]["ui_runtime"] = (
+            "precision-f64-v1" if high_precision(owner) else "native-v1"
+        )
     settings = report["effective_parameters"]
     model = Regressor_Model()
     for name, value in settings.items():

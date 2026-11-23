@@ -58,6 +58,7 @@ def fit_ffc(owner, image, parameters):
     """Fit the UI plane/polynomial surface; reject unqualified FFC solvers."""
     from .flat_field.correction import FlatFieldCorrection
     from .ui_native import high_precision
+
     high_precision_mode = high_precision(owner)
     dtype = np.float64 if high_precision_mode else np.float32
 
@@ -109,9 +110,11 @@ def fit_ffc(owner, image, parameters):
     if source.shape != image.shape:
         raise ValueError("FFC white and source images must have identical dimensions")
     from .ui_native import enabled as native_enabled, working_input
+
     if native_enabled(owner):
         crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
         from .ui_native import lightness as native_lightness
+
         lightness = native_lightness(crop, dtype)
     else:
         crop = source[y1:y2, x1:x2]
@@ -144,47 +147,49 @@ def fit_ffc(owner, image, parameters):
             axis=-1,
         )
 
-    x = (
-        dtype(x1)
-        + np.arange(bins, dtype=dtype) * dtype(x2 - x1) / dtype(bins - 1)
-    ).astype(np.float64) / (w + float(epsilon))
-    y = (
-        dtype(y1)
-        + np.arange(bins, dtype=dtype) * dtype(y2 - y1) / dtype(bins - 1)
-    ).astype(np.float64) / (h + float(epsilon))
+    x = (dtype(x1) + np.arange(bins, dtype=dtype) * dtype(x2 - x1) / dtype(bins - 1)).astype(
+        np.float64
+    ) / (w + float(epsilon))
+    y = (dtype(y1) + np.arange(bins, dtype=dtype) * dtype(y2 - y1) / dtype(bins - 1)).astype(
+        np.float64
+    ) / (h + float(epsilon))
     xx, yy = np.meshgrid(x, y)
     matrix = design(xx.ravel(), yy.ravel())
     ridge = 0 if method == "linear" else 1e-8
     coeff = _solve(matrix.T @ matrix + np.eye(matrix.shape[1]) * ridge, matrix.T @ zs)
-    x = (np.arange(bins, dtype=dtype) * dtype(w - 1) / dtype(bins - 1)).astype(
-        np.float64
-    ) / (w + float(epsilon))
-    y = (np.arange(bins, dtype=dtype) * dtype(h - 1) / dtype(bins - 1)).astype(
-        np.float64
-    ) / (h + float(epsilon))
+    x = (np.arange(bins, dtype=dtype) * dtype(w - 1) / dtype(bins - 1)).astype(np.float64) / (
+        w + float(epsilon)
+    )
+    y = (np.arange(bins, dtype=dtype) * dtype(h - 1) / dtype(bins - 1)).astype(np.float64) / (
+        h + float(epsilon)
+    )
     xx, yy = np.meshgrid(x, y)
     coarse = (design(xx, yy) @ coeff).astype(dtype) * span + low
     high = coarse > dtype(1.3)
-    coarse[high] = dtype(1.3) + dtype(1.8 - 1.3) * np.tanh(
-        dtype(1.8) * (coarse[high] - dtype(1.3))
-    )
+    coarse[high] = dtype(1.3) + dtype(1.8 - 1.3) * np.tanh(dtype(1.8) * (coarse[high] - dtype(1.3)))
     gain = _resize(coarse, h, w, dtype=dtype).astype(np.float64)
     if not np.isfinite(gain).all() or gain.min() < guard.min_gain or gain.max() > guard.max_gain:
         raise ValueError("UI FFC gain violates the configured finite positive gain limits")
     gain = np.frombuffer(gain.tobytes(), dtype=np.float64).reshape(gain.shape)
     quality.update(
-        algorithm="precision-f64-v1/Lab-D65" if high_precision_mode else "ui-compatible-v1/float32-Lab-D65",
+        algorithm=(
+            "precision-f64-v1/Lab-D65"
+            if high_precision_mode
+            else "ui-compatible-v1/float32-Lab-D65"
+        ),
         fit_method=method,
         effective_degree=degree,
         minimum_gain=float(gain.min()),
         maximum_gain=float(gain.max()),
         ridge=ridge,
         solver="float64 normal equations",
-        upsampling=("float64" if high_precision_mode else "float32") + " endpoint-aligned Catmull-Rom",
+        upsampling=("float64" if high_precision_mode else "float32")
+        + " endpoint-aligned Catmull-Rom",
     )
     owner.models.model_ffc = gain
     owner.numerical_report["FFC"] = quality
     if native_enabled(owner):
         from .ui_native import render_fit_stage
+
         return render_fit_stage(owner, image, "FFC"), {}, False
     return apply_ffc(image, gain), {}, False

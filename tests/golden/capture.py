@@ -8,6 +8,7 @@ review change, so later refactors can prove they preserve behaviour.
 
 pytest drives the same scenarios through ``tests/test_golden.py``.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,31 +34,71 @@ def _scenarios():
         "v2_default": lambda: Config(chart=chart, input=one),
         "v2_rpcc2_grouped": lambda: Config(
             steps=Steps(ffc=FFCOptions(enabled=True), cc=CCOptions(fit={"model": "rpcc2"})),
-            input={"frame_index": 0}, chart=chart),
+            input={"frame_index": 0},
+            chart=chart,
+        ),
         "v2_ccm_3x3": lambda: Config(model="3x3", chart=chart, input=one),
         "v2_pls": lambda: Config(model="pls", chart=chart, input=one),
         "v2_high_precision": lambda: Config(
             steps=Steps(cc=CCOptions(fit={"model": "rpcc2"})),
-            numerics={"precision": "high"}, chart=chart, input=one),
+            numerics={"precision": "high"},
+            chart=chart,
+            input=one,
+        ),
         "v2_seeded_samples": lambda: Config(
-            model="3x3", chart={"device": "cpu", "samples_per_patch": 20, "sampling_seed": 42}, input=one),
+            model="3x3",
+            chart={"device": "cpu", "samples_per_patch": 20, "sampling_seed": 42},
+            input=one,
+        ),
         "v1_legacy_conv": lambda: Config(
-            fitting_policy="legacy-v1", do_ffc=False, do_gc=False, do_wb=False,
-            check_saturation=False, chart_detection=chart,
-            CC_kwargs={"cc_method": "conv", "method": "Finlayson 2015", "degree": 2}),
+            fitting_policy="legacy-v1",
+            do_ffc=False,
+            do_gc=False,
+            do_wb=False,
+            check_saturation=False,
+            chart_detection=chart,
+            CC_kwargs={"cc_method": "conv", "method": "Finlayson 2015", "degree": 2},
+        ),
         "v1_legacy_custom_linear": lambda: Config(
-            fitting_policy="legacy-v1", do_ffc=False, do_gc=False, do_wb=False,
-            check_saturation=False, chart_detection=chart,
-            CC_kwargs={"mtd": "custom", "degree": 2, "hidden_layers": [64],
-                       "max_iterations": 100, "random_state": 42, "use_lut": False}),
+            fitting_policy="legacy-v1",
+            do_ffc=False,
+            do_gc=False,
+            do_wb=False,
+            check_saturation=False,
+            chart_detection=chart,
+            CC_kwargs={
+                "mtd": "custom",
+                "degree": 2,
+                "hidden_layers": [64],
+                "max_iterations": 100,
+                "random_state": 42,
+                "use_lut": False,
+            },
+        ),
         # Error path: an unknown regression method must fail the run, not raise.
         "v1_invalid_mtd_fails": lambda: Config(
-            fitting_policy="legacy-v1", do_ffc=False, do_gc=False, do_wb=False,
-            check_saturation=False, chart_detection=chart, CC_kwargs={"mtd": "conv"}),
+            fitting_policy="legacy-v1",
+            do_ffc=False,
+            do_gc=False,
+            do_wb=False,
+            check_saturation=False,
+            chart_detection=chart,
+            CC_kwargs={"mtd": "conv"},
+        ),
         "v1_legacy_flat_all_steps": lambda: Config(
-            do_ffc=True, do_gc=True, do_wb=True, do_cc=True, chart_detection=chart,
-            CC_kwargs={"cc_method": "ours", "method": "Finlayson 2015", "mtd": "linear",
-                       "degree": 2, "random_state": 42}),
+            do_ffc=True,
+            do_gc=True,
+            do_wb=True,
+            do_cc=True,
+            chart_detection=chart,
+            CC_kwargs={
+                "cc_method": "ours",
+                "method": "Finlayson 2015",
+                "mtd": "linear",
+                "degree": 2,
+                "random_state": 42,
+            },
+        ),
     }
 
 

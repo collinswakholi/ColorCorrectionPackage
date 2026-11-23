@@ -20,7 +20,7 @@ MODEL_PATH = str(PACKAGE_ROOT / "flat_field" / "models" / "plane_det_model_YOLO_
 # Ensure the model path exists (for development)
 if not os.path.exists(MODEL_PATH):
     import warnings
-    
+
     warnings.warn(
         f"Plane detection ONNX model not found at {MODEL_PATH}. "
         "Supply a crop for flat-field correction or restore the model. "

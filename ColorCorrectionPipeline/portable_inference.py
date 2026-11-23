@@ -3,6 +3,7 @@
 These classes never import a class named by an artifact. Training state and
 optimizer objects are deliberately absent. Arrays are owned immutable buffers.
 """
+
 import numpy as np
 
 
@@ -13,6 +14,7 @@ def owned_array(value):
 
 class AffinePredictor:
     """Linear/PLS affine prediction with explicit historical normalization."""
+
     def __init__(self, coefficients, intercept, *, center=None, scale=None, kind="linear"):
         self.coefficients = owned_array(coefficients)
         self.intercept = owned_array(intercept)
@@ -32,6 +34,7 @@ class AffinePredictor:
 
 class MLPPredictor:
     """The sklearn dense MLP forward, with known activation functions only."""
+
     def __init__(self, weights, biases, *, activation, output_activation):
         self.weights = tuple(owned_array(value) for value in weights)
         self.biases = tuple(owned_array(value) for value in biases)
@@ -48,6 +51,7 @@ class MLPPredictor:
             np.tanh(values, out=values)
         elif name == "logistic":
             from scipy.special import expit
+
             expit(values, out=values)
         elif name == "exponential":
             np.exp(values, out=values)
@@ -71,27 +75,55 @@ class TorchPredictor:
     Functional operators avoid layer initialization, RNG use, torch.load and
     executable graph deserialization. Dropout is an explicit eval-time identity.
     """
+
     def __init__(self, layers):
-        self.layers = tuple({key: owned_array(np.asarray(value, dtype=np.float32)) if isinstance(value, np.ndarray) else value
-                             for key, value in layer.items()} for layer in layers)
+        self.layers = tuple(
+            {
+                key: (
+                    owned_array(np.asarray(value, dtype=np.float32))
+                    if isinstance(value, np.ndarray)
+                    else value
+                )
+                for key, value in layer.items()
+            }
+            for layer in layers
+        )
 
     def predict(self, X):
         import torch
         import torch.nn.functional as functional
+
         values = torch.tensor(np.asarray(X), dtype=torch.float32, device="cpu")
         with torch.no_grad():
             for layer in self.layers:
                 kind = layer["type"]
                 if kind == "linear":
                     weight = torch.tensor(layer["weight"], dtype=torch.float32, device="cpu")
-                    bias = None if layer["bias"] is None else torch.tensor(layer["bias"], dtype=torch.float32, device="cpu")
+                    bias = (
+                        None
+                        if layer["bias"] is None
+                        else torch.tensor(layer["bias"], dtype=torch.float32, device="cpu")
+                    )
                     values = functional.linear(values, weight, bias)
                 elif kind == "batchnorm":
+
                     def tensor(name):
-                        return None if layer[name] is None else torch.tensor(layer[name], dtype=torch.float32, device="cpu")
-                    values = functional.batch_norm(values, tensor("running_mean"), tensor("running_var"),
-                                                   tensor("weight"), tensor("bias"), training=False,
-                                                   momentum=0.0, eps=layer["eps"])
+                        return (
+                            None
+                            if layer[name] is None
+                            else torch.tensor(layer[name], dtype=torch.float32, device="cpu")
+                        )
+
+                    values = functional.batch_norm(
+                        values,
+                        tensor("running_mean"),
+                        tensor("running_var"),
+                        tensor("weight"),
+                        tensor("bias"),
+                        training=False,
+                        momentum=0.0,
+                        eps=layer["eps"],
+                    )
                 elif kind == "relu":
                     values = functional.relu(values)
                 elif kind == "tanh":

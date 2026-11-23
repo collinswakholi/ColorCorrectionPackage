@@ -5,9 +5,17 @@ python -m ColorCorrectionPipeline.examples.legacy_training --output historical -
 This CC-only tutorial uses the historical chart sampling, feature expansion and
 selected sklearn/Torch trainer. Its iteration cap is deliberately short.
 """
+
 from ColorCorrectionPipeline import Config
-from ._common import (sample_paths, input_arguments, inputs, new_output, fit,
-                      export_and_replay, report)
+from ._common import (
+    sample_paths,
+    input_arguments,
+    inputs,
+    new_output,
+    fit,
+    export_and_replay,
+    report,
+)
 
 
 def main():
@@ -19,18 +27,32 @@ def main():
         chart, _, scene = inputs(args, samples)
         output = new_output(args.output)
         config = Config(
-            fitting_policy="legacy-v1", do_ffc=False, do_gc=False, do_wb=False,
-            check_saturation=False, chart_detection={"device": args.device},
-            CC_kwargs={"mtd": args.method, "degree": 2, "hidden_layers": [64],
-                       "max_iterations": args.iterations, "random_state": 42,
-                       "use_lut": False},
+            fitting_policy="legacy-v1",
+            do_ffc=False,
+            do_gc=False,
+            do_wb=False,
+            check_saturation=False,
+            chart_detection={"device": args.device},
+            CC_kwargs={
+                "mtd": args.method,
+                "degree": 2,
+                "hidden_layers": [64],
+                "max_iterations": args.iterations,
+                "random_state": 42,
+                "use_lut": False,
+            },
         )
         pipeline, metrics, elapsed = fit(chart, None, config)
         _, result = export_and_replay(pipeline, scene, output)
         fitted = pipeline.models.model_cc[0]
-        result.update(method=args.method, estimator=type(fitted.model).__name__,
-                      calibration_seconds=elapsed, config=config.to_dict(),
-                      metrics=metrics, iteration_cap=args.iterations)
+        result.update(
+            method=args.method,
+            estimator=type(fitted.model).__name__,
+            calibration_seconds=elapsed,
+            config=config.to_dict(),
+            metrics=metrics,
+            iteration_cap=args.iterations,
+        )
         report(output, result)
 
 

@@ -70,6 +70,7 @@ if not HAS_MCC:
 def __getattr__(name):
     if name == "get_poly_features":
         from .transforms import get_poly_features
+
         return get_poly_features
     raise AttributeError(name)
 

@@ -1,4 +1,5 @@
 """Legacy gamma correction must keep black/white fixed and be monotonic."""
+
 import numpy as np
 
 from ColorCorrectionPipeline.core.correction import predict_image

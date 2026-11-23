@@ -40,10 +40,10 @@ class MyModels:
         >>> models.model_gc = gc_coeffs
         >>> models.model_wb = wb_matrix
         >>> models.model_cc = (ccm, params, "ours")
-        >>> 
+        >>>
         >>> # Save models
         >>> models.save("results", "my_models")
-        >>> 
+        >>>
         >>> # Load models later
         >>> loaded_models = MyModels()
         >>> loaded_models.load("results", "my_models")
@@ -74,28 +74,55 @@ class MyModels:
         if not isinstance(metadata, dict):
             raise ValueError("model metadata must be a dictionary")
         cc = state["model_cc"]
-        if not metadata and isinstance(cc, tuple) and len(cc) == 3 and getattr(cc[0], "fitting_version", None) == "ui-compatible-v1":
+        if (
+            not metadata
+            and isinstance(cc, tuple)
+            and len(cc) == 3
+            and getattr(cc[0], "fitting_version", None) == "ui-compatible-v1"
+        ):
             raise ValueError("UI-compatible calibration requires its fitting and color metadata")
         if metadata:
             from .colorimetry import ColorSemantics, D65, white_xy
             from .contracts import ReferenceProfile, ObservationSet
-            required = {"schema", "color_semantics", "reference_profile", "enabled_stages", "input_image", "observations"}
-            if not required.issubset(metadata) or type(metadata["schema"]) is not int or metadata["schema"] != 1:
+
+            required = {
+                "schema",
+                "color_semantics",
+                "reference_profile",
+                "enabled_stages",
+                "input_image",
+                "observations",
+            }
+            if (
+                not required.issubset(metadata)
+                or type(metadata["schema"]) is not int
+                or metadata["schema"] != 1
+            ):
                 raise ValueError("unsupported or incomplete calibration metadata")
             semantics = ColorSemantics.from_value(metadata["color_semantics"])
             reference_illuminant = metadata.get("legacy_reference_illuminant", D65)
             if isinstance(reference_illuminant, str):
                 raise ValueError("saved reference illuminant must be a numeric xy pair")
             reference_illuminant = white_xy(reference_illuminant)
-            if semantics.version == "explicit-v1" and any(abs(a - b) > 1e-12 for a, b in zip(reference_illuminant, D65)):
+            if semantics.version == "explicit-v1" and any(
+                abs(a - b) > 1e-12 for a, b in zip(reference_illuminant, D65)
+            ):
                 raise ValueError("explicit saved calibration requires a D65 reference illuminant")
             profile = ReferenceProfile.from_dict(metadata["reference_profile"])
             if profile.template_id != "classic_4x6" or profile.layout != (4, 6):
-                raise ValueError("saved calibration requires a supported Classic24 reference layout")
+                raise ValueError(
+                    "saved calibration requires a supported Classic24 reference layout"
+                )
             switches = metadata["enabled_stages"]
             expected_switches = {"do_ffc", "do_gc", "do_wb", "do_cc", "check_saturation"}
-            if not isinstance(switches, dict) or set(switches) != expected_switches or any(type(value) is not bool for value in switches.values()):
-                raise ValueError("model stage switches must contain exactly the five known boolean flags")
+            if (
+                not isinstance(switches, dict)
+                or set(switches) != expected_switches
+                or any(type(value) is not bool for value in switches.values())
+            ):
+                raise ValueError(
+                    "model stage switches must contain exactly the five known boolean flags"
+                )
             image_options = metadata.get("image_options", {})
             if not isinstance(image_options, dict):
                 raise ValueError("saved image_options must be a dictionary")
@@ -103,8 +130,10 @@ class MyModels:
             # semantics can describe policies that this stage engine cannot honor;
             # enforce the same capability gates used before fitting.
             from .config import Config
+
             validation = Config(
-                **switches, color_semantics=semantics,
+                **switches,
+                color_semantics=semantics,
                 reference_profile=profile if semantics.version == "explicit-v1" else None,
                 image_options=image_options,
                 stage_policy=metadata.get("stage_policy"),
@@ -114,11 +143,15 @@ class MyModels:
             validation.validate()
             from .stage_policies import StagePolicy, MonotonicToneModel
             from .fitting import FittingPolicy
+
             stages = StagePolicy.from_value(metadata.get("stage_policy"))
             fitting = FittingPolicy.from_value(metadata.get("fitting_policy"))
             if fitting.ui_runtime == "auto-v2":
                 raise ValueError("saved calibration requires a resolved precision runtime")
-            if "config_version" in metadata and (type(metadata["config_version"]) is not int or metadata["config_version"] not in (1, 2)):
+            if "config_version" in metadata and (
+                type(metadata["config_version"]) is not int
+                or metadata["config_version"] not in (1, 2)
+            ):
                 raise ValueError("unsupported saved configuration version")
             requested = metadata.get("requested_precision", "auto")
             if requested not in ("auto", "native-byte", "high"):
@@ -129,10 +162,14 @@ class MyModels:
             recorded_runtime = metadata.get("algorithms", {}).get("ui_runtime", "staged-v1")
             if fitting.version == "ui-compatible-v1" and recorded_runtime != fitting.ui_runtime:
                 raise ValueError("UI runtime contradicts recorded image equations")
-            if fitting.ui_runtime == "native-v1" and metadata.get("input_image", {}).get("source_dtype") != "uint8":
+            if (
+                fitting.ui_runtime == "native-v1"
+                and metadata.get("input_image", {}).get("source_dtype") != "uint8"
+            ):
                 raise ValueError("native UI calibration requires recorded uint8 input")
             if stages.version == "modern-v1":
                 import numpy as np
+
                 if state["model_gc"] is not None:
                     curve = state["model_gc"]
                     if not isinstance(curve, MonotonicToneModel):
@@ -140,22 +177,50 @@ class MyModels:
                     MonotonicToneModel(curve.measured_knots, curve.target_knots, curve.version)
                 if state["model_ffc"] is not None:
                     gain = np.asarray(state["model_ffc"])
-                    if fitting.ui_runtime == "native-v1" and not np.array_equal(gain,gain.astype(np.float32).astype(np.float64)):
+                    if fitting.ui_runtime == "native-v1" and not np.array_equal(
+                        gain, gain.astype(np.float32).astype(np.float64)
+                    ):
                         raise ValueError("native UI FFC gains must preserve their float32 storage")
-                    if gain.ndim != 2 or not gain.size or not np.isfinite(gain).all() or np.any(gain <= 0):
+                    if (
+                        gain.ndim != 2
+                        or not gain.size
+                        or not np.isfinite(gain).all()
+                        or np.any(gain <= 0)
+                    ):
                         raise ValueError("modern FFC requires positive finite spatial gains")
                     quality = metadata.get("numerical_report", {}).get("FFC", {})
                     bounds = quality.get("gain_limits")
-                    if not isinstance(bounds, (list, tuple)) or len(bounds) != 2 or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in bounds) or not np.isfinite(bounds).all() or not 0 < bounds[0] <= bounds[1] <= 100:
+                    if (
+                        not isinstance(bounds, (list, tuple))
+                        or len(bounds) != 2
+                        or any(
+                            isinstance(v, bool) or not isinstance(v, (int, float)) for v in bounds
+                        )
+                        or not np.isfinite(bounds).all()
+                        or not 0 < bounds[0] <= bounds[1] <= 100
+                    ):
                         raise ValueError("saved modern FFC requires finite ordered gain limits")
                     shape = metadata["input_image"].get("shape")
-                    if not isinstance(shape, list) or len(shape) != 3 or tuple(shape[:2]) != gain.shape or quality.get("source_shape") != shape[:2]:
-                        raise ValueError("saved modern FFC gain dimensions must match calibration geometry")
+                    if (
+                        not isinstance(shape, list)
+                        or len(shape) != 3
+                        or tuple(shape[:2]) != gain.shape
+                        or quality.get("source_shape") != shape[:2]
+                    ):
+                        raise ValueError(
+                            "saved modern FFC gain dimensions must match calibration geometry"
+                        )
                     if np.min(gain) < bounds[0] or np.max(gain) > bounds[1]:
                         raise ValueError("saved FFC gains violate recorded quality limits")
                 if state["model_wb"] is not None:
                     matrix = np.asarray(state["model_wb"])
-                    if matrix.shape != (3, 3) or not np.isfinite(matrix).all() or not np.array_equal(matrix, np.diag(np.diag(matrix))) or np.any(np.diag(matrix) <= 0) or np.any(np.diag(matrix) > stages.wb_max_gain):
+                    if (
+                        matrix.shape != (3, 3)
+                        or not np.isfinite(matrix).all()
+                        or not np.array_equal(matrix, np.diag(np.diag(matrix)))
+                        or np.any(np.diag(matrix) <= 0)
+                        or np.any(np.diag(matrix) > stages.wb_max_gain)
+                    ):
                         raise ValueError("modern WB requires a bounded positive diagonal matrix")
             elif isinstance(state["model_gc"], MonotonicToneModel):
                 raise ValueError("neutral-pchip-v1 requires modern stage metadata")
@@ -163,66 +228,155 @@ class MyModels:
             if fitting.version == "ui-compatible-v1" and cc is not None:
                 from .core.correction import Regressor_Model, _predict_direct
                 from .ui_fitting import UIPredictor, options, feature_order, features
-                if not isinstance(cc, tuple) or len(cc) != 3 or cc[2] != "ours" or type(cc[0]) is not Regressor_Model or type(cc[0].model) is not UIPredictor:
+
+                if (
+                    not isinstance(cc, tuple)
+                    or len(cc) != 3
+                    or cc[2] != "ours"
+                    or type(cc[0]) is not Regressor_Model
+                    or type(cc[0].model) is not UIPredictor
+                ):
                     raise ValueError("UI CC requires its known numerical predictor")
                 model = cc[0]
-                if fitting.ui_runtime == "precision-f64-v1" and (model.use_lut or getattr(model, "_lut", None) is not None):
+                if fitting.ui_runtime == "precision-f64-v1" and (
+                    model.use_lut or getattr(model, "_lut", None) is not None
+                ):
                     raise ValueError("high precision requires direct CC without a float32 LUT")
                 recorded = metadata.get("numerical_report", {}).get("CC", {}).get("fit", {})
-                settings = {k:list(v) if isinstance(v,tuple) else v for k,v in model.model.settings.items()}
-                if (options(cc[1]) != cc[1] or settings != cc[1] or recorded.get("effective_parameters") != cc[1]
-                        or recorded.get("version") != fitting.version or getattr(model,"fitting_version",None) != fitting.version
-                        or getattr(model,"fit_report",None) != recorded or model.degree != cc[1]["degree"] or model.mtd != cc[1]["mtd"]
-                        or semantics.fitting_domain != "linear-rgb" or recorded.get("fitting_domain") != "linear-rgb"
-                        or recorded.get("target_domain") != "unclipped-linear-srgb"):
-                    raise ValueError("UI estimator contradicts recorded settings or fitting semantics")
-                if (recorded.get("feature_order") != feature_order(settings)
-                        or recorded.get("feature_count") != features(np.zeros((1, 3)), settings).shape[1]):
+                settings = {
+                    k: list(v) if isinstance(v, tuple) else v
+                    for k, v in model.model.settings.items()
+                }
+                if (
+                    options(cc[1]) != cc[1]
+                    or settings != cc[1]
+                    or recorded.get("effective_parameters") != cc[1]
+                    or recorded.get("version") != fitting.version
+                    or getattr(model, "fitting_version", None) != fitting.version
+                    or getattr(model, "fit_report", None) != recorded
+                    or model.degree != cc[1]["degree"]
+                    or model.mtd != cc[1]["mtd"]
+                    or semantics.fitting_domain != "linear-rgb"
+                    or recorded.get("fitting_domain") != "linear-rgb"
+                    or recorded.get("target_domain") != "unclipped-linear-srgb"
+                ):
+                    raise ValueError(
+                        "UI estimator contradicts recorded settings or fitting semantics"
+                    )
+                if (
+                    recorded.get("feature_order") != feature_order(settings)
+                    or recorded.get("feature_count")
+                    != features(np.zeros((1, 3)), settings).shape[1]
+                ):
                     raise ValueError("UI estimator contradicts recorded feature layout")
                 for key in ("use_lut", "lazy_lut", "lut_min_pixels"):
-                    if getattr(model,key) != cc[1][key]:
+                    if getattr(model, key) != cc[1][key]:
                         raise ValueError("UI estimator contradicts recorded LUT settings")
                 if model._lut_grid_size != cc[1]["lut_grid_size"]:
                     raise ValueError("UI estimator contradicts recorded LUT grid")
-                if fitting.ui_runtime in ("native-v1", "precision-f64-v1") and recorded.get("details", {}).get("ui_runtime") != fitting.ui_runtime:
+                if (
+                    fitting.ui_runtime in ("native-v1", "precision-f64-v1")
+                    and recorded.get("details", {}).get("ui_runtime") != fitting.ui_runtime
+                ):
                     raise ValueError("native UI fitting report contradicts image runtime")
                 predictor = model.model
-                UIPredictor(settings,predictor.coefficients,predictor.intercept,predictor.weights,predictor.biases)
-                prediction = _predict_direct(np.array([[.1,.2,.3],[.4,.5,.6]]),model)
-                if prediction.shape != (2,3) or not np.isfinite(prediction).all():
+                UIPredictor(
+                    settings,
+                    predictor.coefficients,
+                    predictor.intercept,
+                    predictor.weights,
+                    predictor.biases,
+                )
+                prediction = _predict_direct(np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]), model)
+                if prediction.shape != (2, 3) or not np.isfinite(prediction).all():
                     raise ValueError("invalid UI prediction")
             elif fitting.version == "reproducible-v1" and cc is not None:
                 import numpy as np
-                if not isinstance(cc, tuple) or len(cc) != 3 or cc[2] not in ("ours", "conv") or not isinstance(cc[1], dict):
+
+                if (
+                    not isinstance(cc, tuple)
+                    or len(cc) != 3
+                    or cc[2] not in ("ours", "conv")
+                    or not isinstance(cc[1], dict)
+                ):
                     raise ValueError("reproducible CC requires a known model/options/method tuple")
                 recorded = metadata.get("numerical_report", {}).get("CC", {}).get("fit", {})
-                if recorded.get("version") != fitting.version or recorded.get("effective_parameters") != cc[1]:
-                    raise ValueError("reproducible CC model contradicts recorded effective parameters")
+                if (
+                    recorded.get("version") != fitting.version
+                    or recorded.get("effective_parameters") != cc[1]
+                ):
+                    raise ValueError(
+                        "reproducible CC model contradicts recorded effective parameters"
+                    )
                 if cc[2] == "ours":
                     from .core.correction import Regressor_Model, _predict_direct
+
                     model = cc[0]
-                    if not isinstance(model, Regressor_Model) or getattr(model, "fitting_version", None) != fitting.version or model.degree != cc[1].get("degree") or model.mtd != cc[1].get("mtd") or getattr(model, "fit_report", {}) != recorded:
-                        raise ValueError("reproducible CC estimator contradicts fitted version or effective degree/method")
-                    prediction = _predict_direct(np.array([[.1, .2, .3], [.4, .5, .6]]), model)
+                    if (
+                        not isinstance(model, Regressor_Model)
+                        or getattr(model, "fitting_version", None) != fitting.version
+                        or model.degree != cc[1].get("degree")
+                        or model.mtd != cc[1].get("mtd")
+                        or getattr(model, "fit_report", {}) != recorded
+                    ):
+                        raise ValueError(
+                            "reproducible CC estimator contradicts fitted version or effective degree/method"
+                        )
+                    prediction = _predict_direct(
+                        np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]), model
+                    )
                     if prediction.shape != (2, 3) or not np.isfinite(prediction).all():
-                        raise ValueError("reproducible CC estimator has invalid inference parameters")
+                        raise ValueError(
+                            "reproducible CC estimator has invalid inference parameters"
+                        )
                 else:
                     import colour
+
                     options = cc[1]
-                    if set(options) != {"method", "degree", "root_polynomial_expansion"} or options["method"] != "Finlayson 2015" or type(options["degree"]) is not int or not 1 <= options["degree"] <= 4 or type(options["root_polynomial_expansion"]) is not bool:
+                    if (
+                        set(options) != {"method", "degree", "root_polynomial_expansion"}
+                        or options["method"] != "Finlayson 2015"
+                        or type(options["degree"]) is not int
+                        or not 1 <= options["degree"] <= 4
+                        or type(options["root_polynomial_expansion"]) is not bool
+                    ):
                         raise ValueError("unsupported reproducible conventional CC options")
-                    features = colour.characterisation.polynomial_expansion_Finlayson2015(np.array([[.1, .2, .3]]), degree=options["degree"], root_polynomial_expansion=options["root_polynomial_expansion"])
+                    features = colour.characterisation.polynomial_expansion_Finlayson2015(
+                        np.array([[0.1, 0.2, 0.3]]),
+                        degree=options["degree"],
+                        root_polynomial_expansion=options["root_polynomial_expansion"],
+                    )
                     matrix = np.asarray(cc[0])
                     if matrix.shape != (3, features.shape[1]) or not np.isfinite(matrix).all():
-                        raise ValueError("reproducible conventional CC matrix contradicts feature dimensions")
-            elif cc is not None and isinstance(cc, tuple) and len(cc) == 3 and getattr(cc[0], "fitting_version", None) in ("reproducible-v1", "ui-compatible-v1"):
+                        raise ValueError(
+                            "reproducible conventional CC matrix contradicts feature dimensions"
+                        )
+            elif (
+                cc is not None
+                and isinstance(cc, tuple)
+                and len(cc) == 3
+                and getattr(cc[0], "fitting_version", None)
+                in ("reproducible-v1", "ui-compatible-v1")
+            ):
                 raise ValueError("versioned CC requires matching fitting policy metadata")
-            if semantics.version == "explicit-v1" and switches["do_wb"] and len(profile.neutral_indices) < 2:
-                raise ValueError("saved WB calibration requires at least two declared neutral cells")
-            for switch, name in (("do_ffc", "model_ffc"), ("do_gc", "model_gc"),
-                                 ("do_wb", "model_wb"), ("do_cc", "model_cc")):
+            if (
+                semantics.version == "explicit-v1"
+                and switches["do_wb"]
+                and len(profile.neutral_indices) < 2
+            ):
+                raise ValueError(
+                    "saved WB calibration requires at least two declared neutral cells"
+                )
+            for switch, name in (
+                ("do_ffc", "model_ffc"),
+                ("do_gc", "model_gc"),
+                ("do_wb", "model_wb"),
+                ("do_cc", "model_cc"),
+            ):
                 if switches[switch] != (state[name] is not None):
-                    raise ValueError("saved stage switches contradict fitted model presence: %s" % switch)
+                    raise ValueError(
+                        "saved stage switches contradict fitted model presence: %s" % switch
+                    )
             observations = ObservationSet.from_dict(metadata["observations"])
             observations.validate_reference(profile)
             for stage_observations in metadata.get("stage_observations", {}).values():
@@ -263,8 +417,11 @@ class MyModels:
             self._validated_state(self)
             directory_path.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(
-                mode="wb", dir=directory_path, prefix=f".{filepath.name}.",
-                suffix=".tmp", delete=False,
+                mode="wb",
+                dir=directory_path,
+                prefix=f".{filepath.name}.",
+                suffix=".tmp",
+                delete=False,
             ) as f:
                 temporary_path = Path(f.name)
                 pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -310,10 +467,10 @@ class MyModels:
             # Loads from: results/experiment_01.pkl
         """
         filepath = Path(directory) / f"{name}.pkl"
-        
+
         if not filepath.exists():
             raise FileNotFoundError(f"Model file not found: {filepath}")
-        
+
         try:
             with open(filepath, "rb") as f:
                 loaded: "MyModels" = pickle.load(f)
@@ -350,11 +507,13 @@ class MyModels:
         Unsupported estimators fail explicitly; no pickle fallback is used.
         """
         from .bundle import save_bundle
+
         return save_bundle(self, path, limits=limits)
 
     def load_bundle(self, path, *, limits=None):
         """Validate a complete bundle before replacing active model state."""
         from .bundle import load_bundle
+
         candidate = load_bundle(path, limits=limits)
         state = self._validated_state(candidate)
         state["bundle_digest"] = candidate.bundle_digest

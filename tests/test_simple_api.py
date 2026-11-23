@@ -1,4 +1,5 @@
 """The two-call API must be a faithful shortcut for the full Config/ColorCorrection path."""
+
 import warnings
 from pathlib import Path
 
@@ -6,8 +7,15 @@ import numpy as np
 import pytest
 
 from ColorCorrectionPipeline import (
-    CalibrationError, Calibration, CCOptions, ColorCorrection, Config, FFCOptions, Steps,
-    calibrate, correct,
+    CalibrationError,
+    Calibration,
+    CCOptions,
+    ColorCorrection,
+    Config,
+    FFCOptions,
+    Steps,
+    calibrate,
+    correct,
 )
 
 IMAGES = Path(__file__).resolve().parents[1] / "Images"
@@ -43,8 +51,12 @@ def test_correct_is_the_same_for_calibration_pipeline_and_bundle(calibration):
 
 def test_calibrate_matches_the_equivalent_full_config(calibration):
     cal, _ = calibration
-    config = Config(model="rpcc2", input={"frame_index": 0}, chart={"device": "cpu"},
-                    steps=Steps(ffc=FFCOptions(enabled=True), cc=CCOptions(fit={"model": "rpcc2"})))
+    config = Config(
+        model="rpcc2",
+        input={"frame_index": 0},
+        chart={"device": "cpu"},
+        steps=Steps(ffc=FFCOptions(enabled=True), cc=CCOptions(fit={"model": "rpcc2"})),
+    )
     manual = ColorCorrection()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -59,14 +71,24 @@ def test_fit_and_predict_aliases_match_original_methods():
         warnings.simplefilter("ignore")
         fa = a.fit(CHART, name="chart", config=config)
         fb = b.fit_or_raise(CHART, None, name_="chart", config=config)
-    assert fa.metrics["chart_CC"]["delta_e00_after_mean"] == fb.metrics["chart_CC"]["delta_e00_after_mean"]
+    assert (
+        fa.metrics["chart_CC"]["delta_e00_after_mean"]
+        == fb.metrics["chart_CC"]["delta_e00_after_mean"]
+    )
     np.testing.assert_array_equal(a.predict(SCENE)["CC"], b.predict_image(SCENE)["CC"])
 
 
-@pytest.mark.parametrize("name, model, precision", [
-    ("rpcc2", "rpcc2", "auto"), ("rpcc3", "rpcc3", "auto"), ("ccm", "ccm", "auto"),
-    ("3x3", "ccm", "auto"), ("PLS", "pls", "auto"), ("high-precision", "rpcc2", "high"),
-])
+@pytest.mark.parametrize(
+    "name, model, precision",
+    [
+        ("rpcc2", "rpcc2", "auto"),
+        ("rpcc3", "rpcc3", "auto"),
+        ("ccm", "ccm", "auto"),
+        ("3x3", "ccm", "auto"),
+        ("PLS", "pls", "auto"),
+        ("high-precision", "rpcc2", "high"),
+    ],
+)
 def test_presets(name, model, precision):
     config = Config.from_preset(name)
     assert config.CC_kwargs["model"] == model
@@ -76,8 +98,13 @@ def test_presets(name, model, precision):
 
 
 def test_preset_overrides_merge_grouped_options():
-    config = Config.from_preset("rpcc2", white=False, device="cpu",
-                                chart={"samples_per_patch": 20, "sampling_seed": 42}, frame_index=None)
+    config = Config.from_preset(
+        "rpcc2",
+        white=False,
+        device="cpu",
+        chart={"samples_per_patch": 20, "sampling_seed": 42},
+        frame_index=None,
+    )
     assert config.do_ffc is False
     assert config.chart_detection["device"] == "cpu"
     assert config.chart_detection["samples_per_patch"] == 20

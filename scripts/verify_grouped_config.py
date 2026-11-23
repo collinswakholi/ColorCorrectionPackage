@@ -9,6 +9,7 @@ dependencies and optional acceleration for strict floating-array comparison.
 The normal default NN cap is a short contract smoke test; --nn-epochs 10000
 qualifies the full NN100 configuration on the sample photographs.
 """
+
 import argparse
 from copy import deepcopy
 from dataclasses import FrozenInstanceError
@@ -59,9 +60,16 @@ def fixture(method="ccm", nn_epochs=30):
     elif method == "nn":
         selection.update(basis="polynomial", degree=2)
         fit.update(basis="polynomial", degree=2)
-        parameters = dict(hidden_layers=[100], max_iterations=nn_epochs,
-                          patience=1500, learning_rate=.001, tol=1e-6,
-                          optim_type="Adam", dropout_rate=0., use_batch_norm=False)
+        parameters = dict(
+            hidden_layers=[100],
+            max_iterations=nn_epochs,
+            patience=1500,
+            learning_rate=0.001,
+            tol=1e-6,
+            optim_type="Adam",
+            dropout_rate=0.0,
+            use_batch_norm=False,
+        )
         solver.update(parameters)
         fit["nn"] = deepcopy(parameters)
     elif method == "root-pls":
@@ -70,80 +78,166 @@ def fixture(method="ccm", nn_epochs=30):
         solver.update(ncomp=3, tol=1e-6)
     elif method == "hybrid-nn":
         selection = dict(model="nn", basis="hybrid", degree=2)
-        fit = dict(model="nn", basis="hybrid", degree=2,
-                   nn={"hidden_layers": [8], "max_iterations": 30, "patience": 15})
+        fit = dict(
+            model="nn",
+            basis="hybrid",
+            degree=2,
+            nn={"hidden_layers": [8], "max_iterations": 30, "patience": 15},
+        )
         solver.update(hidden_layers=[8], max_iterations=30, patience=15)
     else:
         raise ValueError(method)
-    flat = dict(selection, precision="native-byte", check_saturation=False,
-                do_ffc=True, do_gc=True, do_wb=True, do_cc=True,
-                image_options={"frame_index": 0},
-                chart_detection={"device": "cpu", "cpu_threads": 8,
-                                 "allow_cpu_fallback": False, "sampling_inset": .75},
-                FFC_kwargs={"fit_method": "linear", "degree": 1, "bins": 30,
-                            "smooth_window": 7, "crop_rect": [43, 42, 1107, 723],
-                            "min_signal": .02, "max_gain": 8.},
-                stage_policy={"version": "modern-v1", "saturation": "report",
-                              "max_clipped_fraction": .02, "gc_min_neutrals": 4,
-                              "gc_min_span": 25., "gc_duplicate_tolerance": 2e-6,
-                              "gc_target_tolerance": 1.2, "wb_headroom": .92,
-                              "wb_min_signal": .02, "wb_max_gain": 7.},
-                CC_kwargs=solver, validation_options={"enabled": False}, model_format="bundle")
+    flat = dict(
+        selection,
+        precision="native-byte",
+        check_saturation=False,
+        do_ffc=True,
+        do_gc=True,
+        do_wb=True,
+        do_cc=True,
+        image_options={"frame_index": 0},
+        chart_detection={
+            "device": "cpu",
+            "cpu_threads": 8,
+            "allow_cpu_fallback": False,
+            "sampling_inset": 0.75,
+        },
+        FFC_kwargs={
+            "fit_method": "linear",
+            "degree": 1,
+            "bins": 30,
+            "smooth_window": 7,
+            "crop_rect": [43, 42, 1107, 723],
+            "min_signal": 0.02,
+            "max_gain": 8.0,
+        },
+        stage_policy={
+            "version": "modern-v1",
+            "saturation": "report",
+            "max_clipped_fraction": 0.02,
+            "gc_min_neutrals": 4,
+            "gc_min_span": 25.0,
+            "gc_duplicate_tolerance": 2e-6,
+            "gc_target_tolerance": 1.2,
+            "wb_headroom": 0.92,
+            "wb_min_signal": 0.02,
+            "wb_max_gain": 7.0,
+        },
+        CC_kwargs=solver,
+        validation_options={"enabled": False},
+        model_format="bundle",
+    )
     grouped = dict(
         input={"frame_index": 0},
-        chart={"device": "cpu", "cpu_threads": 8, "allow_cpu_fallback": False, "sampling_inset": .75},
+        chart={
+            "device": "cpu",
+            "cpu_threads": 8,
+            "allow_cpu_fallback": False,
+            "sampling_inset": 0.75,
+        },
         numerics={"precision": "native-byte"},
-        observations={"saturation": "report", "max_clipped_fraction": .02},
+        observations={"saturation": "report", "max_clipped_fraction": 0.02},
         steps={
-            "ffc": {"enabled": True, "fit": {"method": "linear", "degree": 1, "bins": 30,
-                                                 "smooth_window": 7},
-                    "white_plane": {"crop_rect": [43, 42, 1107, 723]},
-                    "quality": {"min_signal": .02, "max_gain": 8.}},
-            "gc": {"enabled": True, "quality": {"min_neutrals": 4, "min_span": 25.,
-                                                      "duplicate_tolerance": 2e-6, "target_tolerance": 1.2}},
-            "wb": {"enabled": True, "fit": {"headroom": .92},
-                   "quality": {"min_signal": .02, "max_gain": 7.}},
-            "cc": {"enabled": True, "fit": fit,
-                   "apply": {"use_lut": True, "lazy_lut": True, "grid_size": 33, "min_pixels": 1},
-                   "validation": {"enabled": False}},
-        }, persistence={"format": "bundle"})
+            "ffc": {
+                "enabled": True,
+                "fit": {"method": "linear", "degree": 1, "bins": 30, "smooth_window": 7},
+                "white_plane": {"crop_rect": [43, 42, 1107, 723]},
+                "quality": {"min_signal": 0.02, "max_gain": 8.0},
+            },
+            "gc": {
+                "enabled": True,
+                "quality": {
+                    "min_neutrals": 4,
+                    "min_span": 25.0,
+                    "duplicate_tolerance": 2e-6,
+                    "target_tolerance": 1.2,
+                },
+            },
+            "wb": {
+                "enabled": True,
+                "fit": {"headroom": 0.92},
+                "quality": {"min_signal": 0.02, "max_gain": 7.0},
+            },
+            "cc": {
+                "enabled": True,
+                "fit": fit,
+                "apply": {"use_lut": True, "lazy_lut": True, "grid_size": 33, "min_pixels": 1},
+                "validation": {"enabled": False},
+            },
+        },
+        persistence={"format": "bundle"},
+    )
     return flat, grouped
 
 
 def configuration_contracts():
-    from ColorCorrectionPipeline import Steps, FFCOptions, GCOptions, WBOptions, CCOptions, ReferenceProfile, StagePolicy
+    from ColorCorrectionPipeline import (
+        Steps,
+        FFCOptions,
+        GCOptions,
+        WBOptions,
+        CCOptions,
+        ReferenceProfile,
+        StagePolicy,
+    )
+
     flat, grouped = fixture("nn")
     ordinary, nested = check_config(flat), check_config(grouped)
     assert encoded(ordinary.to_dict()) == encoded(nested.to_dict())
     typed = deepcopy(grouped)
     parts = typed.pop("steps")
-    typed["steps"] = Steps(ffc=FFCOptions(**parts["ffc"]), gc=GCOptions(**parts["gc"]),
-                           wb=WBOptions(**parts["wb"]), cc=CCOptions(**parts["cc"]))
+    typed["steps"] = Steps(
+        ffc=FFCOptions(**parts["ffc"]),
+        gc=GCOptions(**parts["gc"]),
+        wb=WBOptions(**parts["wb"]),
+        cc=CCOptions(**parts["cc"]),
+    )
     assert encoded(check_config(typed).to_dict()) == encoded(ordinary.to_dict())
     for copier in (deepcopy, lambda item: pickle.loads(pickle.dumps(item))):
         assert copier(Steps()).to_dict() == {}
-        assert encoded(check_config(dict(typed, steps=copier(typed["steps"]))).to_dict()) == encoded(ordinary.to_dict())
+        assert encoded(
+            check_config(dict(typed, steps=copier(typed["steps"]))).to_dict()
+        ) == encoded(ordinary.to_dict())
     defaults = Config()
     profile = ReferenceProfile.classic24()
     # Sparse shared-group requests must stand alone without a steps request.
     single_groups = (
         ({"chart": {"device": "cpu"}}, {"chart_detection": {"device": "cpu"}}),
         ({"input": {"frame_index": 0}}, {"image_options": {"frame_index": 0}}),
-        ({"color": {"output_encoding": "linear-srgb"}},
-         {"color_semantics": dict(defaults.color_semantics, output_encoding="linear-srgb")}),
+        (
+            {"color": {"output_encoding": "linear-srgb"}},
+            {"color_semantics": dict(defaults.color_semantics, output_encoding="linear-srgb")},
+        ),
         ({"numerics": {"precision": "high"}}, {"precision": "high"}),
-        ({"observations": {"saturation": "report", "max_clipped_fraction": .1}},
-         {"stage_policy": dict(defaults.stage_policy, saturation="report", max_clipped_fraction=.1)}),
-        ({"persistence": {"enabled": False, "format": "bundle"}}, {"save": False, "model_format": "bundle"}),
+        (
+            {"observations": {"saturation": "report", "max_clipped_fraction": 0.1}},
+            {
+                "stage_policy": dict(
+                    defaults.stage_policy, saturation="report", max_clipped_fraction=0.1
+                )
+            },
+        ),
+        (
+            {"persistence": {"enabled": False, "format": "bundle"}},
+            {"save": False, "model_format": "bundle"},
+        ),
         ({"reference": profile}, {"reference_profile": profile}),
         ({"steps": Steps()}, {}),
     )
     for grouped_only, flat_only in single_groups:
-        assert encoded(check_config(grouped_only).to_dict()) == encoded(check_config(flat_only).to_dict())
-    string_policy = check_config(dict(stage_policy="modern-v1", observations={"saturation": "report"}))
+        assert encoded(check_config(grouped_only).to_dict()) == encoded(
+            check_config(flat_only).to_dict()
+        )
+    string_policy = check_config(
+        dict(stage_policy="modern-v1", observations={"saturation": "report"})
+    )
     object_policy = StagePolicy(version="modern-v1", saturation="report")
-    assert check_config(dict(stage_policy=object_policy,
-        observations={"saturation": "report"})).stage_policy == string_policy.stage_policy
+    assert (
+        check_config(
+            dict(stage_policy=object_policy, observations={"saturation": "report"})
+        ).stage_policy
+        == string_policy.stage_policy
+    )
     path = Path("not-created.ffc")
     surface = FFCOptions(white_plane={"model_path": path})
     assert surface.white_plane["model_path"] == str(path)
@@ -160,19 +254,47 @@ def configuration_contracts():
     captured = FFCOptions(white_plane={"model_path": supplied_path})
     supplied_path.value = "changed.ffc"
     assert captured.white_plane["model_path"] == "captured.ffc"
-    inputs = dict(frame_index=0, icc_policy="assume-declared", alpha_policy="composite",
-                  alpha_background=[.1, .2, .3], grayscale_policy="replicate", max_pixels=2000000)
-    shared_flat = check_config(dict(model="ccm", precision="high", image_options=inputs,
-        chart_detection={"device": "cpu", "cpu_threads": 8}, reference_profile=profile,
-        color_semantics={"version": "explicit-v1", "input_encoding": "srgb",
-                         "output_encoding": "linear-srgb", "fitting_domain": "linear-rgb"},
-        save=True, save_path="not-created", model_format="bundle"))
-    shared_grouped = check_config(dict(input=inputs, chart={"device": "cpu", "cpu_threads": 8},
-        reference=profile, color={"output_encoding": "linear-srgb"}, numerics={"precision": "high"},
-        steps={"cc": {"fit": {"model": "ccm"}}},
-        persistence={"enabled": True, "directory": "not-created", "format": "bundle"}))
+    inputs = dict(
+        frame_index=0,
+        icc_policy="assume-declared",
+        alpha_policy="composite",
+        alpha_background=[0.1, 0.2, 0.3],
+        grayscale_policy="replicate",
+        max_pixels=2000000,
+    )
+    shared_flat = check_config(
+        dict(
+            model="ccm",
+            precision="high",
+            image_options=inputs,
+            chart_detection={"device": "cpu", "cpu_threads": 8},
+            reference_profile=profile,
+            color_semantics={
+                "version": "explicit-v1",
+                "input_encoding": "srgb",
+                "output_encoding": "linear-srgb",
+                "fitting_domain": "linear-rgb",
+            },
+            save=True,
+            save_path="not-created",
+            model_format="bundle",
+        )
+    )
+    shared_grouped = check_config(
+        dict(
+            input=inputs,
+            chart={"device": "cpu", "cpu_threads": 8},
+            reference=profile,
+            color={"output_encoding": "linear-srgb"},
+            numerics={"precision": "high"},
+            steps={"cc": {"fit": {"model": "ccm"}}},
+            persistence={"enabled": True, "directory": "not-created", "format": "bundle"},
+        )
+    )
     assert encoded(shared_flat.to_dict()) == encoded(shared_grouped.to_dict())
-    assert encoded(Config.from_dict(encoded(shared_grouped.to_grouped_dict())).to_dict()) == encoded(shared_flat.to_dict())
+    assert encoded(
+        Config.from_dict(encoded(shared_grouped.to_grouped_dict())).to_dict()
+    ) == encoded(shared_flat.to_dict())
     assert not {"steps", "layout", "input", "numerics"}.intersection(nested.to_dict())
     for copier in (deepcopy, lambda item: pickle.loads(pickle.dumps(item))):
         assert encoded(copier(nested).to_dict()) == encoded(nested.to_dict())
@@ -182,7 +304,9 @@ def configuration_contracts():
     assert encoded(restored.to_dict()) == encoded(nested.to_dict())
     assert encoded(Config.from_dict(nested.to_dict()).to_dict()) == encoded(nested.to_dict())
     defaults = Config()
-    assert encoded(Config.from_dict(defaults.to_grouped_dict()).to_dict()) == encoded(defaults.to_dict())
+    assert encoded(Config.from_dict(defaults.to_grouped_dict()).to_dict()) == encoded(
+        defaults.to_dict()
+    )
     assert "use_lut" not in Config.from_dict(defaults.to_grouped_dict()).CC_kwargs
     assert Config.from_dict({}).api_version == 1
     assert Config.from_dict({}, source_version=2).api_version == 2
@@ -192,8 +316,16 @@ def configuration_contracts():
     for bad in (dict(document, api_version=1), dict(document, layout="grouped-v99")):
         reject(lambda bad=bad: Config.from_dict(bad))
 
-    historical = Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "nn", "degree": 3,
-        "hidden_layers": [16], "max_iterations": 17, "random_state": 13})
+    historical = Config(
+        fitting_policy="legacy-v1",
+        CC_kwargs={
+            "mtd": "nn",
+            "degree": 3,
+            "hidden_layers": [16],
+            "max_iterations": 17,
+            "random_state": 13,
+        },
+    )
     historical.validate()
     assert Config.from_dict(historical.to_dict()).to_dict() == historical.to_dict()
     reject(historical.to_grouped_dict)
@@ -208,8 +340,15 @@ def configuration_contracts():
         pass
     else:
         raise AssertionError("A grouped step snapshot was mutable")
-    for values in (nested.input, nested.chart, nested.color, nested.numerics,
-                   nested.observations, nested.persistence, snapshot.wb.fit):
+    for values in (
+        nested.input,
+        nested.chart,
+        nested.color,
+        nested.numerics,
+        nested.observations,
+        nested.persistence,
+        snapshot.wb.fit,
+    ):
         try:
             values["unexpected"] = True
         except TypeError:
@@ -217,23 +356,35 @@ def configuration_contracts():
         else:
             raise AssertionError("A grouped mapping snapshot was mutable")
     old_headroom = snapshot.wb.fit["headroom"]
-    nested.stage_policy["wb_headroom"] = .89
+    nested.stage_policy["wb_headroom"] = 0.89
     nested.do_wb = False
     nested.CC_kwargs["hidden_layers"][0] = 32
-    assert nested.steps.wb.fit["headroom"] == .89 and nested.steps.wb.enabled is False
+    assert nested.steps.wb.fit["headroom"] == 0.89 and nested.steps.wb.enabled is False
     assert snapshot.wb.fit["headroom"] == old_headroom and snapshot.wb.enabled is True
     assert nested.steps.cc.fit["nn"]["hidden_layers"] == (32,)
     assert Config.from_dict(nested.to_grouped_dict()).to_dict() == nested.to_dict()
     owned = check_config(grouped)
-    grouped["steps"]["wb"]["fit"]["headroom"] = .70
+    grouped["steps"]["wb"]["fit"]["headroom"] = 0.70
     grouped["steps"]["cc"]["fit"]["nn"]["hidden_layers"][0] = 4
-    assert owned.stage_policy["wb_headroom"] == .92 and owned.CC_kwargs["hidden_layers"] == [100]
+    assert owned.stage_policy["wb_headroom"] == 0.92 and owned.CC_kwargs["hidden_layers"] == [100]
 
-    equal = Config(do_ffc=False, steps={"ffc": {"enabled": False}}, model="rpcc3",
-                   CC_kwargs={"model": "rpcc3"}, persistence={"format": "bundle"}, model_format="bundle")
+    equal = Config(
+        do_ffc=False,
+        steps={"ffc": {"enabled": False}},
+        model="rpcc3",
+        CC_kwargs={"model": "rpcc3"},
+        persistence={"format": "bundle"},
+        model_format="bundle",
+    )
     equal.validate()
-    check_config(dict(do_ffc=True, steps={"ffc": {"enabled": True}}, save=True,
-                      persistence={"enabled": True, "directory": "not-created"}))
+    check_config(
+        dict(
+            do_ffc=True,
+            steps={"ffc": {"enabled": True}},
+            save=True,
+            persistence={"enabled": True, "directory": "not-created"},
+        )
+    )
     errors = (
         dict(stage_policy="legacy-v1", observations={"saturation": "report"}),
         dict(stage_policy=object_policy, observations={"saturation": "exclude"}),
@@ -252,7 +403,10 @@ def configuration_contracts():
         dict(save_path="one", persistence={"directory": "two"}),
         dict(model="ccm", steps={"cc": {"fit": {"model": "rpcc3"}}}),
         dict(CC_kwargs={"lut_grid_size": 17}, steps={"cc": {"apply": {"grid_size": 33}}}),
-        dict(stage_policy={"version": "modern-v1", "wb_headroom": .91}, steps={"wb": {"fit": {"headroom": .92}}}),
+        dict(
+            stage_policy={"version": "modern-v1", "wb_headroom": 0.91},
+            steps={"wb": {"fit": {"headroom": 0.92}}},
+        ),
         dict(image_options={"frame_index": 0}, input={"frame_index": 1}),
         dict(chart_detection={"cpu_threads": 4}, chart={"cpu_threads": 8}),
         dict(precision="high", numerics={"precision": "native-byte"}),
@@ -263,8 +417,13 @@ def configuration_contracts():
         dict(steps={"wb": {"fit": {"temperature": 6500}}}),
         dict(steps={"cc": {"fit": {"model": "ccm", "nn": {"hidden_layers": [8]}}}}),
         dict(steps={"cc": {"apply": {"grid_size": 0}}}),
-        dict(steps={"cc": {"fit": {"model": "pls", "basis": "root", "degree": 3,
-                                       "pls": {"components": 0}}}}),
+        dict(
+            steps={
+                "cc": {
+                    "fit": {"model": "pls", "basis": "root", "degree": 3, "pls": {"components": 0}}
+                }
+            }
+        ),
         dict(steps={"cc": {"validation": {"n_splits": 1}}}),
         dict(steps={"ffc": {"enabled": 1}}),
         dict(input={"frame_index": True}),
@@ -277,11 +436,16 @@ def configuration_contracts():
     )
     for options in errors:
         reject(lambda options=options: check_config(options))
-    return {"typed_and_mapping_equivalent": True, "flat_serialization_preserved": True,
-            "grouped_json_roundtrip": True, "legacy_mapping_and_training_preserved": True,
-            "single_group_defaults_equivalent": len(single_groups),
-            "shared_input_chart_reference_color_numerics_persistence_equivalent": True,
-            "fresh_immutable_views": True, "invalid_or_conflicting_requests": len(errors)}
+    return {
+        "typed_and_mapping_equivalent": True,
+        "flat_serialization_preserved": True,
+        "grouped_json_roundtrip": True,
+        "legacy_mapping_and_training_preserved": True,
+        "single_group_defaults_equivalent": len(single_groups),
+        "shared_input_chart_reference_color_numerics_persistence_equivalent": True,
+        "fresh_immutable_views": True,
+        "invalid_or_conflicting_requests": len(errors),
+    }
 
 
 def fitted(config, chart, white, name="fit"):
@@ -304,18 +468,29 @@ def oracle_worker(specification):
     np.save(folder / "scene.npy", scene, allow_pickle=False)
     import ColorCorrectionPipeline
     import inspect
+
     source = Path(inspect.getfile(Config))
-    (folder / "identity.json").write_text(json.dumps({"version": version("ColorCorrectionPipeline"),
-        "origin": str(Path(ColorCorrectionPipeline.__file__).resolve()),
-        "numpy": np.__version__, "grouped_api_present": hasattr(Config, "to_grouped_dict"),
-        "default_config": Config().to_dict(),
-        "config_source_sha256": hashlib.sha256(source.read_bytes()).hexdigest()}), encoding="utf8")
+    (folder / "identity.json").write_text(
+        json.dumps(
+            {
+                "version": version("ColorCorrectionPipeline"),
+                "origin": str(Path(ColorCorrectionPipeline.__file__).resolve()),
+                "numpy": np.__version__,
+                "grouped_api_present": hasattr(Config, "to_grouped_dict"),
+                "default_config": Config().to_dict(),
+                "config_source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            }
+        ),
+        encoding="utf8",
+    )
 
 
 def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
     rows = []
     with sample_paths() as samples:
-        chart, white, scene = [samples[name] for name in ("Image_1.JPG", "white.JPG", "Sample_1.JPG")]
+        chart, white, scene = [
+            samples[name] for name in ("Image_1.JPG", "white.JPG", "Sample_1.JPG")
+        ]
         for method in ("ccm", "rpcc3", "nn", "root-pls", "hybrid-nn"):
             flat_options, grouped_options = fixture(method, nn_epochs)
             flat, grouped = check_config(flat_options), check_config(grouped_options)
@@ -329,19 +504,33 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
             current, metrics, images = fitted(grouped, chart, white)
             a, b = encoded(ordinary_metrics), encoded(metrics)
             if a != b:
+
                 def compare(path, x, y):
                     if isinstance(x, dict) and isinstance(y, dict):
-                        for k in x.keys() | y.keys(): compare(path+[k], x.get(k), y.get(k))
-                    elif isinstance(x, list) and isinstance(y, list) and len(x)==len(y):
-                        for j,(i,k) in enumerate(zip(x,y)): compare(path+[j],i,k)
+                        for k in x.keys() | y.keys():
+                            compare(path + [k], x.get(k), y.get(k))
+                    elif isinstance(x, list) and isinstance(y, list) and len(x) == len(y):
+                        for j, (i, k) in enumerate(zip(x, y)):
+                            compare(path + [j], i, k)
                     elif x != y:
-                        print("METRIC", method, path,repr(x),repr(y),flush=True)
-                compare([],a,b)
-                for stage in ("fit_FFC","fit_GC","fit_WB","fit_CC"):
-                    delta=np.abs(images[stage]-ordinary_images[stage])
-                    print("STAGE",method,stage,float(delta.max()),int(np.count_nonzero(delta)),flush=True)
-                delta=np.abs(ordinary.predict_image(scene,stages="final")["CC"]-current.predict_image(scene,stages="final")["CC"])
-                print("SCENE",method,float(delta.max()),int(np.count_nonzero(delta)),flush=True)
+                        print("METRIC", method, path, repr(x), repr(y), flush=True)
+
+                compare([], a, b)
+                for stage in ("fit_FFC", "fit_GC", "fit_WB", "fit_CC"):
+                    delta = np.abs(images[stage] - ordinary_images[stage])
+                    print(
+                        "STAGE",
+                        method,
+                        stage,
+                        float(delta.max()),
+                        int(np.count_nonzero(delta)),
+                        flush=True,
+                    )
+                delta = np.abs(
+                    ordinary.predict_image(scene, stages="final")["CC"]
+                    - current.predict_image(scene, stages="final")["CC"]
+                )
+                print("SCENE", method, float(delta.max()), int(np.count_nonzero(delta)), flush=True)
                 raise AssertionError("metric mismatch")
             for stage in ("fit_FFC", "fit_GC", "fit_WB", "fit_CC"):
                 np.testing.assert_array_equal(images[stage], ordinary_images[stage])
@@ -352,35 +541,80 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
             assert saved.is_file()
             replay = ColorCorrection().load_bundle(saved).predict_image(scene, stages="final")["CC"]
             np.testing.assert_array_equal(replay, actual)
-            exported = write_image_data(destination / "corrected.png", actual, dtype="uint8",
-                                        allow_precision_loss=True, png_profile="fast-lossless")
+            exported = write_image_data(
+                destination / "corrected.png",
+                actual,
+                dtype="uint8",
+                allow_precision_loss=True,
+                png_profile="fast-lossless",
+            )
             assert exported.maximum_codec_error == 0
             resolved = current.fitted_config
-            assert resolved.steps.cc.fit["model"] == ("pls" if method == "root-pls" else "nn" if method == "hybrid-nn" else method)
+            assert resolved.steps.cc.fit["model"] == (
+                "pls" if method == "root-pls" else "nn" if method == "hybrid-nn" else method
+            )
             assert resolved.numerics["precision"] == "native-byte"
             if oracle_python and method in ("ccm", "rpcc3", "nn"):
                 spec = folder / (method + "-oracle.json")
-                spec.write_text(json.dumps({"flat": before, "chart": str(chart), "white": str(white),
-                    "scene": str(scene), "output": str(folder / (method + "-oracle"))}), encoding="utf8")
+                spec.write_text(
+                    json.dumps(
+                        {
+                            "flat": before,
+                            "chart": str(chart),
+                            "white": str(white),
+                            "scene": str(scene),
+                            "output": str(folder / (method + "-oracle")),
+                        }
+                    ),
+                    encoding="utf8",
+                )
                 log = folder / (method + "-oracle.log")
                 with log.open("w", encoding="utf8") as stream:
-                    result = subprocess.run([str(oracle_python), "-B", "-I", str(Path(__file__).resolve()),
-                        "--oracle-worker", str(spec)], stdout=stream, stderr=subprocess.STDOUT)
+                    result = subprocess.run(
+                        [
+                            str(oracle_python),
+                            "-B",
+                            "-I",
+                            str(Path(__file__).resolve()),
+                            "--oracle-worker",
+                            str(spec),
+                        ],
+                        stdout=stream,
+                        stderr=subprocess.STDOUT,
+                    )
                 assert result.returncode == 0, log.read_text()
                 identity = json.loads((folder / (method + "-oracle/identity.json")).read_text())
-                assert identity["version"] == "2.0.0" and identity["grouped_api_present"] is False, identity
+                assert (
+                    identity["version"] == "2.0.0" and identity["grouped_api_present"] is False
+                ), identity
                 assert encoded(Config().to_dict()) == identity["default_config"]
                 if forbid_source:
                     assert forbid_source.resolve() not in Path(identity["origin"]).resolve().parents
                 for stage in ("fit_FFC", "fit_GC", "fit_WB", "fit_CC"):
-                    np.testing.assert_array_equal(images[stage], np.load(folder / (method + "-oracle") / (stage + ".npy"), allow_pickle=False))
-                np.testing.assert_array_equal(actual, np.load(folder / (method + "-oracle/scene.npy"), allow_pickle=False))
-            rows.append({"method": method, "stages_exact": True, "scene_exact": True,
-                         "safe_bundle_replay_exact": True, "codec_error": 0,
-                         "oracle_compared": bool(oracle_python and method in ("ccm", "rpcc3", "nn")),
-                         "nn_epoch_cap": nn_epochs if method == "nn" else None,
-                         "epochs_trained": current.models.model_cc[0].fit_report.get("details", {}).get("epochs"),
-                         "training_chart_deltaE00": metrics["fit_CC"]["delta_e00_after_mean"]})
+                    np.testing.assert_array_equal(
+                        images[stage],
+                        np.load(
+                            folder / (method + "-oracle") / (stage + ".npy"), allow_pickle=False
+                        ),
+                    )
+                np.testing.assert_array_equal(
+                    actual, np.load(folder / (method + "-oracle/scene.npy"), allow_pickle=False)
+                )
+            rows.append(
+                {
+                    "method": method,
+                    "stages_exact": True,
+                    "scene_exact": True,
+                    "safe_bundle_replay_exact": True,
+                    "codec_error": 0,
+                    "oracle_compared": bool(oracle_python and method in ("ccm", "rpcc3", "nn")),
+                    "nn_epoch_cap": nn_epochs if method == "nn" else None,
+                    "epochs_trained": current.models.model_cc[0]
+                    .fit_report.get("details", {})
+                    .get("epochs"),
+                    "training_chart_deltaE00": metrics["fit_CC"]["delta_e00_after_mean"],
+                }
+            )
             print("Passed grouped/flat real images:", method, flush=True)
 
         # A changed WB knob must affect its own stage, even if a later CC refit
@@ -388,7 +622,7 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
         options, grouped = fixture("ccm")
         original = check_config(grouped)
         changed = deepcopy(grouped)
-        changed["steps"]["wb"]["fit"]["headroom"] = .85
+        changed["steps"]["wb"]["fit"]["headroom"] = 0.85
         first, _, images = fitted(original, chart, white)
         other, _, altered = fitted(check_config(changed), chart, white)
         assert not np.array_equal(first.models.model_wb, other.models.model_wb)
@@ -397,14 +631,27 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
         changed["steps"]["gc"]["quality"]["min_neutrals"] = 7
         _, _, failed = first.run(chart, white, name_="guarded", config=check_config(changed))
         assert failed and first.last_run["errors"]
-        np.testing.assert_array_equal(first.predict_image(scene, stages="final")["CC"], scene_before)
-        rows.append({"wb_headroom_changes_wb_stage": True, "gc_guard_rejected": True,
-                     "failed_grouped_fit_preserves_prior_calibration": True})
+        np.testing.assert_array_equal(
+            first.predict_image(scene, stages="final")["CC"], scene_before
+        )
+        rows.append(
+            {
+                "wb_headroom_changes_wb_stage": True,
+                "gc_guard_rejected": True,
+                "failed_grouped_fit_preserves_prior_calibration": True,
+            }
+        )
 
-        source_chart, source_white, source_scene = [read_image_data(path, color_space="srgb", frame_index=0)
-                                                   for path in (chart, white, scene)]
-        high_inputs = [ImageData.from_array(np.rint(item.to_srgb() * 65535).astype(np.uint16),
-                                           color_space="srgb") for item in (source_chart, source_white, source_scene)]
+        source_chart, source_white, source_scene = [
+            read_image_data(path, color_space="srgb", frame_index=0)
+            for path in (chart, white, scene)
+        ]
+        high_inputs = [
+            ImageData.from_array(
+                np.rint(item.to_srgb() * 65535).astype(np.uint16), color_space="srgb"
+            )
+            for item in (source_chart, source_white, source_scene)
+        ]
         options, grouped = fixture("rpcc3")
         options["precision"] = "auto"
         options["CC_kwargs"].pop("use_lut")
@@ -421,12 +668,23 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
         assert b.models.metadata["fitting_policy"]["ui_runtime"] == "precision-f64-v1"
         bundle = folder / "high.ccpb"
         b.save_bundle(bundle)
-        np.testing.assert_array_equal(after, ColorCorrection().load_bundle(bundle).predict_image(high_inputs[2], stages="final")["CC"])
+        np.testing.assert_array_equal(
+            after,
+            ColorCorrection()
+            .load_bundle(bundle)
+            .predict_image(high_inputs[2], stages="final")["CC"],
+        )
         record = write_image_data(folder / "high.tiff", after, dtype="float64")
         assert record.maximum_codec_error == 0
-        rows.append({"grouped_high_precision_exact": True, "high_replay_exact": True,
-                     "auto_high_after_grouped_json_roundtrip": True,
-                     "high_codec_error": 0, "note": "Byte JPEG codes expanded into uint16; no capture information added."})
+        rows.append(
+            {
+                "grouped_high_precision_exact": True,
+                "high_replay_exact": True,
+                "auto_high_after_grouped_json_roundtrip": True,
+                "high_codec_error": 0,
+                "note": "Byte JPEG codes expanded into uint16; no capture information added.",
+            }
+        )
     return rows
 
 
@@ -449,19 +707,28 @@ def main():
     if args.output.exists():
         raise FileExistsError(args.output)
     import ColorCorrectionPipeline
+
     origin = Path(ColorCorrectionPipeline.__file__).resolve()
     if args.forbid_source:
         assert args.forbid_source.resolve() not in origin.parents, origin
-    result = {"version": version("ColorCorrectionPipeline"), "origin": str(origin),
-              "configurations": configuration_contracts()}
+    result = {
+        "version": version("ColorCorrectionPipeline"),
+        "origin": str(origin),
+        "configurations": configuration_contracts(),
+    }
     if args.photos:
         artifacts = args.output.with_suffix("")
         artifacts.mkdir(parents=True, exist_ok=False)
-        result["photos"] = photo_contracts(artifacts, args.nn_epochs, args.oracle_python, args.forbid_source)
+        result["photos"] = photo_contracts(
+            artifacts, args.nn_epochs, args.oracle_python, args.forbid_source
+        )
     result["passed"] = True
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, default=json_value) + "\n", encoding="utf8")
-    print("Passed grouped configuration contracts" + (" and real-image equivalence." if args.photos else "."))
+    print(
+        "Passed grouped configuration contracts"
+        + (" and real-image equivalence." if args.photos else ".")
+    )
 
 
 if __name__ == "__main__":

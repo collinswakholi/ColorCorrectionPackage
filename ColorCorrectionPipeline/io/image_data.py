@@ -44,16 +44,29 @@ def _png_metadata_snapshot(data):
         return False, None
     view, offset, seen_data, late = memoryview(data), 8, False, False
     chunks = []
-    metadata = {b"eXIf", b"iCCP", b"tEXt", b"zTXt", b"iTXt", b"tRNS",
-                b"gAMA", b"cHRM", b"sRGB", b"pHYs", b"bKGD", b"tIME", b"sBIT"}
+    metadata = {
+        b"eXIf",
+        b"iCCP",
+        b"tEXt",
+        b"zTXt",
+        b"iTXt",
+        b"tRNS",
+        b"gAMA",
+        b"cHRM",
+        b"sRGB",
+        b"pHYs",
+        b"bKGD",
+        b"tIME",
+        b"sBIT",
+    }
     while offset + 12 <= len(view):
-        length = int.from_bytes(view[offset:offset+4], "big")
+        length = int.from_bytes(view[offset : offset + 4], "big")
         end = offset + length + 12
         if end > len(view):
             return False, None
-        kind = bytes(view[offset+4:offset+8])
-        crc = zlib.crc32(view[offset+4:end-4]) & 0xffffffff
-        if crc != int.from_bytes(view[end-4:end], "big") or kind in (b"acTL", b"fcTL", b"fdAT"):
+        kind = bytes(view[offset + 4 : offset + 8])
+        crc = zlib.crc32(view[offset + 4 : end - 4]) & 0xFFFFFFFF
+        if crc != int.from_bytes(view[end - 4 : end], "big") or kind in (b"acTL", b"fcTL", b"fdAT"):
             return False, None
         if kind == b"IDAT":
             seen_data = True
@@ -62,7 +75,7 @@ def _png_metadata_snapshot(data):
                 return False, None
             if not late:
                 return True, None
-            empty_idat = b"\0\0\0\0IDAT" + (zlib.crc32(b"IDAT") & 0xffffffff).to_bytes(4, "big")
+            empty_idat = b"\0\0\0\0IDAT" + (zlib.crc32(b"IDAT") & 0xFFFFFFFF).to_bytes(4, "big")
             # Pillow stops opening at IDAT; no load/getexif override is called.
             return True, b"".join([data[:8], *chunks, empty_idat, view[offset:end]])
         else:
@@ -80,12 +93,23 @@ def _pillow_allocation(image, data, maximum_pixels, maximum_bytes):
     # MPO is a container. Only narrow the estimate for an identified
     # 8-bit RGB JPEG frame; keep the conservative estimate for other modes.
     rgb_mpo = fmt == "MPO" and mode == "RGB" and getattr(image, "bits", None) == 8
-    sample_bytes = (2 if fmt == "PNG" and len(data) > 24 and data[24] == 16 else
-                    1 if rgb_mpo or fmt in ("PNG", "JPEG", "WEBP", "GIF", "BMP") else 8)
-    channels = (4 if mode in ("RGBA", "RGBa", "LA", "La", "CMYK") or "transparency" in image.info else
-                1 if mode in ("1", "L", "I", "F", "I;16", "I;16B", "I;16L") else 3)
-    _check_allocation(image.width, image.height, image.width*image.height*channels*sample_bytes,
-                      maximum_pixels, maximum_bytes)
+    sample_bytes = (
+        2
+        if fmt == "PNG" and len(data) > 24 and data[24] == 16
+        else 1 if rgb_mpo or fmt in ("PNG", "JPEG", "WEBP", "GIF", "BMP") else 8
+    )
+    channels = (
+        4
+        if mode in ("RGBA", "RGBa", "LA", "La", "CMYK") or "transparency" in image.info
+        else 1 if mode in ("1", "L", "I", "F", "I;16", "I;16B", "I;16L") else 3
+    )
+    _check_allocation(
+        image.width,
+        image.height,
+        image.width * image.height * channels * sample_bytes,
+        maximum_pixels,
+        maximum_bytes,
+    )
 
 
 class _DuplicateMetadataKey(ValueError):
@@ -127,7 +151,13 @@ def _project_encoding(text, *, owned=False):
     if set(metadata) != {_EXPORT_KEY}:
         raise ValueError("unsupported image encoding metadata fields")
     declared = metadata[_EXPORT_KEY]
-    if not isinstance(declared, dict) or set(declared) != {"schema", "encoding"} or type(declared.get("schema")) is not int or declared.get("schema") != 1 or declared.get("encoding") not in ("srgb", "linear-srgb"):
+    if (
+        not isinstance(declared, dict)
+        or set(declared) != {"schema", "encoding"}
+        or type(declared.get("schema")) is not int
+        or declared.get("schema") != 1
+        or declared.get("encoding") not in ("srgb", "linear-srgb")
+    ):
         raise ValueError("unsupported image encoding metadata")
     return declared["encoding"]
 
@@ -138,7 +168,8 @@ def _frame(value, count):
             raise ValueError(
                 "explicit image input requires a single frame; this file has %d frames "
                 "(camera JPEGs often embed a preview). Choose one with "
-                "Config(input={'frame_index': 0}) or image_options={'frame_index': 0}" % count)
+                "Config(input={'frame_index': 0}) or image_options={'frame_index': 0}" % count
+            )
         return 0
     if type(value) is not int or not 0 <= value < count:
         raise ValueError("frame_index must select an existing nonnegative frame")
@@ -149,8 +180,15 @@ def _profile_decision(profile, policy):
     if not profile or policy is None:
         return
     if policy == "reject":
-        raise ValueError("embedded ICC requires explicit conversion or icc_policy='assume-declared'; no implicit color transform was performed")
-    if not isinstance(profile, bytes) or len(profile) < 128 or not 128 <= int.from_bytes(profile[:4], "big") <= len(profile) or profile[36:40] != b"acsp":
+        raise ValueError(
+            "embedded ICC requires explicit conversion or icc_policy='assume-declared'; no implicit color transform was performed"
+        )
+    if (
+        not isinstance(profile, bytes)
+        or len(profile) < 128
+        or not 128 <= int.from_bytes(profile[:4], "big") <= len(profile)
+        or profile[36:40] != b"acsp"
+    ):
         raise ValueError("embedded ICC profile header is malformed")
     if policy == "convert-srgb":
         # Reject bad profiles before a native image decoder sees their chunks.
@@ -166,13 +204,16 @@ def _check_allocation(width, height, native_bytes, max_pixels, max_decoded_bytes
     # Count at least decoded source plus the canonical float64 RGB allocation.
     # Decoder workspaces and later stage intermediates require additional memory.
     if max_decoded_bytes is not None and int(native_bytes) + pixels * 3 * 8 > max_decoded_bytes:
-        raise ValueError("decoded source plus canonical RGB exceed max_decoded_bytes before pixel decoding")
+        raise ValueError(
+            "decoded source plus canonical RGB exceed max_decoded_bytes before pixel decoding"
+        )
 
 
 def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_decoded_bytes=None):
     """Decode raw pixels without orientation/color transforms or bit reduction."""
     if data[:4] in (b"II*\0", b"MM\0*", b"II+\0", b"MM\0+"):
         import tifffile
+
         with tifffile.TiffFile(io.BytesIO(data)) as image:
             count = len(image.pages)
             selected = _frame(frame_index, count)
@@ -182,25 +223,42 @@ def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_
                 raise ValueError("unsupported TIFF photometric interpretation: %s" % photometric)
             if len(page.shape) not in (2, 3) or page.samplesperpixel not in (1, 3, 4):
                 raise ValueError("unsupported TIFF sample layout before decoding")
-            expected = ((page.imagelength, page.imagewidth) if page.samplesperpixel == 1 else
-                        (page.samplesperpixel, page.imagelength, page.imagewidth) if page.planarconfig == 2 else
-                        (page.imagelength, page.imagewidth, page.samplesperpixel))
+            expected = (
+                (page.imagelength, page.imagewidth)
+                if page.samplesperpixel == 1
+                else (
+                    (page.samplesperpixel, page.imagelength, page.imagewidth)
+                    if page.planarconfig == 2
+                    else (page.imagelength, page.imagewidth, page.samplesperpixel)
+                )
+            )
             if tuple(page.shape) != tuple(expected):
                 raise ValueError("unsupported volumetric TIFF sample layout before decoding")
-            _check_allocation(page.imagewidth, page.imagelength, math.prod(page.shape) * page.dtype.itemsize,
-                              max_pixels, max_decoded_bytes)
+            _check_allocation(
+                page.imagewidth,
+                page.imagelength,
+                math.prod(page.shape) * page.dtype.itemsize,
+                max_pixels,
+                max_decoded_bytes,
+            )
             profile = page.tags[34675].value if 34675 in page.tags else None
             _profile_decision(profile, icc_policy)
             pixels = page.asarray()
             if page.planarconfig == 2 and pixels.ndim == 3:
                 pixels = np.moveaxis(pixels, 0, -1)
-            return pixels, {"decoder": "tifffile", "format": "TIFF",
-                            "orientation": page.tags[274].value if 274 in page.tags else 1,
-                            "profile": profile,
-                            "declared_encoding": _project_encoding(page.description),
-                            "frame_index": selected, "frame_count": count, "mode": photometric,
-                            "photometric": photometric, "channel_order": "RGB",
-                            "associated_alpha": any(int(value) == 1 for value in page.extrasamples)}
+            return pixels, {
+                "decoder": "tifffile",
+                "format": "TIFF",
+                "orientation": page.tags[274].value if 274 in page.tags else 1,
+                "profile": profile,
+                "declared_encoding": _project_encoding(page.description),
+                "frame_index": selected,
+                "frame_count": count,
+                "mode": photometric,
+                "photometric": photometric,
+                "channel_order": "RGB",
+                "associated_alpha": any(int(value) == 1 for value in page.extrasamples),
+            }
     with Image.open(io.BytesIO(data)) as image:
         _pillow_allocation(image, data, max_pixels, max_decoded_bytes)
         count = getattr(image, "n_frames", 1)
@@ -209,7 +267,9 @@ def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_
         _pillow_allocation(image, data, max_pixels, max_decoded_bytes)
         image.seek(selected)
         _pillow_allocation(image, data, max_pixels, max_decoded_bytes)
-        complete, metadata_png = _png_metadata_snapshot(data) if image.format == "PNG" and count == 1 else (False, None)
+        complete, metadata_png = (
+            _png_metadata_snapshot(data) if image.format == "PNG" and count == 1 else (False, None)
+        )
         metadata_image = None
         if metadata_png is not None:
             metadata_image = Image.open(io.BytesIO(metadata_png))
@@ -220,7 +280,9 @@ def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_
             else:
                 orientation = image.getexif().get(274, 1)
             profile = inspected.info.get("icc_profile")
-            declared = _project_encoding(inspected.info.get(_EXPORT_KEY), owned=_EXPORT_KEY in inspected.info)
+            declared = _project_encoding(
+                inspected.info.get(_EXPORT_KEY), owned=_EXPORT_KEY in inspected.info
+            )
             # Capture metadata before its header-only handle is closed.
             inspected_info = dict(inspected.info)
         finally:
@@ -237,8 +299,12 @@ def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_
         elif selected:
             preview = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
             if preview is not None and preview.dtype == np.uint16:
-                raise ValueError("high-precision non-TIFF frame selection is unsupported; no uint8 downgrade performed")
-            converted = image.convert("RGBA" if "transparency" in image.info or "A" in image.mode else "RGB")
+                raise ValueError(
+                    "high-precision non-TIFF frame selection is unsupported; no uint8 downgrade performed"
+                )
+            converted = image.convert(
+                "RGBA" if "transparency" in image.info or "A" in image.mode else "RGB"
+            )
             pixels, order = np.asarray(converted).copy(), "RGB"
         else:
             pixels = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
@@ -249,17 +315,36 @@ def _decode(data, path, frame_index=None, icc_policy=None, max_pixels=None, max_
                 pixels, order = np.asarray(converted).copy(), "RGB"
             else:
                 order = "BGR"
-    return pixels, {"decoder": "Pillow selected frame" if selected or fmt == "GIF" else "OpenCV IMREAD_UNCHANGED",
-                    "format": fmt, "orientation": orientation, "profile": profile,
-                    "declared_encoding": declared, "frame_index": selected, "frame_count": count,
-                    "mode": mode, "channel_order": order, "associated_alpha": mode in ("RGBa", "La")}
+    return pixels, {
+        "decoder": (
+            "Pillow selected frame" if selected or fmt == "GIF" else "OpenCV IMREAD_UNCHANGED"
+        ),
+        "format": fmt,
+        "orientation": orientation,
+        "profile": profile,
+        "declared_encoding": declared,
+        "frame_index": selected,
+        "frame_count": count,
+        "mode": mode,
+        "channel_order": order,
+        "associated_alpha": mode in ("RGBa", "La"),
+    }
 
 
-def read_image_data(path, *, color_space=None, apply_orientation=True, icc_policy="reject",
-                    alpha_policy="reject", alpha_background=(0.0, 0.0, 0.0),
-                    grayscale_policy="reject", frame_index=None,
-                    max_pixels=100_000_000, max_decoded_bytes=1_073_741_824,
-                    max_file_bytes=1_073_741_824):
+def read_image_data(
+    path,
+    *,
+    color_space=None,
+    apply_orientation=True,
+    icc_policy="reject",
+    alpha_policy="reject",
+    alpha_background=(0.0, 0.0, 0.0),
+    grayscale_policy="reject",
+    frame_index=None,
+    max_pixels=100_000_000,
+    max_decoded_bytes=1_073_741_824,
+    max_file_bytes=1_073_741_824,
+):
     """Read RGB without silently reducing sample precision.
 
     Ordinary files default to sRGB. Our exports declare their encoding; explicit
@@ -272,13 +357,24 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
         raise ValueError("icc_policy must be reject, assume-declared or convert-srgb")
     if type(apply_orientation) is not bool:
         raise TypeError("apply_orientation must be boolean")
-    for key, value in (("max_pixels", max_pixels), ("max_decoded_bytes", max_decoded_bytes), ("max_file_bytes", max_file_bytes)):
+    for key, value in (
+        ("max_pixels", max_pixels),
+        ("max_decoded_bytes", max_decoded_bytes),
+        ("max_file_bytes", max_file_bytes),
+    ):
         if type(value) is not int or value <= 0:
             raise ValueError(key + " must be a positive integer")
-    if alpha_policy not in ("reject", "drop", "composite") or grayscale_policy not in ("reject", "replicate"):
+    if alpha_policy not in ("reject", "drop", "composite") or grayscale_policy not in (
+        "reject",
+        "replicate",
+    ):
         raise ValueError("unsupported alpha_policy or grayscale_policy")
     background = np.asarray(alpha_background, dtype=np.float64)
-    if background.shape != (3,) or not np.isfinite(background).all() or np.any((background < 0) | (background > 1)):
+    if (
+        background.shape != (3,)
+        or not np.isfinite(background).all()
+        or np.any((background < 0) | (background > 1))
+    ):
         raise ValueError("alpha_background must be three finite normalized RGB values")
     path = Path(path)
     file_stat = path.stat()
@@ -295,10 +391,17 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
     if declared is not None and color_space is not None and color_space != declared:
         raise ValueError("declared color_space conflicts with exported image encoding metadata")
     if profile and icc_policy == "reject":
-        raise ValueError("embedded ICC requires explicit conversion or icc_policy='assume-declared'; no implicit color transform was performed")
+        raise ValueError(
+            "embedded ICC requires explicit conversion or icc_policy='assume-declared'; no implicit color transform was performed"
+        )
     if profile and icc_policy == "convert-srgb" and color_space not in (None, "srgb"):
         raise ValueError("ICC convert-srgb requires an sRGB output interpretation")
-    if pixels.dtype not in (np.dtype("uint8"), np.dtype("uint16"), np.dtype("float32"), np.dtype("float64")):
+    if pixels.dtype not in (
+        np.dtype("uint8"),
+        np.dtype("uint16"),
+        np.dtype("float32"),
+        np.dtype("float64"),
+    ):
         raise TypeError("decoded dtype must be uint8, uint16, float32 or float64")
     if pixels.ndim not in (2, 3) or (pixels.ndim == 3 and pixels.shape[2] not in (1, 3, 4)):
         raise ValueError("unsupported decoded channel layout")
@@ -309,12 +412,19 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
         raise ValueError("CMYK input requires an embedded ICC profile and explicit convert-srgb")
     if profile and icc_policy == "convert-srgb":
         if pixels.dtype != np.uint8 or pixels.ndim != 3 or pixels.shape[2] not in (3, 4):
-            raise ValueError("ICC conversion supports uint8 RGB/CMYK only; no high-precision downgrade performed")
+            raise ValueError(
+                "ICC conversion supports uint8 RGB/CMYK only; no high-precision downgrade performed"
+            )
         source_mode = "CMYK" if facts["channel_order"] == "CMYK" else "RGB"
         color_pixels = pixels if source_mode == "CMYK" else pixels[..., :3]
         source_profile = ImageCms.ImageCmsProfile(io.BytesIO(profile))
-        converted = ImageCms.profileToProfile(Image.fromarray(color_pixels, mode=source_mode), source_profile,
-                                              ImageCms.createProfile("sRGB"), outputMode="RGB", renderingIntent=1)
+        converted = ImageCms.profileToProfile(
+            Image.fromarray(color_pixels, mode=source_mode),
+            source_profile,
+            ImageCms.createProfile("sRGB"),
+            outputMode="RGB",
+            renderingIntent=1,
+        )
         converted = np.asarray(converted)
         if pixels.shape[2] == 4 and source_mode != "CMYK":
             converted = np.concatenate((converted, pixels[..., 3:4]), axis=2)
@@ -322,7 +432,9 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
         icc_transform = "Pillow ImageCms profileToProfile to sRGB, relative-colorimetric intent1"
     if pixels.ndim == 2 or pixels.shape[2] == 1:
         if grayscale_policy != "replicate":
-            raise ValueError("explicit image input requires three channels; choose grayscale_policy='replicate'")
+            raise ValueError(
+                "explicit image input requires three channels; choose grayscale_policy='replicate'"
+            )
         if pixels.ndim == 3:
             pixels = pixels[..., 0]
         if facts.get("photometric") == "MINISWHITE":
@@ -333,7 +445,9 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
         if alpha_policy == "reject":
             raise ValueError("explicit image input requires three channels; choose an alpha_policy")
         if facts["associated_alpha"]:
-            raise ValueError("associated/premultiplied alpha requires explicit external normalization")
+            raise ValueError(
+                "associated/premultiplied alpha requires explicit external normalization"
+            )
         if alpha_policy == "drop":
             pixels = pixels[..., :3]
         else:
@@ -342,20 +456,43 @@ def read_image_data(path, *, color_space=None, apply_orientation=True, icc_polic
             if not np.isfinite(values).all() or np.any((values < 0) | (values > 1)):
                 raise ValueError("alpha samples must lie in their normalized finite range")
             color, opacity = values[..., :3], values[..., 3:4]
-            pixels = (linear_to_srgb(srgb_to_linear(color) * opacity + srgb_to_linear(background) * (1-opacity), policy="raise")
-                      if selected_space == "srgb" else color * opacity + background * (1-opacity))
-    provenance = {"source_kind": "file", "filename": path.name,
-                  "file_sha256": hashlib.sha256(data).hexdigest(), **facts,
-                  "decoded_shape": original_shape, "decoded_dtype": original_dtype,
-                  "icc_policy": icc_policy, "icc_present": bool(profile), "icc_transform": icc_transform,
-                  "declared_file_encoding": declared, "alpha_policy": alpha_policy,
-                  "alpha_background": background.tolist(), "alpha_compositing_domain": "linear-light",
-                  "grayscale_policy": grayscale_policy}
-    provenance["decode_limits"] = {"max_pixels": max_pixels, "max_decoded_bytes": max_decoded_bytes,
-                                   "max_file_bytes": max_file_bytes,
-                                   "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates"}
+            pixels = (
+                linear_to_srgb(
+                    srgb_to_linear(color) * opacity + srgb_to_linear(background) * (1 - opacity),
+                    policy="raise",
+                )
+                if selected_space == "srgb"
+                else color * opacity + background * (1 - opacity)
+            )
+    provenance = {
+        "source_kind": "file",
+        "filename": path.name,
+        "file_sha256": hashlib.sha256(data).hexdigest(),
+        **facts,
+        "decoded_shape": original_shape,
+        "decoded_dtype": original_dtype,
+        "icc_policy": icc_policy,
+        "icc_present": bool(profile),
+        "icc_transform": icc_transform,
+        "declared_file_encoding": declared,
+        "alpha_policy": alpha_policy,
+        "alpha_background": background.tolist(),
+        "alpha_compositing_domain": "linear-light",
+        "grayscale_policy": grayscale_policy,
+    }
+    provenance["decode_limits"] = {
+        "max_pixels": max_pixels,
+        "max_decoded_bytes": max_decoded_bytes,
+        "max_file_bytes": max_file_bytes,
+        "byte_basis": "decoded source plus canonical float64 RGB; excludes decoder workspaces/stage intermediates",
+    }
     if profile:
         provenance["icc_sha256"] = hashlib.sha256(profile).hexdigest()
-    return ImageData.from_array(pixels, channel_order="RGB", color_space=selected_space,
-                                orientation=int(facts["orientation"]), apply_orientation=apply_orientation,
-                                provenance=provenance)
+    return ImageData.from_array(
+        pixels,
+        channel_order="RGB",
+        color_space=selected_space,
+        orientation=int(facts["orientation"]),
+        apply_orientation=apply_orientation,
+        provenance=provenance,
+    )

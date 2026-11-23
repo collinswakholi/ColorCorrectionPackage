@@ -10,6 +10,7 @@ Everything here is a thin layer over :class:`Config` and :class:`ColorCorrection
 those directly for full control. ``calibrate`` defaults to ``frame_index=0`` because many
 camera JPEGs carry a second (preview) frame, which the strict v2 reader otherwise rejects.
 """
+
 from __future__ import annotations
 
 import os
@@ -34,8 +35,14 @@ PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def preset_config(name: str = "rpcc2", *, white: bool = True, frame_index: Optional[int] = 0,
-                  device: str = "auto", **overrides: Any):
+def preset_config(
+    name: str = "rpcc2",
+    *,
+    white: bool = True,
+    frame_index: Optional[int] = 0,
+    device: str = "auto",
+    **overrides: Any,
+):
     """Build a v2 :class:`Config` from a preset name plus keyword overrides.
 
     ``white`` enables flat-field correction (it needs a white image at fit time).
@@ -91,10 +98,18 @@ class Calibration:
         return None
 
 
-def calibrate(chart: Union[PathLike, np.ndarray], white: Union[PathLike, np.ndarray, None] = None, *,
-              model: str = "rpcc2", frame_index: Optional[int] = 0, device: str = "auto",
-              save_to: Optional[PathLike] = None, config: Any = None, name: str = "chart",
-              **options: Any) -> Calibration:
+def calibrate(
+    chart: Union[PathLike, np.ndarray],
+    white: Union[PathLike, np.ndarray, None] = None,
+    *,
+    model: str = "rpcc2",
+    frame_index: Optional[int] = 0,
+    device: str = "auto",
+    save_to: Optional[PathLike] = None,
+    config: Any = None,
+    name: str = "chart",
+    **options: Any,
+) -> Calibration:
     """Fit a calibration on a ColorChecker Classic 24 capture.
 
     Args:
@@ -119,8 +134,9 @@ def calibrate(chart: Union[PathLike, np.ndarray], white: Union[PathLike, np.ndar
     from .pipeline import ColorCorrection
 
     if config is None:
-        config = preset_config(model, white=white is not None, frame_index=frame_index,
-                               device=device, **options)
+        config = preset_config(
+            model, white=white is not None, frame_index=frame_index, device=device, **options
+        )
     elif options:
         raise TypeError("pass either config or Config keyword options, not both")
     pipeline = ColorCorrection()
@@ -131,8 +147,12 @@ def calibrate(chart: Union[PathLike, np.ndarray], white: Union[PathLike, np.ndar
     return calibration
 
 
-def correct(image: Union[PathLike, np.ndarray], calibration: Union[Calibration, PathLike, Any], *,
-            stage: str = "final") -> np.ndarray:
+def correct(
+    image: Union[PathLike, np.ndarray],
+    calibration: Union[Calibration, PathLike, Any],
+    *,
+    stage: str = "final",
+) -> np.ndarray:
     """Apply a calibration to one image and return float RGB in 0-1.
 
     ``calibration`` may be a :class:`Calibration`, a fitted :class:`ColorCorrection`, or a

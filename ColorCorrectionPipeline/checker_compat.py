@@ -1,4 +1,5 @@
 """Support the ColourChecker signatures used by supported Colour releases."""
+
 import inspect
 
 import colour

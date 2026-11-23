@@ -29,6 +29,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.utils import check_X_y
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
+
 def log_(message, *args, **kwargs):
     print(message)
 
@@ -47,6 +48,7 @@ def match_keywords(query, options):
         if query_text in option_text or option_text in query_text:
             return option
     return None
+
 
 try:
     import psutil
@@ -229,6 +231,7 @@ def adapt_chart(CHART, ILLUMINANT):
         )
 
         from .checker_compat import make_colour_checker
+
         CHART = make_colour_checker(
             name=CHART.name + "_Adapted",
             data=dict(zip(CHART.data.keys(), colour.XYZ_to_xyY(data_xyz_adapted))),
@@ -247,10 +250,7 @@ def get_color_chart_hex(color_chart, REF_ILLUMINANT):
     color_chart = adapt_chart(color_chart, REF_ILLUMINANT)
 
     rgb_values = (
-        255
-        * np.clip(
-            colour.XYZ_to_sRGB(colour.xyY_to_XYZ(list(color_chart.data.values()))), 0, 1
-        )
+        255 * np.clip(colour.XYZ_to_sRGB(colour.xyY_to_XYZ(list(color_chart.data.values()))), 0, 1)
     ).astype(np.uint8)
 
     names = list(color_chart.data.keys())
@@ -259,10 +259,6 @@ def get_color_chart_hex(color_chart, REF_ILLUMINANT):
     hex_dict = dict(zip(names, hex_values))
 
     return {k: v for k, v in sorted(hex_dict.items(), key=lambda item: item[0])}
-
-
-
-
 
 
 class metrics:
@@ -408,11 +404,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
 
     def _build_model(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        (
-            log_(f"Using device: '{self.device}'", "purple", "italic")
-            if self.verbose
-            else None
-        )
+        (log_(f"Using device: '{self.device}'", "purple", "italic") if self.verbose else None)
         layers = []
         current_dim = self.input_dim  # Starting dimension: 3 (nxn input)
 
@@ -420,19 +412,14 @@ class CustomNN(BaseEstimator, RegressorMixin):
         for hidden_dim in self.hidden_layers:
             layers.append(nn.Linear(current_dim, hidden_dim))  # Fully connected layer
             if self.use_batch_norm:
-                layers.append(
-                    nn.BatchNorm1d(hidden_dim, eps=self.tol)
-                )  # Batch normalization
+                layers.append(nn.BatchNorm1d(hidden_dim, eps=self.tol))  # Batch normalization
             layers.append(nn.ReLU())  # Activation function
             if self.dropout_rate > 0:
                 layers.append(nn.Dropout(self.dropout_rate))  # Dropout
             current_dim = hidden_dim
 
         # Add output layer
-        layers.append(
-            nn.Linear(current_dim, self.output_dim)
-        )  # Final output layer: nx1
-
+        layers.append(nn.Linear(current_dim, self.output_dim))  # Final output layer: nx1
 
         # Assign the sequential model
         self.model = nn.Sequential(*layers).to(self.device)
@@ -478,9 +465,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         train_loader = DataLoader(
             train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=pin_memory
         )
-        val_loader = DataLoader(
-            val_dataset, batch_size=self.batch_size, pin_memory=pin_memory
-        )
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, pin_memory=pin_memory)
 
         optimizer_types = {
             "Adam": optim.Adam,
@@ -496,9 +481,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
             "SparseAdam": optim.SparseAdam,
         }
 
-        optimizer = optimizer_types[self.optim_type](
-            self.model.parameters(), lr=self.learning_rate
-        )
+        optimizer = optimizer_types[self.optim_type](self.model.parameters(), lr=self.learning_rate)
 
         scheduler = (
             optim.lr_scheduler.ReduceLROnPlateau(
@@ -649,7 +632,6 @@ class CustomNN(BaseEstimator, RegressorMixin):
         return results
 
 
-
 memory_lock = threading.Lock()
 
 try:
@@ -706,9 +688,7 @@ def get_color_patch_size(color_checker_img: np.ndarray) -> np.ndarray:
     v = cv2.normalize(v, None, 0, 255, cv2.NORM_MINMAX)
     _, thresh = cv2.threshold(v, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    min_area = (
-        0.01 * color_checker_img.shape[0] * color_checker_img.shape[1]
-    )  # 1% of image area
+    min_area = 0.01 * color_checker_img.shape[0] * color_checker_img.shape[1]  # 1% of image area
 
     dims = []
     for cnt in contours:
@@ -722,9 +702,7 @@ def get_color_patch_size(color_checker_img: np.ndarray) -> np.ndarray:
         # Filter based on aspect ratio and minimum area
         if h > 0 and w > 0:
             area = w * h
-            if (
-                area > min_area and min(w / h, h / w) > 0.8
-            ):  # Ratio close to 1 for squares
+            if area > min_area and min(w / h, h / w) > 0.8:  # Ratio close to 1 for squares
                 dims.append((w, h))
 
     # Return the average dimensions if found, else [0, 0]
@@ -824,9 +802,7 @@ def extract_color_chart(img, get_patch_size=False):
         return np.array(src), img_draw, dims
 
 
-def extract_color_charts(
-    img: np.ndarray, n_charts: int = 1
-) -> Tuple[List[np.ndarray], np.ndarray]:
+def extract_color_charts(img: np.ndarray, n_charts: int = 1) -> Tuple[List[np.ndarray], np.ndarray]:
     """
     Extracts all color charts from an image and returns them as a list of numpy arrays of shape (24, 3)
     and a numpy array (image with marked charts) of shape (height, width, 3)
@@ -889,125 +865,137 @@ def extract_color_chart_ex(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extract extended color chart samples with random sampling from each patch.
-    
+
     Args:
         img: Input BGR image (uint8)
         ref: Reference RGB values (24, 3), float64, range [0, 1]
         npts: Number of points to sample per patch (minimum 1)
         show: Whether to display detected chart visualization
         randomize: Whether to randomize patch order in output
-        
+
     Returns:
         tuple: (chart_samples, ref_samples) or (None, None) on failure
             - chart_samples: Extracted RGB values (24*npts, 3), float32
             - ref_samples: Repeated reference values (24*npts, 3), float64
     """
-    
+
     # Input validation
     if npts < 1:
         log_(f"Warning: npts must be >= 1, got {npts}. Using npts=1", "yellow", "italic", "warn")
         npts = 1
-    
+
     if img is None or img.size == 0:
         log_("Error: Invalid input image", "red", "bold", "error")
         return None, None
-    
+
     if ref is None or ref.shape != (24, 3):
-        log_(f"Error: Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}", "red", "bold", "error")
+        log_(
+            f"Error: Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}",
+            "red",
+            "bold",
+            "error",
+        )
         return None, None
-    
+
     _require_mcc()
     try:
         # Pre-processing
         img_blur = cv2.medianBlur(img, 5)
-        
+
         # Chart detection
         detector = cv2.mcc.CCheckerDetector_create()
         best_checker = detect_refine_charts(detector, img_blur, n_charts=1, params=CDP)[0]
-        
+
         if best_checker is None:
             log_("No color chart found in Image", "red", "italic", "warn")
             return None, None
-        
+
         # Visualization (optional)
         if show:
             img_draw = img.copy()
             cdraw = _mcc_draw(best_checker)
             cdraw.draw(img_draw)
             colour.plotting.plot_image(to_float64(img_draw[:, :, ::-1]))
-        
+
         # Extract bounding box
         box_pts = best_checker.getBox()
         x1, x2 = int(box_pts[:, 0].min()), int(box_pts[:, 0].max())
         y1, y2 = int(box_pts[:, 1].min()), int(box_pts[:, 1].max())
-        
+
         # Crop to chart region
         img_crop = img[y1:y2, x1:x2, :]
         img_crop_rgb = to_float64(img_crop[:, :, ::-1])
-        
+
         # Segmentation-based detection
         requested_samples = max(10, int(1.2 * npts))
         data = detect_colour_checkers_segmentation(
             img_crop_rgb, samples=requested_samples, additional_data=True
         )
-        
+
         if len(data) < 1:
             # Fallback to basic extraction
             try:
-                log_('Attempting to read color card again... with "n_samples = 1pt"', "light_yellow", "italic", "warn")
+                log_(
+                    'Attempting to read color card again... with "n_samples = 1pt"',
+                    "light_yellow",
+                    "italic",
+                    "warn",
+                )
                 chart, _, _ = extract_color_chart(img_crop)
                 return np.array(to_float64(chart)), np.array(ref)
             except Exception as e:
                 log_(str(e), "red", "bold")
                 return None, None
-        
+
         # Extract patch masks
         _, masks, image_, _ = data[0].values
         mask_list = list(masks)
         n_patches = len(mask_list)
-        
+
         if n_patches != 24:
             log_(f"Warning: Expected 24 patches, got {n_patches}", "yellow", "italic", "warn")
-        
+
         # Pre-allocate output arrays (optimization)
         expected_samples = n_patches * npts
         chart_result = np.empty((expected_samples, 3), dtype=np.float32)
         ref_result = np.empty((expected_samples, 3), dtype=np.float64)
-        
+
         valid_patches = 0
         current_idx = 0
         n_stats = 3  # mean, max, min
-        
+
         # Process each patch
         for patch_id, (mask, ref_color) in enumerate(zip(mask_list, ref)):
             try:
                 # Extract patch pixels
                 x_min, x_max, y_min, y_max = mask
                 patch_pixels = image_[x_min:x_max, y_min:y_max, :].reshape(-1, 3)
-                
+
                 if patch_pixels.shape[0] == 0:
                     log_(f"Warning: Empty patch {patch_id}, skipping", "yellow", "italic", "warn")
                     continue
-                
+
                 # Compute statistics (vectorized)
                 mean_val = patch_pixels.mean(axis=0)
                 max_val = patch_pixels.max(axis=0)
                 min_val = patch_pixels.min(axis=0)
-                
+
                 # Allocate additional samples only after accounting for the three statistics.
                 n_samples_needed = max(0, npts - n_stats)
-                
+
                 if n_samples_needed > 0:
                     # Need additional random samples
                     n_available = patch_pixels.shape[0]
                     n_to_sample = min(n_samples_needed, n_available)
-                    
+
                     if n_to_sample > 0:
-                        indices = np.random.choice(n_available, n_to_sample, replace=(n_to_sample > n_available))
+                        indices = np.random.choice(
+                            n_available, n_to_sample, replace=(n_to_sample > n_available)
+                        )
                         sampled = patch_pixels[indices]
                     else:
                         sampled = np.empty((0, 3), dtype=np.float32)
-                    
+
                     # Combine: random samples + statistics
                     stats_data = np.vstack([mean_val, max_val, min_val])
                     all_data = np.vstack([sampled, stats_data])
@@ -1019,7 +1007,7 @@ def extract_color_chart_ex(
                         all_data = np.vstack([mean_val, max_val])
                     else:  # npts == 3
                         all_data = np.vstack([mean_val, max_val, min_val])
-                
+
                 # Ensure exact size
                 if all_data.shape[0] < npts:
                     n_to_add = npts - all_data.shape[0]
@@ -1027,50 +1015,51 @@ def extract_color_chart_ex(
                     all_data = np.vstack([all_data, padding])
                 elif all_data.shape[0] > npts:
                     all_data = all_data[:npts, :]
-                
+
                 # Repeat reference rows explicitly to match the sampled observations.
                 end_idx = current_idx + npts
                 chart_result[current_idx:end_idx, :] = all_data
                 ref_result[current_idx:end_idx, :] = ref_color  # Broadcasting
-                
+
                 current_idx = end_idx
                 valid_patches += 1
-                
+
             except Exception as e:
                 log_(f"Warning: Error processing patch {patch_id}: {e}", "yellow", "italic", "warn")
                 continue
-        
+
         # Validate results
         if valid_patches == 0:
             log_("Error: No valid patches extracted", "red", "bold", "error")
             return None, None
-        
+
         # Trim arrays if some patches failed
         actual_samples = valid_patches * npts
         if actual_samples < expected_samples:
             chart_result = chart_result[:actual_samples, :]
             ref_result = ref_result[:actual_samples, :]
-        
+
         # Randomization (optional)
         if randomize:
             # Vectorized patch-level shuffling
             patch_indices = np.arange(valid_patches)
             np.random.shuffle(patch_indices)
-            
+
             # Reshape, shuffle, reshape back
             chart_patches = chart_result.reshape(valid_patches, npts, 3)
             ref_patches = ref_result.reshape(valid_patches, npts, 3)
-            
+
             chart_result = chart_patches[patch_indices].reshape(-1, 3)
             ref_result = ref_patches[patch_indices].reshape(-1, 3)
-        
+
         return chart_result, ref_result
-        
+
     except ImportError:
         raise
     except Exception as e:
         log_(f"Error in extract_color_chart_ex: {e}", "red", "bold", "error")
         import traceback
+
         traceback.print_exc()
         return None, None
 
@@ -1119,9 +1108,7 @@ def to_float64(img: np.ndarray) -> np.ndarray:
     return img.astype(np.float64) / 255.0
 
 
-def extract_neutral_patches(
-    img: np.ndarray, return_one: bool = True, show: bool = False
-):
+def extract_neutral_patches(img: np.ndarray, return_one: bool = True, show: bool = False):
 
     patch_names = list(
         colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"].data.keys()
@@ -1132,9 +1119,7 @@ def extract_neutral_patches(
     if return_one:
         src_charts, img_draw, _ = extract_color_chart(img)
     else:
-        src_charts, img_draw = extract_color_charts(
-            img, n_charts=3, get_patch_size=True
-        )
+        src_charts, img_draw = extract_color_charts(img, n_charts=3, get_patch_size=True)
 
     if show:
         colour.plotting.plot_image(
@@ -1163,9 +1148,7 @@ def extract_neutral_patches(
 
             n_patch = srgb_chart[-6:, :]
             n_patch_df = pd.DataFrame(n_patch, columns=names_columns, index=names_rows)
-            n_patch_all = pd.DataFrame(
-                srgb_chart, columns=names_columns, index=patch_names
-            )
+            n_patch_all = pd.DataFrame(srgb_chart, columns=names_columns, index=patch_names)
 
             Neutral_Patches.append(n_patch_df)
             All_Patches.append(n_patch_all)
@@ -1181,9 +1164,7 @@ def poly_func(x, coeffs):  # horner's method
 
 
 def poly_func_torch(x: torch.Tensor, coeffs: torch.Tensor) -> torch.Tensor:
-    result = torch.zeros_like(
-        x
-    )  # Initialize result as a tensor of zeros with the same shape as x
+    result = torch.zeros_like(x)  # Initialize result as a tensor of zeros with the same shape as x
     for c in coeffs:
         result = result * x + c  # Horner's method
     return result
@@ -1209,9 +1190,9 @@ def estimate_fit(measured: np.ndarray, reference: np.ndarray, degree: int = 3):
 def predict_image(
     img: np.ndarray,
     coeffs: np.ndarray,
-    ref_illuminant: np.ndarray = colour.CCS_ILLUMINANTS[
-        "CIE 1931 2 Degree Standard Observer"
-    ]["D65"],
+    ref_illuminant: np.ndarray = colour.CCS_ILLUMINANTS["CIE 1931 2 Degree Standard Observer"][
+        "D65"
+    ],
 ) -> np.ndarray:
     """
     GPU-accelerated prediction with fallback to CPU, using consistent logic.
@@ -1225,9 +1206,7 @@ def predict_image(
     if is_cuda:
         try:
             coeffs_copy = coeffs.copy()
-            img_flat_gpu = torch.from_numpy(img_flat_L.copy()).to(
-                device_, dtype=torch.float32
-            )
+            img_flat_gpu = torch.from_numpy(img_flat_L.copy()).to(device_, dtype=torch.float32)
             coeffs_gpu = torch.from_numpy(coeffs_copy).to(
                 device_, dtype=torch.float32
             )  # Reverse for consistency
@@ -1247,9 +1226,7 @@ def predict_image(
     result_lab[:, 0] = result
 
     # Convert back to RGB space
-    result_srgb = colour.XYZ_to_sRGB(
-        colour.Lab_to_XYZ(result_lab, ref_illuminant), ref_illuminant
-    )
+    result_srgb = colour.XYZ_to_sRGB(colour.Lab_to_XYZ(result_lab, ref_illuminant), ref_illuminant)
     gc.collect()
 
     return result_srgb.reshape(H, W, C)  # Reshape to original dimensions
@@ -1273,7 +1250,6 @@ def get_metrics(
     # mean angle error
     mae = compute_mae(mat1, mat2)
 
-
     return metrics(deltaE, mse, mae)
 
 
@@ -1294,9 +1270,7 @@ def arrange_metrics(metrics_before, metrics_after, name=""):
     all_data_after = metrics_after.Data
 
     # add Before_wb and After_wb to the column names
-    all_data_before.columns = [
-        f"Before_{name}_" + col for col in all_data_before.columns
-    ]
+    all_data_before.columns = [f"Before_{name}_" + col for col in all_data_before.columns]
     all_data_after.columns = [f"After_{name}_" + col for col in all_data_after.columns]
 
     All_data_pd = pd.concat([all_data_before, all_data_after], axis=1)
@@ -1308,9 +1282,7 @@ def arrange_metrics(metrics_before, metrics_after, name=""):
 
 def convert_to_lab(
     mat: np.ndarray,
-    illuminant: np.ndarray = colour.CCS_ILLUMINANTS[
-        "CIE 1931 2 Degree Standard Observer"
-    ]["D65"],
+    illuminant: np.ndarray = colour.CCS_ILLUMINANTS["CIE 1931 2 Degree Standard Observer"]["D65"],
     c_space: str = "xyz",
 ) -> np.ndarray:
     c_space_list = ["xyy", "lab", "xyz", "srgb"]
@@ -1331,9 +1303,7 @@ def convert_to_lab(
         raise ValueError(f"Invalid colour space: {c_space}")
 
 
-def srgb_to_cielab_D50(
-    srgb_mat: np.ndarray, srgb_mat_illuminant: np.ndarray
-) -> np.ndarray:
+def srgb_to_cielab_D50(srgb_mat: np.ndarray, srgb_mat_illuminant: np.ndarray) -> np.ndarray:
 
     # converts srgb to cie lab (ICC D50 profile, 2 degree standard observer)
 
@@ -1352,9 +1322,7 @@ def srgb_to_cielab_D50(
     return lab_mat
 
 
-def convert_to_LCHab(
-    mat: np.ndarray, illuminant: np.ndarray, c_space: str = "xyz"
-) -> np.ndarray:
+def convert_to_LCHab(mat: np.ndarray, illuminant: np.ndarray, c_space: str = "xyz") -> np.ndarray:
     c_space_list = ["xyy", "lab", "xyz", "srgb"]
     c_space = match_keywords(c_space, c_space_list)
 
@@ -1365,16 +1333,12 @@ def convert_to_LCHab(
     elif c_space == "xyz":
         return colour.Lab_to_LCHab(colour.XYZ_to_Lab(mat, illuminant))
     elif c_space == "srgb":
-        return colour.Lab_to_LCHab(
-            colour.XYZ_to_Lab(colour.sRGB_to_XYZ(mat), illuminant)
-        )
+        return colour.Lab_to_LCHab(colour.XYZ_to_Lab(colour.sRGB_to_XYZ(mat), illuminant))
     else:
         raise ValueError(f"Invalid colour space: {c_space}")
 
 
-def which_is_saturated(
-    mat: np.ndarray, threshold: float = 0.99
-) -> Tuple[bool, np.ndarray]:
+def which_is_saturated(mat: np.ndarray, threshold: float = 0.99) -> Tuple[bool, np.ndarray]:
     sat_idx = (mat >= threshold).any(axis=1).astype(int)  # Example logic
     return sat_idx.any(), sat_idx
 
@@ -1459,9 +1423,7 @@ def extrapolate_if_sat_image(img: np.ndarray, mat_ref: np.ndarray) -> np.ndarray
     new_img_flat[new_img_flat < -0.2] = -0.2
 
     # normalize image to fit between 0 and 1
-    new_img_flat = (new_img_flat - new_img_flat.min()) / (
-        new_img_flat.max() - new_img_flat.min()
-    )
+    new_img_flat = (new_img_flat - new_img_flat.min()) / (new_img_flat.max() - new_img_flat.min())
     new_img = new_img_flat.reshape(shape_)
 
     return new_img, cps[idx_rows, :], idx_rows
@@ -1485,9 +1447,7 @@ def generate_powers_with_combinations_torch(features, names, degree=1):
 
     # Precompute feature powers for all combinations.
     feature_powers = {
-        (i, d): features[:, i] ** d
-        for i in range(n_features)
-        for d in range(1, degree + 1)
+        (i, d): features[:, i] ** d for i in range(n_features) for d in range(1, degree + 1)
     }
 
     # For each degree, build the combination terms.
@@ -1502,9 +1462,7 @@ def generate_powers_with_combinations_torch(features, names, degree=1):
             terms.append(term)
             # Build the feature name; remove the exponent for 1 (i.e. replace '^1' with '')
             f_names.append(
-                " ".join(f"{names[i]}^{comb.count(i)}" for i in unique_comb).replace(
-                    "^1", ""
-                )
+                " ".join(f"{names[i]}^{comb.count(i)}" for i in unique_comb).replace("^1", "")
             )
 
     # Stack all the terms into a new feature matrix.
@@ -1525,9 +1483,7 @@ def process_in_chunks(RGB, feature_names, degree, n_chunk):
         RGB_chunk = chunks[i]
 
         # Move to GPU
-        RGB_torch = (
-            torch.from_numpy(RGB_chunk).pin_memory().to(device_, dtype=torch.float32)
-        )
+        RGB_torch = torch.from_numpy(RGB_chunk).pin_memory().to(device_, dtype=torch.float32)
 
         # Compute polynomial features
         X_poly_, names = generate_powers_with_combinations_torch(
@@ -1572,7 +1528,6 @@ def get_poly_features(RGB, degree=1):
             # GPU case with torch
             chunk_size = estimate_chunk_size(RGB)
             X_poly, names = process_in_chunks(RGB, feature_names, degree, chunk_size)
-
 
             free_memory()
         else:
@@ -1963,10 +1918,7 @@ def estimate_gamma_profile(
 
     log_(f"Optimal polynomial degree: {degree}", "cyan", "italic")
 
-
-    eq = "F(x) = " + "+".join(
-        f"{round(c, 2)}x^{i}" for i, c in enumerate(reversed(coeffs))
-    )
+    eq = "F(x) = " + "+".join(f"{round(c, 2)}x^{i}" for i, c in enumerate(reversed(coeffs)))
 
     # apply gamma profile to image
     img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant)
@@ -2049,7 +2001,6 @@ def wb_correction(
 
     img_pred = img_rgb @ diag_
 
-
     if get_deltaE:
         m_b = get_metrics(ref_cp, cps_before.values, ref_illuminant, "srgb")
         _, cps_after = extract_neutral_patches(to_uint8(img_pred[:, :, ::-1]))
@@ -2090,16 +2041,13 @@ def color_correction_1(
 
     cp_values = color_patches.values
 
-    ccm = colour.characterisation.matrix_colour_correction(
-        M_T=cp_values, M_R=ref_rgb, **cc_kwargs
-    )
+    ccm = colour.characterisation.matrix_colour_correction(M_T=cp_values, M_R=ref_rgb, **cc_kwargs)
 
     log_(f"CCM: \n{ccm}", "light_green", "italic")
 
     from .conventional import apply_conventional
-    img_rgb_ccm = apply_conventional(
-        RGB=img_rgb, CCM=ccm, **cc_kwargs
-    )
+
+    img_rgb_ccm = apply_conventional(RGB=img_rgb, CCM=ccm, **cc_kwargs)
     img_rgb_ccm = np.clip(img_rgb_ccm, 0, 1)
 
     img_bgr_ccm = to_uint8(img_rgb_ccm[:, :, ::-1])
@@ -2108,9 +2056,7 @@ def color_correction_1(
 
     if get_deltaE:
         m_b = get_metrics(ref_rgb, cp_values, ref_illuminant, "srgb")
-        m_a = get_metrics(
-            ref_rgb, color_patches_corrected.values, ref_illuminant, "srgb"
-        )
+        m_a = get_metrics(ref_rgb, color_patches_corrected.values, ref_illuminant, "srgb")
 
         Metrics_ = arrange_metrics(m_b, m_a, name="CC_M1")
 
@@ -2118,15 +2064,14 @@ def color_correction_1(
 
         # create corrected color card
         from .checker_compat import make_colour_checker
+
         corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(
                     color_patches_corrected.index,
                     colour.XYZ_to_xyY(
-                        colour.sRGB_to_XYZ(
-                            color_patches_corrected.values, ref_illuminant
-                        )
+                        colour.sRGB_to_XYZ(color_patches_corrected.values, ref_illuminant)
                     ),
                 )
             ),
@@ -2173,9 +2118,7 @@ def color_correction(
 
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
 
-    _, color_patches = extract_neutral_patches(
-        img_bgr, show=show if n_samples == 1 else False
-    )
+    _, color_patches = extract_neutral_patches(img_bgr, show=show if n_samples == 1 else False)
     cp_values = color_patches.values
 
     if n_samples == 1:
@@ -2196,24 +2139,21 @@ def color_correction(
 
     if get_deltaE:
         m_b = get_metrics(ref_rgb, cp_values, ref_illuminant, "srgb")
-        m_a = get_metrics(
-            ref_rgb, color_patches_corrected.values, ref_illuminant, "srgb"
-        )
+        m_a = get_metrics(ref_rgb, color_patches_corrected.values, ref_illuminant, "srgb")
         Metrics_ = arrange_metrics(m_b, m_a, name="CC_M2")
 
     if show:
 
         # create corrected color card
         from .checker_compat import make_colour_checker
+
         corrected_color_card = make_colour_checker(
             name="Corrected Colour Checker",
             data=dict(
                 zip(
                     color_patches_corrected.index,
                     colour.XYZ_to_xyY(
-                        colour.sRGB_to_XYZ(
-                            color_patches_corrected.values, ref_illuminant
-                        )
+                        colour.sRGB_to_XYZ(color_patches_corrected.values, ref_illuminant)
                     ),
                 )
             ),
@@ -2262,9 +2202,7 @@ def scatter_RGB(
 
     assert reference.shape[1] == 3
     for name, mat in mats.items():
-        assert (
-            mat.shape == reference.shape
-        ), f"Matrix {name} does not have same shape as reference"
+        assert mat.shape == reference.shape, f"Matrix {name} does not have same shape as reference"
 
     shapes = ["^", "o", "v", "*", "D", "p"]
     alphas = [1.0, 0.75, 0.5, 0.25, 0.125]
@@ -2544,12 +2482,8 @@ def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
     # Perform t-test
     try:
         t_stat, p_value, dof = sm.stats.ttest_ind(
-            long_data[long_data["Condition"] == long_data["Condition"].unique()[0]][
-                "DeltaE"
-            ],
-            long_data[long_data["Condition"] == long_data["Condition"].unique()[1]][
-                "DeltaE"
-            ],
+            long_data[long_data["Condition"] == long_data["Condition"].unique()[0]]["DeltaE"],
+            long_data[long_data["Condition"] == long_data["Condition"].unique()[1]]["DeltaE"],
         )
         t_test_results = pd.DataFrame(
             {"T-Statistic": [t_stat], "Degrees of Freedom": [dof], "p-value": [p_value]}
@@ -2570,9 +2504,7 @@ def get_stats(data: pd.DataFrame, condition_: str = "col") -> tuple:
     # Run Tukey's HSD test if there are multiple unique conditions
     try:
         if long_data["Condition"].nunique() > 1:
-            tukey_results = mc.pairwise_tukeyhsd(
-                long_data["DeltaE"], long_data["Condition"]
-            )
+            tukey_results = mc.pairwise_tukeyhsd(long_data["DeltaE"], long_data["Condition"])
             tukey_df = pd.DataFrame(
                 tukey_results.summary().data[1:],
                 columns=tukey_results.summary().data[0],
@@ -2612,27 +2544,21 @@ def save_stats(
     )
     (
         anova_results.to_excel(
-            os.path.join(
-                save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_ANOVA.xlsx"
-            )
+            os.path.join(save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_ANOVA.xlsx")
         )
         if not anova_results.empty
         else None
     )
     (
         tukey_df.to_excel(
-            os.path.join(
-                save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_TUKEY.xlsx"
-            )
+            os.path.join(save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_TUKEY.xlsx")
         )
         if not tukey_df.empty
         else None
     )
     (
         t_test_df.to_excel(
-            os.path.join(
-                save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_T_TEST.xlsx"
-            )
+            os.path.join(save_path, "Stats", re.sub(r"[(),: ]", "_", title_name) + "_T_TEST.xlsx")
         )
         if not t_test_df.empty
         else None
@@ -2660,8 +2586,7 @@ def other_plots(data, save_path=None, title_name="", SHOW_=False):
             plt.savefig(
                 os.path.join(
                     save_path,
-                    re.sub(r"[(),: ]", "_", title_name)
-                    + "_Correlation_Heatmap_DeltaE.svg",
+                    re.sub(r"[(),: ]", "_", title_name) + "_Correlation_Heatmap_DeltaE.svg",
                 ),
                 dpi=1200,
             )
@@ -2683,8 +2608,7 @@ def other_plots(data, save_path=None, title_name="", SHOW_=False):
             plt.savefig(
                 os.path.join(
                     save_path,
-                    re.sub(r"[(),: ]", "_", title_name)
-                    + "_Pairplot_Methods_DeltaE.svg",
+                    re.sub(r"[(),: ]", "_", title_name) + "_Pairplot_Methods_DeltaE.svg",
                 ),
                 dpi=1200,
             )

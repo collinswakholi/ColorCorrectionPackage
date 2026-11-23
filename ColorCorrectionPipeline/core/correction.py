@@ -80,6 +80,7 @@ _FEATURE_BACKEND = ("is_cuda", "device_", "get_poly_features")
 def _load_feature_backend():
     # Historical callers can replace these hooks. Only fill unbound names.
     from . import transforms
+
     for name in _FEATURE_BACKEND:
         globals().setdefault(name, getattr(transforms, name))
 
@@ -157,7 +158,7 @@ def _coerce_bool(value, default):
 class Regressor_Model:
     """
     Container for regression model parameters and fitted model.
-    
+
     Attributes:
         mtd: Model type ("linear", "nn", "pls", "custom")
         model: Fitted sklearn/torch model
@@ -180,7 +181,7 @@ class Regressor_Model:
         lut_grid_size: 3D LUT grid resolution
         lut_min_pixels: Minimum RGB rows before using/building the LUT
     """
-    
+
     def __init__(self):
         self.mtd = "linear"
         self.model: Optional[Any] = None
@@ -202,8 +203,8 @@ class Regressor_Model:
         self.optim_type = "Adam"
 
         # 3D LUT acceleration (filled after fit_model)
-        self._lut = None            # (G, G, G, 3) ndarray or None
-        self._lut_grid_size = 33    # default grid resolution
+        self._lut = None  # (G, G, G, 3) ndarray or None
+        self._lut_grid_size = 33  # default grid resolution
         self._lut_predict_fn: Optional[Any] = None
         self.use_lut = True
         self.lazy_lut = True
@@ -212,10 +213,17 @@ class Regressor_Model:
     def __getstate__(self):
         """Callbacks are derived runtime state, never persisted with the model."""
         from .lut_cache import persistence_lut
+
         state = self.__dict__.copy()
         state["_lut"] = persistence_lut(self)
         state.pop("_lut_predict_fn", None)
-        for name in ("_lut_lock", "_lut_identity", "_lut_failed_identity", "_lut_cache_info", "_lut_table_ref"):
+        for name in (
+            "_lut_lock",
+            "_lut_identity",
+            "_lut_failed_identity",
+            "_lut_cache_info",
+            "_lut_table_ref",
+        ):
             state.pop(name, None)
         return state
 
@@ -232,24 +240,30 @@ class Regressor_Model:
             self._lut_predict_fn = self._predict_for_lut
         if self._lut is not None:
             from .lut_cache import prime_lut_identity
+
             prime_lut_identity(self)
 
     def _predict_for_lut(self, rgb_n3):
         result = _predict_direct(rgb_n3, self)
-        return result.astype(np.float32) if getattr(self, "fitting_version", None) == "ui-compatible-v1" else result
+        return (
+            result.astype(np.float32)
+            if getattr(self, "fitting_version", None) == "ui-compatible-v1"
+            else result
+        )
 
     def clear_lut_cache(self):
         from .lut_cache import clear_lut_cache
+
         clear_lut_cache(self)
 
 
 class CustomNN(BaseEstimator, RegressorMixin):
     """
     Custom neural network regressor with PyTorch backend.
-    
+
     Implements sklearn-compatible interface for color correction using
     fully connected neural networks with optional batch normalization and dropout.
-    
+
     Args:
         hidden_layers: List of hidden layer sizes
         optim_type: Optimizer type ("Adam", "SGD", "RMSprop")
@@ -262,7 +276,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         patience: Early stopping patience
         dropout_rate: Dropout probability
         use_batch_norm: Whether to use batch normalization
-        
+
     Example:
         >>> model = CustomNN(hidden_layers=[32, 16], max_epochs=100)
         >>> X_train = np.random.rand(100, 10)
@@ -270,7 +284,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         >>> model.fit(X_train, y_train)
         >>> predictions = model.predict(X_train)
     """
-    
+
     def __init__(
         self,
         hidden_layers=[64],
@@ -304,6 +318,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.temp_path: Optional[str] = None
 
         import torch.nn as nn
+
         self.model: Optional[nn.Module] = None
         self.loss_fn = nn.MSELoss()
         self.device: Optional[str] = None
@@ -312,11 +327,12 @@ class CustomNN(BaseEstimator, RegressorMixin):
         """Build neural network architecture."""
         import torch
         import torch.nn as nn
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
+
         if self.verbose:
             print(f"Using device: '{self.device}'")
-        
+
         layers = []
         current_dim = self.input_dim
 
@@ -400,8 +416,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         from torch.utils.data import DataLoader, TensorDataset, random_split
 
         dataset = TensorDataset(
-            torch.tensor(X, dtype=torch.float32),
-            torch.tensor(y, dtype=torch.float32)
+            torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
         )
 
         if dataset_size < 2:
@@ -523,17 +538,18 @@ class CustomNN(BaseEstimator, RegressorMixin):
     def predict(self, X):
         """
         Predict using fitted neural network.
-        
+
         Args:
             X: Input features (N, M)
-            
+
         Returns:
             np.ndarray: Predictions (N, K)
         """
         self.model.eval()
         import torch
+
         X_tensor = torch.tensor(X, dtype=torch.float32, device=self.device)
-        
+
         with torch.no_grad():
             try:
                 predictions = self.model(X_tensor)
@@ -591,15 +607,15 @@ class CustomNN(BaseEstimator, RegressorMixin):
 def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = None):
     """
     Fit color correction model using specified method.
-    
+
     Args:
         det_p: Detected color patch values (N, 3)
         ref_p: Reference color patch values (N, 3)
         kwargs: Model parameters dict
-        
+
     Returns:
         Regressor_Model: Fitted model container
-        
+
     Example:
         >>> detected = np.random.rand(24, 3)
         >>> reference = np.random.rand(24, 3)
@@ -610,9 +626,12 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
 
     if "fitting_policy" in kwargs:
         from ..fitting import FittingPolicy, fit_observations
+
         policy = FittingPolicy.from_value(kwargs["fitting_policy"])
         if policy.version == "ui-compatible-v1":
-            raise ValueError("ui-compatible-v1 requires pipeline Config with explicit reference and sampling contracts")
+            raise ValueError(
+                "ui-compatible-v1 requires pipeline Config with explicit reference and sampling contracts"
+            )
         if policy.version == "reproducible-v1":
             modern = dict(kwargs)
             modern.pop("fitting_policy")
@@ -634,7 +653,9 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
 
     # Backwards-compat: if caller sends old "nlayers" key, convert to single-element list
     _legacy_nlayers = kwargs.get("nlayers", None)
-    M.hidden_layers = _coerce_hidden_layers(kwargs.get("hidden_layers", M.hidden_layers), M.hidden_layers)
+    M.hidden_layers = _coerce_hidden_layers(
+        kwargs.get("hidden_layers", M.hidden_layers), M.hidden_layers
+    )
     if _legacy_nlayers is not None and "hidden_layers" not in kwargs:
         M.hidden_layers = _coerce_hidden_layers(_legacy_nlayers, M.hidden_layers)
     M.learning_rate = _coerce_float(kwargs.get("learning_rate", M.learning_rate), M.learning_rate)
@@ -642,7 +663,9 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     M.patience = _coerce_int(kwargs.get("patience", M.patience), M.patience)
     M.dropout_rate = _coerce_float(kwargs.get("dropout_rate", M.dropout_rate), M.dropout_rate)
     M.optim_type = str(kwargs.get("optim_type", M.optim_type))
-    M.use_batch_norm = _coerce_bool(kwargs.get("use_batch_norm", M.use_batch_norm), M.use_batch_norm)
+    M.use_batch_norm = _coerce_bool(
+        kwargs.get("use_batch_norm", M.use_batch_norm), M.use_batch_norm
+    )
     M.use_lut = _coerce_bool(kwargs.get("use_lut", M.use_lut), M.use_lut)
     M.lazy_lut = _coerce_bool(kwargs.get("lazy_lut", M.lazy_lut), M.lazy_lut)
     M._lut_grid_size = _coerce_int(kwargs.get("lut_grid_size", M._lut_grid_size), M._lut_grid_size)
@@ -704,7 +727,9 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     fit_method = M.mtd.lower()
     if fit_method not in model_dict:
         hint = " For the conventional CCM use cc_method='conv'." if fit_method == "conv" else ""
-        raise ValueError(f"Unknown regression method: {M.mtd}. Choose linear, pls, nn or custom.{hint}")
+        raise ValueError(
+            f"Unknown regression method: {M.mtd}. Choose linear, pls, nn or custom.{hint}"
+        )
 
     M.model = model_dict[fit_method]
 
@@ -717,9 +742,11 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
         if M.use_lut and not M.lazy_lut:
             M._lut = build_3d_lut(M._lut_predict_fn, grid_size=M._lut_grid_size)
             from .lut_cache import prime_lut_identity
+
             prime_lut_identity(M)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning(f"Failed to build 3D LUT: {e}")
         M._lut = None
 
@@ -730,6 +757,7 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     """Predict RGB values without 3D LUT interpolation."""
     if getattr(M, "fitting_version", None) == "ui-compatible-v1":
         from ..ui_fitting import UIPredictor
+
         if type(M.model) is not UIPredictor:
             raise ValueError("UI fitting requires its validated numerical predictor")
         return M.model.predict_rgb(RGB)
@@ -739,11 +767,17 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     else:
         X = RGB
 
-    if getattr(M, "portable_inference", False) or getattr(M, "fitting_version", "legacy-v1") == "reproducible-v1":
+    if (
+        getattr(M, "portable_inference", False)
+        or getattr(M, "fitting_version", "legacy-v1") == "reproducible-v1"
+    ):
         # Match the recorded CPU feature precision/order rather than switching
         # large prediction arrays to the legacy float32 CUDA feature generator.
         from sklearn.preprocessing import PolynomialFeatures
-        X = PolynomialFeatures(degree=M.degree, include_bias=True).fit_transform(np.asarray(X, dtype=np.float64))
+
+        X = PolynomialFeatures(degree=M.degree, include_bias=True).fit_transform(
+            np.asarray(X, dtype=np.float64)
+        )
     else:
         _load_feature_backend()
         X, _ = get_poly_features(X, degree=M.degree)
@@ -754,21 +788,22 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
 def _ensure_lut(M: Regressor_Model) -> bool:
     """Synchronize one content-keyed owned LUT; transient state is not pickled."""
     from .lut_cache import ensure_lut
+
     return ensure_lut(M, build_3d_lut)
 
 
 def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     """
     Predict RGB values using fitted model.
-    
+
     Uses 3D LUT with trilinear interpolation when available (much faster
     than polynomial expansion on the full image).  Falls back to the
     original poly-expansion path otherwise.
-    
+
     Args:
         RGB: Input RGB image (H, W, 3) or (N, 3)
         M: Fitted Regressor_Model
-        
+
     Returns:
         np.ndarray: Predicted RGB values (same shape as input)
     """
@@ -872,15 +907,15 @@ def predict_image(
 ) -> np.ndarray:
     """
     Apply gamma correction to image using polynomial coefficients.
-    
+
     Optimised path: uses fast sRGB↔Lab (Numba or vectorised NumPy)
     instead of colour-science, saving 50-80% time on the conversion.
-    
+
     Args:
         img: RGB image (H, W, 3), float64, 0-1 range
         coeffs: Polynomial coefficients from estimate_gamma_profile
         ref_illuminant: Reference illuminant (xy coordinates)
-        
+
     Returns:
         np.ndarray: Gamma-corrected image (same shape as input)
     """
@@ -889,11 +924,14 @@ def predict_image(
 
     if explicit_color:
         from ..colorimetry import D65, white_xy, rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb
+
         if white_xy(ref_illuminant) != D65:
             raise ValueError("explicit gamma application requires working D65")
         lab = xyz_to_lab(rgb_to_xyz(img_flat, encoding="srgb"), white=D65)
         lab[:, 0] = gc_lightness(lab[:, 0], coeffs)
-        return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="preserve").reshape(H, W, C)
+        return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="preserve").reshape(
+            H, W, C
+        )
 
     # ── sRGB → Lab (fast) ──
     if HAS_NUMBA:
@@ -936,7 +974,7 @@ def estimate_gamma_profile(
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     Estimate optimal gamma correction polynomial from neutral patches.
-    
+
     Args:
         img_rgb: RGB image (H, W, 3), float64, 0-1 range
         ref_cp: Reference color patch RGB values (24, 3)
@@ -944,13 +982,13 @@ def estimate_gamma_profile(
         max_degree: Maximum polynomial degree to test
         show: Whether to display plots
         get_deltaE: Whether to compute Delta-E metrics
-        
+
     Returns:
         tuple: (coefficients, corrected_image, metrics)
             - coefficients: Polynomial coeffs for gamma correction
             - corrected_image: Gamma-corrected RGB image
             - metrics: Dict of metrics (if get_deltaE=True)
-            
+
     Example:
         >>> img = np.random.rand(100, 100, 3)
         >>> ref = np.random.rand(24, 3) * 0.8
@@ -962,31 +1000,39 @@ def estimate_gamma_profile(
     # Convert reference to Lab
     if explicit_color:
         from ..colorimetry import D65, white_xy, rgb_to_xyz, xyz_to_lab
+
         if white_xy(ref_illuminant) != D65:
             raise ValueError("explicit gamma fitting requires working D65")
         ref_lab = xyz_to_lab(rgb_to_xyz(ref_cp, encoding="srgb", domain="extended"), white=D65)
     else:
         ref_lab = convert_to_lab(ref_cp, ref_illuminant, c_space="srgb")
-    ref_L = ref_lab[:, 0] if reference_lightness is None else np.asarray(reference_lightness, dtype=np.float64)
+    ref_L = (
+        ref_lab[:, 0]
+        if reference_lightness is None
+        else np.asarray(reference_lightness, dtype=np.float64)
+    )
     if ref_L.shape != (len(ref_cp),) or not np.isfinite(ref_L).all():
         raise ValueError("reference_lightness must contain one finite L value per reference cell")
 
     # Extract neutral patches from image
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
     _, cps_before = extract_neutral_patches(img_bgr, return_one=True)
-    
+
     if cps_before is None:
         if require_chart:
             raise ValueError("GC requires a detected Classic24 chart; no gamma model was fitted")
         # No patches found: keep prediction safe by returning an identity
         # polynomial for Lab L (y = x).
         return np.array([1, 0]), img_rgb, {}
-    
+
     values_cps = cps_before.values
 
     # Convert to Lab
-    values_lab = (xyz_to_lab(rgb_to_xyz(values_cps, encoding="srgb"), white=D65) if explicit_color
-                  else convert_to_lab(values_cps, ref_illuminant, c_space="srgb"))
+    values_lab = (
+        xyz_to_lab(rgb_to_xyz(values_cps, encoding="srgb"), white=D65)
+        if explicit_color
+        else convert_to_lab(values_cps, ref_illuminant, c_space="srgb")
+    )
     values_L = values_lab[:, 0]
 
     # Augment with endpoints (100 and 0)
@@ -1037,7 +1083,9 @@ def estimate_gamma_profile(
         print(f"Optimal polynomial degree: {degree}")
 
     # Apply gamma correction
-    img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant, explicit_color=explicit_color)
+    img_rgb_gc = predict_image(
+        img_rgb, coeffs, ref_illuminant=ref_illuminant, explicit_color=explicit_color
+    )
 
     # Compute metrics
     if get_deltaE:
@@ -1052,8 +1100,10 @@ def estimate_gamma_profile(
     # Visualization
     if show:
         import torch
+
         _load_feature_backend()
         import matplotlib.pyplot as plt
+
         # Compute predictions for plotting
         if is_cuda:
             free_memory()
@@ -1116,20 +1166,20 @@ def wb_correction(
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     White balance correction using diagonal matrix from neutral patches.
-    
+
     Args:
         img_rgb: RGB image (H, W, 3), float64, 0-1 range
         ref_cp: Reference color patch RGB values (24, 3)
         ref_illuminant: Reference illuminant (xy coordinates)
         show: Whether to display plots
         get_deltaE: Whether to compute Delta-E metrics
-        
+
     Returns:
         tuple: (diagonal_matrix, corrected_image, metrics)
             - diagonal_matrix: 3x3 diagonal WB matrix
             - corrected_image: White-balanced RGB image
             - metrics: Dict of metrics (if get_deltaE=True)
-            
+
     Example:
         >>> img = np.random.rand(100, 100, 3)
         >>> ref = np.random.rand(24, 3)
@@ -1137,20 +1187,24 @@ def wb_correction(
         >>> diag, corrected, metrics = wb_correction(img, ref, illum)
     """
     Metrics_all = {}
-    
+
     # Use only neutral patches (last 6)
     ref_np = ref_cp[-6:] if neutral_indices is None else ref_cp[list(neutral_indices)]
 
     # Extract neutral patches from image
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
-    values_, cps_before = extract_neutral_patches(img_bgr, return_one=True, neutral_indices=neutral_indices)
-    
+    values_, cps_before = extract_neutral_patches(
+        img_bgr, return_one=True, neutral_indices=neutral_indices
+    )
+
     if values_ is None or cps_before is None:
         if require_chart:
-            raise ValueError("WB requires a detected Classic24 chart; no white-balance model was fitted")
+            raise ValueError(
+                "WB requires a detected Classic24 chart; no white-balance model was fitted"
+            )
         # No patches found, return original with identity matrix
         return np.eye(3), img_rgb, {}
-    
+
     values_np = values_.values
 
     # Compute diagonal scaling matrix
@@ -1163,7 +1217,7 @@ def wb_correction(
     if get_deltaE:
         m_b = get_metrics(ref_cp, cps_before.values, ref_illuminant, "srgb")
         _, cps_after = extract_neutral_patches(to_uint8(img_pred[:, :, ::-1]))
-        
+
         if cps_after is not None:
             m_a = get_metrics(ref_cp, cps_after.values, ref_illuminant, "srgb")
             Metrics_all = arrange_metrics(m_b, m_a, name="WB")
@@ -1171,6 +1225,7 @@ def wb_correction(
     # Visualization
     if show:
         import matplotlib.pyplot as plt
+
         figure = plt.figure(figsize=(10, 5))
         ax = figure.add_subplot(1, 2, 1)
         ax.imshow(img_rgb)
@@ -1201,9 +1256,9 @@ def color_correction_1(
 ) -> Tuple[np.ndarray, np.ndarray, Any, dict]:
     """
     Color correction method 1: Conventional (Finlayson 2015).
-    
+
     Uses colour-science library's matrix_colour_correction function.
-    
+
     Args:
         img_rgb: RGB image (H, W, 3), float64, 0-1 range
         ref_rgb: Reference color patch RGB values (24, 3)
@@ -1211,14 +1266,14 @@ def color_correction_1(
         cc_kwargs: Color correction kwargs (method, degree, etc.)
         show: Whether to display plots
         get_deltaE: Whether to compute Delta-E metrics
-        
+
     Returns:
         tuple: (ccm, corrected_image, color_checker, metrics)
             - ccm: Color correction matrix (3, 3 or 3, N)
             - corrected_image: Color-corrected RGB image
             - color_checker: ColourChecker object (or None)
             - metrics: Dict of metrics (if get_deltaE=True)
-            
+
     Example:
         >>> img = np.random.rand(100, 100, 3)
         >>> ref = np.random.rand(24, 3)
@@ -1234,24 +1289,22 @@ def color_correction_1(
     # Extract color patches
     img_bgr = to_uint8(img_rgb[:, :, ::-1])
     _, color_patches = extract_neutral_patches(img_bgr, show=show)
-    
+
     if color_patches is None:
         if require_chart:
-            raise ValueError("CC requires a detected Classic24 chart; no correction matrix was fitted")
+            raise ValueError(
+                "CC requires a detected Classic24 chart; no correction matrix was fitted"
+            )
         # No patches found, return original with identity matrix
         return np.eye(3), img_rgb, None, {}
-    
+
     cp_values = color_patches.values
 
     # Compute CCM using colour-science
-    ccm = colour.characterisation.matrix_colour_correction(
-        M_T=cp_values, M_R=ref_rgb, **cc_kwargs
-    )
+    ccm = colour.characterisation.matrix_colour_correction(M_T=cp_values, M_R=ref_rgb, **cc_kwargs)
 
     # Apply CCM
-    img_rgb_ccm = apply_conventional(
-        RGB=img_rgb, CCM=ccm, **cc_kwargs
-    )
+    img_rgb_ccm = apply_conventional(RGB=img_rgb, CCM=ccm, **cc_kwargs)
     img_rgb_ccm = np.clip(img_rgb_ccm, 0, 1)
 
     # Extract corrected patches
@@ -1293,14 +1346,14 @@ def extract_color_chart_ex(
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     """
     Extract extended color chart samples with random sampling from each patch.
-    
+
     Args:
         img: Input BGR image (uint8)
         ref: Reference RGB values (24, 3), float64, range [0, 1]
         npts: Number of points to sample per patch (minimum 1)
         show: Whether to display detected chart visualization
         randomize: Whether to randomize patch order in output
-        
+
     Returns:
         tuple: (chart_samples, ref_samples) or (None, None) on failure
             - chart_samples: Extracted RGB values (24*npts, 3), float32
@@ -1308,71 +1361,75 @@ def extract_color_chart_ex(
     """
     import logging
     import warnings
+
     logger = logging.getLogger(__name__)
-    
+
     # Input validation
     if npts < 1:
         logger.warning(f"npts must be >= 1, got {npts}. Using npts=1")
         npts = 1
-    
+
     if img is None or img.size == 0:
         logger.error("Invalid input image")
         return None, None
-    
+
     if ref is None or ref.shape != (24, 3):
-        logger.error(f"Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}")
+        logger.error(
+            f"Invalid reference shape. Expected (24, 3), got {ref.shape if ref is not None else None}"
+        )
         return None, None
-    
-    logger.debug(f"extract_color_chart_ex called: img.shape={img.shape}, img.dtype={img.dtype}, npts={npts}")
+
+    logger.debug(
+        f"extract_color_chart_ex called: img.shape={img.shape}, img.dtype={img.dtype}, npts={npts}"
+    )
 
     # Keep the extended training path on the selected detector too. Model samples
     # preserve canonical cell order and reuse geometry within a calibration run.
     from ..detection import model_chart_samples
+
     model_samples = model_chart_samples(img, npts)
     if model_samples is not None:
         return model_samples, np.repeat(ref, npts, axis=0)
-    
+
     # Suppress noisy warnings during chart detection
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        old_log_level = logging.getLogger('root').level
-        logging.getLogger('root').setLevel(logging.ERROR)
-        
+        old_log_level = logging.getLogger("root").level
+        logging.getLogger("root").setLevel(logging.ERROR)
+
         try:
             # Pre-processing
             img_blur = cv2.medianBlur(img, 5)
-            
+
             # Chart detection (use version-safe factories from utils)
             detector = _create_detector()
             _mcc_process(detector, img_blur, 1)
             checkers = detector.getListColorChecker()
-            
+
             if len(checkers) == 0:
                 logger.warning("No color chart found in image")
                 return None, None
-            
+
             best_checker = checkers[0]
-            
+
             # Visualization (optional)
             if show:
                 img_draw = img.copy()
                 cdraw = _create_cdraw(best_checker)
                 cdraw.draw(img_draw)
                 colour.plotting.plot_image(to_float64(img_draw[:, :, ::-1]))
-            
+
             # Extract bounding box
             box_pts = best_checker.getBox()
             x1, x2 = int(box_pts[:, 0].min()), int(box_pts[:, 0].max())
             y1, y2 = int(box_pts[:, 1].min()), int(box_pts[:, 1].max())
-            
+
             # Crop to chart region
             img_crop = img[y1:y2, x1:x2, :]
             img_crop_rgb = to_float64(img_crop[:, :, ::-1])
-            
+
             if detect_colour_checkers_segmentation is None:
-                logger.warning(
-                    "colour-checker-detection is not installed, using basic extraction"
-                )
+                logger.warning("colour-checker-detection is not installed, using basic extraction")
                 chart, _, _ = extract_color_chart(img)
                 if chart is None:
                     return None, None
@@ -1389,19 +1446,19 @@ def extract_color_chart_ex(
             data = detect_colour_checkers_segmentation(
                 img_crop_rgb, samples=requested_samples, additional_data=True
             )
-            
+
             if len(data) < 1:
                 # Fallback to basic extraction
                 try:
-                    logger.warning('Segmentation failed, using basic extraction')
+                    logger.warning("Segmentation failed, using basic extraction")
                     chart, _, _ = extract_color_chart(img)
                     if chart is None:
                         return None, None
-                    
+
                     # Ensure proper range
                     if chart.max() > 1.5:
                         chart = chart.astype(np.float64) / 255.0
-                    
+
                     chart_ex = np.repeat(chart, npts, axis=0)
                     ref_ex = np.repeat(ref, npts, axis=0)
                     logger.debug(f"Extended chart samples: {chart_ex.shape}")
@@ -1409,54 +1466,56 @@ def extract_color_chart_ex(
                 except Exception as e:
                     logger.error(f"Fallback extraction failed: {e}")
                     return None, None
-            
+
             # Extract patch masks
             _, masks, image_, _ = data[0].values
             mask_list = list(masks)
             n_patches = len(mask_list)
-            
+
             if n_patches != 24:
                 logger.warning(f"Expected 24 patches, got {n_patches}")
-            
+
             # Pre-allocate output arrays (optimization)
             expected_samples = n_patches * npts
             chart_result = np.empty((expected_samples, 3), dtype=np.float32)
             ref_result = np.empty((expected_samples, 3), dtype=np.float64)
-            
+
             valid_patches = 0
             current_idx = 0
             n_stats = 3  # mean, max, min
-            
+
             # Process each patch
             for patch_id, (mask, ref_color) in enumerate(zip(mask_list, ref)):
                 try:
                     # Extract patch pixels
                     x_min, x_max, y_min, y_max = mask
                     patch_pixels = image_[x_min:x_max, y_min:y_max, :].reshape(-1, 3)
-                    
+
                     if patch_pixels.shape[0] == 0:
                         logger.warning(f"Empty patch {patch_id}, skipping")
                         continue
-                    
+
                     # Compute statistics (vectorized)
                     mean_val = patch_pixels.mean(axis=0)
                     max_val = patch_pixels.max(axis=0)
                     min_val = patch_pixels.min(axis=0)
-                    
+
                     # Adaptive sampling strategy (FIXED: no negative dimensions)
                     n_samples_needed = max(0, npts - n_stats)
-                    
+
                     if n_samples_needed > 0:
                         # Need additional random samples
                         n_available = patch_pixels.shape[0]
                         n_to_sample = min(n_samples_needed, n_available)
-                        
+
                         if n_to_sample > 0:
-                            indices = np.random.choice(n_available, n_to_sample, replace=(n_to_sample > n_available))
+                            indices = np.random.choice(
+                                n_available, n_to_sample, replace=(n_to_sample > n_available)
+                            )
                             sampled = patch_pixels[indices]
                         else:
                             sampled = np.empty((0, 3), dtype=np.float32)
-                        
+
                         # Combine: random samples + statistics
                         stats_data = np.vstack([mean_val, max_val, min_val])
                         all_data = np.vstack([sampled, stats_data])
@@ -1468,7 +1527,7 @@ def extract_color_chart_ex(
                             all_data = np.vstack([mean_val, max_val])
                         else:  # npts == 3
                             all_data = np.vstack([mean_val, max_val, min_val])
-                    
+
                     # Ensure exact size
                     if all_data.shape[0] < npts:
                         n_to_add = npts - all_data.shape[0]
@@ -1476,53 +1535,54 @@ def extract_color_chart_ex(
                         all_data = np.vstack([all_data, padding])
                     elif all_data.shape[0] > npts:
                         all_data = all_data[:npts, :]
-                    
+
                     # Direct array assignment (FIXED: explicit repetition)
                     end_idx = current_idx + npts
                     chart_result[current_idx:end_idx, :] = all_data
                     ref_result[current_idx:end_idx, :] = ref_color
-                    
+
                     current_idx = end_idx
                     valid_patches += 1
-                    
+
                 except Exception as e:
                     logger.warning(f"Error processing patch {patch_id}: {e}")
                     continue
-            
+
             # Validate results
             if valid_patches == 0:
                 logger.error("No valid patches extracted")
                 return None, None
-            
+
             # Trim arrays if some patches failed
             actual_samples = valid_patches * npts
             if actual_samples < expected_samples:
                 chart_result = chart_result[:actual_samples, :]
                 ref_result = ref_result[:actual_samples, :]
-            
+
             # Randomization (optional)
             if randomize:
                 # Vectorized patch-level shuffling
                 patch_indices = np.arange(valid_patches)
                 np.random.shuffle(patch_indices)
-                
+
                 # Reshape, shuffle, reshape back
                 chart_patches = chart_result.reshape(valid_patches, npts, 3)
                 ref_patches = ref_result.reshape(valid_patches, npts, 3)
-                
+
                 chart_result = chart_patches[patch_indices].reshape(-1, 3)
                 ref_result = ref_patches[patch_indices].reshape(-1, 3)
-            
+
             logger.debug(f"Extended chart samples: {chart_result.shape}")
             return chart_result, ref_result
-            
+
         except Exception as e:
             logger.error(f"Error in extract_color_chart_ex: {e}")
             import traceback
+
             traceback.print_exc()
             return None, None
         finally:
-            logging.getLogger('root').setLevel(old_log_level)
+            logging.getLogger("root").setLevel(old_log_level)
 
 
 def color_correction(
@@ -1536,9 +1596,9 @@ def color_correction(
 ) -> Tuple[Any, np.ndarray, Any, dict]:
     """
     Color correction method 2: Custom ML-based (ours).
-    
+
     Uses polynomial expansion with various ML backends (linear, PLS, NN).
-    
+
     Args:
         img_rgb: RGB image (H, W, 3), float64, 0-1 range
         ref_rgb: Reference color patch RGB values (24, 3)
@@ -1547,14 +1607,14 @@ def color_correction(
         show: Whether to display plots
         get_deltaE: Whether to compute Delta-E metrics
         n_samples: Number of samples per patch (if > 1, uses extended extraction)
-        
+
     Returns:
         tuple: (model, corrected_image, color_checker, metrics)
             - model: Fitted Regressor_Model
             - corrected_image: Color-corrected RGB image
             - color_checker: ColourChecker object (or None)
             - metrics: Dict of metrics (if get_deltaE=True)
-            
+
     Example:
         >>> img = np.random.rand(100, 100, 3)
         >>> ref = np.random.rand(24, 3)
@@ -1582,8 +1642,9 @@ def color_correction(
     # This corrupts the image and breaks chart detection
     import logging
     import warnings
+
     logger = logging.getLogger(__name__)
-    
+
     # Debug: Check image range before clipping
     if img_rgb.min() < 0 or img_rgb.max() > 1:
         logger.debug(
@@ -1591,12 +1652,14 @@ def color_correction(
             f"range=[{img_rgb.min():.6f}, {img_rgb.max():.6f}], "
             f"out-of-range pixels: {(img_rgb < 0).sum() + (img_rgb > 1).sum()}"
         )
-    
+
     img_rgb_clipped = np.clip(img_rgb, 0, 1)
     img_bgr = to_uint8(img_rgb_clipped[:, :, ::-1])
-    
-    logger.debug(f"color_correction: Converted image for chart detection: shape={img_bgr.shape}, dtype={img_bgr.dtype}, range=[{img_bgr.min()}, {img_bgr.max()}]")
-    
+
+    logger.debug(
+        f"color_correction: Converted image for chart detection: shape={img_bgr.shape}, dtype={img_bgr.dtype}, range=[{img_bgr.min()}, {img_bgr.max()}]"
+    )
+
     cp_values = None
     color_patches = None
     chart_ex = None
@@ -1619,18 +1682,20 @@ def color_correction(
         # (They log warnings even when succeeding)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            old_log_level = logging.getLogger('root').level
-            logging.getLogger('root').setLevel(logging.ERROR)
+            old_log_level = logging.getLogger("root").level
+            logging.getLogger("root").setLevel(logging.ERROR)
             try:
                 _, color_patches = extract_neutral_patches(
                     img_bgr,
                     show=show if n_samples == 1 else False,
                 )
             finally:
-                logging.getLogger('root').setLevel(old_log_level)
+                logging.getLogger("root").setLevel(old_log_level)
 
         if color_patches is None:
-            logger.warning("No color patches detected in input image, cannot perform color correction")
+            logger.warning(
+                "No color patches detected in input image, cannot perform color correction"
+            )
             return None, img_rgb, None, {}
 
         cp_values = color_patches.values
@@ -1670,22 +1735,24 @@ def color_correction(
     # Compute corrected patch values directly using the model
     # This is more reliable than trying to re-detect patches in the corrected image
     cp_values_corrected = predict_(RGB=cp_values.reshape(-1, 1, 3), M=M_RGB).reshape(-1, 3)
-    
+
     # Also try to extract patches from corrected image (for visualization only)
     img_bgr_ccm = to_uint8(np.clip(img_rgb_ccm[:, :, ::-1], 0, 1))
     color_patches_corrected = None
     if show:  # Only try re-detection if we need it for visualization
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            old_log_level = logging.getLogger('root').level
-            logging.getLogger('root').setLevel(logging.ERROR)
+            old_log_level = logging.getLogger("root").level
+            logging.getLogger("root").setLevel(logging.ERROR)
             try:
                 _, color_patches_corrected = extract_neutral_patches(img_bgr_ccm)
                 logger.debug("Re-detected patches in corrected image for visualization")
             except Exception:
-                logger.debug("Could not re-detect patches in corrected image (using model prediction instead)")
+                logger.debug(
+                    "Could not re-detect patches in corrected image (using model prediction instead)"
+                )
             finally:
-                logging.getLogger('root').setLevel(old_log_level)
+                logging.getLogger("root").setLevel(old_log_level)
 
     # Compute metrics
     if get_deltaE:
@@ -1693,7 +1760,9 @@ def color_correction(
         # Use model-predicted corrected values for metrics (more accurate)
         m_a = get_metrics(ref_rgb, cp_values_corrected, ref_illuminant, "srgb")
         Metrics_ = arrange_metrics(m_b, m_a, name="CC_M2")
-        logger.info(f"Color correction metrics: deltaE before={m_b.deltaE.mean():.3f}, after={m_a.deltaE.mean():.3f}, improvement={((m_b.deltaE.mean() - m_a.deltaE.mean()) / m_b.deltaE.mean() * 100):.1f}%")
+        logger.info(
+            f"Color correction metrics: deltaE before={m_b.deltaE.mean():.3f}, after={m_a.deltaE.mean():.3f}, improvement={((m_b.deltaE.mean() - m_a.deltaE.mean()) / m_b.deltaE.mean() * 100):.1f}%"
+        )
 
     # Create corrected color checker
     if show and color_patches_corrected is not None:
@@ -1714,6 +1783,7 @@ def color_correction(
 
         # Plot
         import matplotlib.pyplot as plt
+
         figure = plt.figure(figsize=(10, 5))
         ax = figure.add_subplot(1, 2, 1)
         ax.imshow(img_rgb)

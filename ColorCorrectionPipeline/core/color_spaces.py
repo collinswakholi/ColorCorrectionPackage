@@ -59,7 +59,7 @@ def convert_to_lab(
     is built). Before 2.3 it skipped the adaptation, which biased Lab and Delta E
     for any non-D65 ``REF_ILLUMINANT`` (sRGB white read as a*=-2.4, b*=-19.4
     against D50). D65 results are unchanged.
-    
+
     Args:
         mat: Input color values
         illuminant: Reference illuminant (xy chromaticity coordinates)
@@ -68,13 +68,13 @@ def convert_to_lab(
             - "xyy": CIE xyY
             - "lab": Already in Lab (returns as-is)
             - "srgb": sRGB
-            
+
     Returns:
         np.ndarray: L*a*b* values (shape preserved)
-        
+
     Raises:
         ValueError: If c_space is invalid
-        
+
     Example:
         >>> rgb = np.array([[1.0, 0.0, 0.0]])  # Pure red
         >>> lab = convert_to_lab(rgb, illuminant=WP_DEFAULT, c_space="srgb")
@@ -85,12 +85,10 @@ def convert_to_lab(
     """
     c_space_list = ["xyy", "lab", "xyz", "srgb"]
     c_space = c_space.lower()
-    
+
     if c_space not in c_space_list:
-        raise ValueError(
-            f"Invalid colour space: {c_space}. Must be one of {c_space_list}"
-        )
-    
+        raise ValueError(f"Invalid colour space: {c_space}. Must be one of {c_space_list}")
+
     if c_space == "xyy":
         return colour.XYZ_to_Lab(colour.xyY_to_XYZ(mat), illuminant)
     elif c_space == "lab":
@@ -99,7 +97,7 @@ def convert_to_lab(
         return colour.XYZ_to_Lab(mat, illuminant)
     elif c_space == "srgb":
         return colour.XYZ_to_Lab(srgb_to_xyz_for_white(mat, illuminant), illuminant)
-    
+
     # Should never reach here due to validation above
     raise ValueError(f"Invalid colour space: {c_space}")
 
@@ -111,21 +109,21 @@ def convert_to_LCHab(
 ) -> np.ndarray:
     """
     Convert color values to CIE L*C*h° (LCHab) color space.
-    
+
     Args:
         mat: Input color values
         illuminant: Reference illuminant (xy chromaticity coordinates)
         c_space: Source color space ("xyz", "xyy", "lab", "srgb")
-        
+
     Returns:
         np.ndarray: L*C*h° values where:
             - L*: Lightness
             - C*: Chroma
             - h°: Hue angle in degrees
-            
+
     Raises:
         ValueError: If c_space is invalid
-        
+
     Example:
         >>> rgb = np.array([[1.0, 0.0, 0.0]])
         >>> lch = convert_to_LCHab(rgb, illuminant=WP_DEFAULT, c_space="srgb")
@@ -136,12 +134,10 @@ def convert_to_LCHab(
     """
     c_space_list = ["xyy", "lab", "xyz", "srgb"]
     c_space = c_space.lower()
-    
+
     if c_space not in c_space_list:
-        raise ValueError(
-            f"Invalid colour space: {c_space}. Must be one of {c_space_list}"
-        )
-    
+        raise ValueError(f"Invalid colour space: {c_space}. Must be one of {c_space_list}")
+
     if c_space == "xyy":
         return colour.Lab_to_LCHab(colour.XYZ_to_Lab(colour.xyY_to_XYZ(mat), illuminant))
     elif c_space == "lab":
@@ -152,7 +148,7 @@ def convert_to_LCHab(
         xyz = colour.sRGB_to_XYZ(mat)
         lab = colour.XYZ_to_Lab(xyz, illuminant)
         return colour.Lab_to_LCHab(lab)
-    
+
     # Should never reach here
     raise ValueError(f"Invalid colour space: {c_space}")
 
@@ -165,37 +161,37 @@ def srgb_to_cielab_D50(
 ) -> np.ndarray:
     """
     Convert sRGB to CIE L*a*b* under D50 illuminant.
-    
+
     This function performs chromatic adaptation from the source illuminant
     to D50 before converting to Lab.
-    
+
     Args:
         srgb_mat: sRGB values (0-1 range)
         srgb_mat_illuminant: Source illuminant (xy chromaticity coordinates)
-        
+
     Returns:
         np.ndarray: L*a*b* values under D50 illuminant
-        
+
     Example:
         >>> rgb = np.array([[0.5, 0.5, 0.5]])
         >>> lab_d50 = srgb_to_cielab_D50(rgb, illuminant=WP_DEFAULT)
         >>> lab_d50.shape
         (1, 3)
-        
+
     Note:
         The legacy path explicitly retains validated CAT02. Pass adaptation_transform
         explicitly for Bradford/CAT02, or use colorimetry for declared encodings.
     """
     # D50 illuminant in xy chromaticity
     D50_xy = colour.CCS_ILLUMINANTS["CIE 1931 2 Degree Standard Observer"]["D50"]
-    
+
     # Convert sRGB to XYZ
     xyz = colour.sRGB_to_XYZ(srgb_mat)
-    
+
     # Convert xy chromaticity to XYZ (assuming Y=1) for both source and dest
     source_xyz = colour.xy_to_XYZ(srgb_mat_illuminant)
     dest_xyz = colour.xy_to_XYZ(D50_xy)
-    
+
     # Adapt from source illuminant to D50
     # Use "Von Kries" as it's available in current colour-science version
     xyz_d50 = colour.adaptation.chromatic_adaptation(
@@ -205,10 +201,10 @@ def srgb_to_cielab_D50(
         method="Von Kries",
         **_adaptation_options(adaptation_transform),
     )
-    
+
     # Convert to Lab under D50 (XYZ_to_Lab expects xy chromaticity)
     lab = colour.XYZ_to_Lab(xyz_d50, D50_xy)
-    
+
     return lab
 
 
@@ -221,15 +217,15 @@ def adapt_chart(
 ) -> colour.characterisation.ColourChecker:
     """
     Adapt ColorChecker chart to target illuminant using chromatic adaptation.
-    
+
     Args:
         color_chart: Original ColourChecker instance
         target_illuminant: Target illuminant (xy chromaticity coordinates)
         cmfs: Color matching functions name (default: "CIE 1931 2 Degree Standard Observer")
-        
+
     Returns:
         colour.characterisation.ColourChecker: Adapted chart
-        
+
     Example:
         >>> from colour import CCS_COLOURCHECKERS
         >>> chart = CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
@@ -237,7 +233,7 @@ def adapt_chart(
         >>> adapted = adapt_chart(chart, d65)
         >>> adapted.name
         'ColorChecker24 - After November 2014'
-        
+
     Note:
         Legacy behavior explicitly retains CAT02. An explicit
         adaptation_transform selects Bradford or CAT02 without changing defaults.
@@ -245,18 +241,18 @@ def adapt_chart(
     options = _adaptation_options(adaptation_transform)
     # Get source illuminant from chart
     source_illuminant = color_chart.illuminant
-    
+
     # If same illuminant, return as-is
     if np.allclose(source_illuminant, target_illuminant, rtol=1e-4):
         return color_chart
-    
+
     # Convert illuminants from xy to XYZ (assuming Y=1)
     source_xyz = colour.xy_to_XYZ(source_illuminant)
     target_xyz = colour.xy_to_XYZ(target_illuminant)
-    
+
     # Convert chart data to XYZ
     chart_xyz = colour.xyY_to_XYZ(list(color_chart.data.values()))
-    
+
     # Perform chromatic adaptation
     adapted_xyz = colour.adaptation.chromatic_adaptation(
         chart_xyz,
@@ -265,15 +261,16 @@ def adapt_chart(
         method="Von Kries",
         **options,
     )
-    
+
     # Convert back to xyY
     adapted_xyy = colour.XYZ_to_xyY(adapted_xyz)
-    
+
     # Create new ColourChecker with adapted values
     # Convert keys to strings to avoid numpy dtype issues
     adapted_data = {str(k): v for k, v in zip(color_chart.data.keys(), adapted_xyy)}
-    
+
     from ..checker_compat import make_colour_checker
+
     adapted_chart = make_colour_checker(
         name=color_chart.name,
         data=adapted_data,
@@ -281,7 +278,7 @@ def adapt_chart(
         rows=getattr(color_chart, "rows", None),
         columns=getattr(color_chart, "columns", None),
     )
-    
+
     return adapted_chart
 
 
@@ -294,15 +291,15 @@ def do_color_adaptation(
 ) -> np.ndarray:
     """
     Apply chromatic adaptation to image from source to destination illuminant.
-    
+
     Args:
         img: Input image (RGB, float64, 0-1 range)
         orig_illuminant: Original illuminant (xy chromaticity coordinates)
         dest_illuminant: Destination illuminant (xy chromaticity coordinates)
-        
+
     Returns:
         np.ndarray: Color-adapted image (same shape as input)
-        
+
     Example:
         >>> img_rgb = np.random.rand(100, 100, 3)
         >>> d65 = np.array([0.31271, 0.32902])
@@ -310,7 +307,7 @@ def do_color_adaptation(
         >>> adapted = do_color_adaptation(img_rgb, d65, d50)
         >>> adapted.shape
         (100, 100, 3)
-        
+
     Note:
         The legacy path explicitly retains validated CAT02; this
         helper does not change the image's declared RGB encoding. Explicit
@@ -320,23 +317,23 @@ def do_color_adaptation(
     # If same illuminant, return as-is
     if np.allclose(orig_illuminant, dest_illuminant, rtol=1e-4):
         return img
-    
+
     # Get original shape
     orig_shape = img.shape
-    
+
     # Reshape to (N, 3) for processing
     if img.ndim == 3:
         img_flat = img.reshape(-1, 3)
     else:
         img_flat = img
-    
+
     # Convert RGB to XYZ
     xyz = colour.sRGB_to_XYZ(img_flat)
-    
+
     # Convert xy chromaticity to XYZ (assuming Y=1)
     orig_xyz = colour.xy_to_XYZ(orig_illuminant)
     dest_xyz = colour.xy_to_XYZ(dest_illuminant)
-    
+
     # Apply chromatic adaptation
     # Use "Von Kries" as it's available in current colour-science version
     xyz_adapted = colour.adaptation.chromatic_adaptation(
@@ -346,17 +343,17 @@ def do_color_adaptation(
         method="Von Kries",
         **options,
     )
-    
+
     # Convert back to RGB
     rgb_adapted = colour.XYZ_to_sRGB(xyz_adapted)
-    
+
     # Clip to valid range
     rgb_adapted = np.clip(rgb_adapted, 0, 1)
-    
+
     # Restore original shape
     if img.ndim == 3:
         rgb_adapted = rgb_adapted.reshape(orig_shape)
-    
+
     return rgb_adapted
 
 
@@ -366,16 +363,16 @@ def which_is_saturated(
 ) -> Tuple[bool, np.ndarray]:
     """
     Identify saturated pixels in color matrix.
-    
+
     Args:
         mat: Color values (0-1 range)
         threshold: Saturation threshold (default 0.99)
-        
+
     Returns:
         tuple: (is_saturated, saturated_mask)
             - is_saturated: True if any pixels are saturated
             - saturated_mask: Boolean mask of saturated pixels
-            
+
     Example:
         >>> mat = np.array([[0.5, 0.5, 0.5], [1.0, 1.0, 1.0]])
         >>> is_sat, mask = which_is_saturated(mat, threshold=0.99)
@@ -387,27 +384,27 @@ def which_is_saturated(
     # Check if any channel exceeds threshold
     saturated_mask = np.any(mat >= threshold, axis=-1)
     is_saturated = np.any(saturated_mask)
-    
+
     return bool(is_saturated), saturated_mask
 
 
 def nan_if_saturated(mat: np.ndarray, threshold: float = 0.99) -> np.ndarray:
     """
     Replace saturated values with NaN.
-    
+
     Args:
         mat: Color values (0-1 range)
         threshold: Saturation threshold (default 0.99)
-        
+
     Returns:
         np.ndarray: Matrix with saturated values replaced by NaN
-        
+
     Example:
         >>> mat = np.array([[0.5, 0.5, 0.5], [1.0, 1.0, 1.0]])
         >>> result = nan_if_saturated(mat, threshold=0.99)
         >>> np.isnan(result[1, 0])
         True
-        
+
     Note:
         Useful for excluding saturated pixels from metric calculations.
     """
@@ -424,53 +421,53 @@ def extrapolate_if_saturated_mat(
 ) -> np.ndarray:
     """
     Extrapolate saturated values using reference matrix.
-    
+
     This function identifies saturated pixels and extrapolates their values
     based on the relationship between non-saturated measured and reference values.
-    
+
     Args:
         mat: Measured values (may contain saturated pixels)
         mat_ref: Reference values
         n_proc: Number of processes (unused, kept for compatibility)
-        
+
     Returns:
         np.ndarray: Matrix with extrapolated values for saturated pixels
-        
+
     Example:
         >>> measured = np.array([[0.5, 0.5, 0.5], [1.0, 0.9, 0.8]])
         >>> reference = np.array([[0.6, 0.6, 0.6], [1.2, 1.1, 1.0]])
         >>> result = extrapolate_if_saturated_mat(measured, reference)
         >>> result.shape
         (2, 3)
-        
+
     Note:
         Uses linear extrapolation based on median scaling factor from
         non-saturated pixels.
     """
     is_saturated, saturated_mask = which_is_saturated(mat, threshold=0.99)
-    
+
     if not is_saturated:
         return mat
-    
+
     result = mat.copy()
-    
+
     # Get non-saturated pixels
     non_saturated_mask = ~saturated_mask
-    
+
     if np.sum(non_saturated_mask) == 0:
         # All pixels saturated, can't extrapolate
         return result
-    
+
     # Compute scaling factors from non-saturated pixels
     mat_non_sat = mat[non_saturated_mask]
     ref_non_sat = mat_ref[non_saturated_mask]
-    
+
     # Compute median scaling factor per channel
     scaling_factors = np.nanmedian(ref_non_sat / (mat_non_sat + 1e-10), axis=0)
-    
+
     # Apply to saturated pixels
     result[saturated_mask] = mat[saturated_mask] * scaling_factors
-    
+
     return result
 
 
@@ -518,7 +515,9 @@ def extrapolate_if_sat_image(
     img_flat_corrected = np.array(img_flat, dtype=np.float64, copy=True)
     above = img_flat_corrected > _SAT_KNEE
     slope = (_SAT_CEILING - _SAT_KNEE) / (1.0 - _SAT_KNEE)
-    img_flat_corrected[above] = _SAT_KNEE + (np.minimum(img_flat_corrected[above], 1.0) - _SAT_KNEE) * slope
+    img_flat_corrected[above] = (
+        _SAT_KNEE + (np.minimum(img_flat_corrected[above], 1.0) - _SAT_KNEE) * slope
+    )
 
     result = img_flat_corrected.reshape(orig_shape)
     return result, saturated_values, saturated_indices

@@ -1,12 +1,13 @@
 """Numeric helper contracts: rounding, scale handling and the saturation curve."""
+
 import numpy as np
 import pytest
 
 from ColorCorrectionPipeline.core.color_spaces import extrapolate_if_sat_image
 from ColorCorrectionPipeline.core.utils import to_float64, to_uint8
 
-
 # --- to_uint8 / to_float64 (core) -------------------------------------------------
+
 
 def test_core_to_uint8_rounds_to_nearest_code():
     codes = np.arange(256, dtype=np.float64)
@@ -30,6 +31,7 @@ def test_core_to_float64_explicit_scale_overrides_guess():
 
 # --- legacy key_functions helpers --------------------------------------------------
 
+
 def test_legacy_to_uint8_clips_and_rounds_instead_of_wrapping():
     from ColorCorrectionPipeline import key_functions as kf
 
@@ -45,6 +47,7 @@ def test_legacy_to_float64_scales_integer_types_by_their_range():
 
 
 # --- saturation curve -----------------------------------------------------------------
+
 
 def _curve(values):
     img = np.asarray(values, dtype=np.float64).reshape(-1, 1, 1).repeat(3, axis=2)

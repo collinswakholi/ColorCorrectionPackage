@@ -19,8 +19,15 @@ from .charts import (
 )
 
 __all__ = [
-    "DEFAULT_MODEL_PATH", "ChartDetectionError", "DetectionOptions", "ModelUnavailableError",
-    "NoChartDetectedError", "UnsupportedChartError", "detection_context",
-    "get_detection_diagnostics", "model_chart_samples", "model_extract_color_charts",
+    "DEFAULT_MODEL_PATH",
+    "ChartDetectionError",
+    "DetectionOptions",
+    "ModelUnavailableError",
+    "NoChartDetectedError",
+    "UnsupportedChartError",
+    "detection_context",
+    "get_detection_diagnostics",
+    "model_chart_samples",
+    "model_extract_color_charts",
     "bind_detection_source",
 ]

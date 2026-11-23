@@ -108,7 +108,10 @@ if accel.HAS_NUMBA:
             c00 = table[r0, g0, b0, channel] * wr + table[r0 + 1, g0, b0, channel] * rd
             c01 = table[r0, g0, b0 + 1, channel] * wr + table[r0 + 1, g0, b0 + 1, channel] * rd
             c10 = table[r0, g0 + 1, b0, channel] * wr + table[r0 + 1, g0 + 1, b0, channel] * rd
-            c11 = table[r0, g0 + 1, b0 + 1, channel] * wr + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
+            c11 = (
+                table[r0, g0 + 1, b0 + 1, channel] * wr
+                + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
+            )
             c0, c1 = c00 * wg + c10 * gd, c01 * wg + c11 * gd
             rgb[channel] = np.float32(min(1.0, max(0.0, c0 * wb + c1 * bd)))
 
@@ -159,8 +162,18 @@ if accel.HAS_NUMBA:
                     if gamma and native:
                         r, g, b = source_r, source_g, source_b
                     rr, gg, bb = _color(
-                        r, g, b, stage_gain, knots, coefficients, gamma,
-                        forward, inverse, white, decodes, native,
+                        r,
+                        g,
+                        b,
+                        stage_gain,
+                        knots,
+                        coefficients,
+                        gamma,
+                        forward,
+                        inverse,
+                        white,
+                        decodes,
+                        native,
                     )
                     r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
                 elif stage == 2 and len(wb):
@@ -198,8 +211,20 @@ if accel.HAS_NUMBA:
 
         workers = worker_count(len(flat), 65536)
         output = np.empty((len(retained), len(flat), 3), dtype=np.float64)
-        parameters = (knots, coefficients, wb, table, stop, retained, forward,
-                      inverse, white, decodes, native, native_codes)
+        parameters = (
+            knots,
+            coefficients,
+            wb,
+            table,
+            stop,
+            retained,
+            forward,
+            inverse,
+            white,
+            decodes,
+            native,
+            native_codes,
+        )
         tile_size = chunk_pixels or len(flat)
 
         def fill(start, end):

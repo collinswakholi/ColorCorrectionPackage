@@ -1,4 +1,5 @@
 """Every name a module advertises in ``__all__`` must resolve."""
+
 import importlib
 
 import numpy as np
