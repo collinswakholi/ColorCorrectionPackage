@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Make the legacy `custom` (CustomNN) color-correction method reproducible: `random_state` now seeds weight initialization, batch shuffling and dropout as well as the validation split, without changing the caller's global torch RNG. Fits with this method previously varied between runs, so their results will differ from earlier runs.
+- Define `apply_srgb_to_linear_image` and `apply_linear_to_srgb_image`, which `ColorCorrectionPipeline.core.accel.__all__` has listed since 1.4.0, so `from ColorCorrectionPipeline.core.accel import *` works.
+- Report a chart/white-image shape mismatch in legacy flat-field correction as a `ValueError`, including under `python -O`.
+- Add a pytest suite with golden-output tests for eleven configurations (kept out of the sdist and wheel).
+
 ## [2.2.0]
 
 - Add reproducible random chart sampling with an exact sample count per patch and a recorded seed for UI-native fits. Existing grid recipes keep their sampling behavior. Incompatible fitting policies report an error when exact sampling is requested.
