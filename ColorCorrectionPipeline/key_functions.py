@@ -1323,7 +1323,10 @@ def convert_to_lab(
     elif c_space == "xyz":
         return colour.XYZ_to_Lab(mat, illuminant)
     elif c_space == "srgb":
-        return colour.XYZ_to_Lab(colour.sRGB_to_XYZ(mat), illuminant)
+        # Adapt to non-D65 whites (see core.color_spaces.convert_to_lab).
+        from .core.color_spaces import srgb_to_xyz_for_white
+
+        return colour.XYZ_to_Lab(srgb_to_xyz_for_white(mat, illuminant), illuminant)
     else:
         raise ValueError(f"Invalid colour space: {c_space}")
 

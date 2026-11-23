@@ -38,6 +38,14 @@ def _adaptation_options(transform):
     return {"transform": transform}
 
 
+def srgb_to_xyz_for_white(mat: np.ndarray, illuminant: np.ndarray = WP_DEFAULT) -> np.ndarray:
+    """Decode sRGB to XYZ relative to ``illuminant`` (no adaptation for D65)."""
+    illuminant = np.asarray(illuminant, dtype=np.float64)
+    if np.allclose(illuminant, WP_DEFAULT, atol=2e-4):
+        return colour.sRGB_to_XYZ(mat)
+    return colour.sRGB_to_XYZ(mat, illuminant=illuminant)
+
+
 def convert_to_lab(
     mat: np.ndarray,
     illuminant: np.ndarray = WP_DEFAULT,
@@ -46,9 +54,11 @@ def convert_to_lab(
     """
     Convert color values to CIE L*a*b* color space.
 
-    Compatibility behavior: the sRGB branch converts to D65 XYZ and then uses
-    the supplied Lab white without chromatic adaptation. For an explicitly
-    adapted comparison, use ColorCorrectionPipeline.colorimetry instead.
+    The sRGB branch decodes to D65 XYZ and, when ``illuminant`` is not D65,
+    adapts it to that white (CAT02, the inverse of how the legacy reference RGB
+    is built). Before 2.3 it skipped the adaptation, which biased Lab and Delta E
+    for any non-D65 ``REF_ILLUMINANT`` (sRGB white read as a*=-2.4, b*=-19.4
+    against D50). D65 results are unchanged.
     
     Args:
         mat: Input color values
@@ -88,7 +98,7 @@ def convert_to_lab(
     elif c_space == "xyz":
         return colour.XYZ_to_Lab(mat, illuminant)
     elif c_space == "srgb":
-        return colour.XYZ_to_Lab(colour.sRGB_to_XYZ(mat), illuminant)
+        return colour.XYZ_to_Lab(srgb_to_xyz_for_white(mat, illuminant), illuminant)
     
     # Should never reach here due to validation above
     raise ValueError(f"Invalid colour space: {c_space}")
