@@ -135,7 +135,10 @@ def _project_encoding(text, *, owned=False):
 def _frame(value, count):
     if value is None:
         if count != 1:
-            raise ValueError("explicit image input requires a single frame; choose frame_index explicitly")
+            raise ValueError(
+                "explicit image input requires a single frame; this file has %d frames "
+                "(camera JPEGs often embed a preview). Choose one with "
+                "Config(input={'frame_index': 0}) or image_options={'frame_index': 0}" % count)
         return 0
     if type(value) is not int or not 0 <= value < count:
         raise ValueError("frame_index must select an existing nonnegative frame")

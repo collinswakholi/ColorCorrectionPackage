@@ -703,7 +703,8 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
     # Select model
     fit_method = M.mtd.lower()
     if fit_method not in model_dict:
-        raise ValueError(f"Unknown regression method: {M.mtd}. Choose linear, pls, nn or custom")
+        hint = " For the conventional CCM use cc_method='conv'." if fit_method == "conv" else ""
+        raise ValueError(f"Unknown regression method: {M.mtd}. Choose linear, pls, nn or custom.{hint}")
 
     M.model = model_dict[fit_method]
 

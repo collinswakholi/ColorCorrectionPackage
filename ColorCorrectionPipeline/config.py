@@ -69,6 +69,22 @@ class Config:
     # Configs saved before the fit notice have no record of an inferred policy.
     _inferred_legacy_policy = False
 
+    @classmethod
+    def from_preset(cls, name: str = "rpcc2", *, white: bool = True, frame_index: Optional[int] = 0,
+                    device: str = "auto", **overrides: Any) -> "Config":
+        """Build a v2 configuration from a named preset.
+
+        Presets: ``rpcc2`` (default), ``rpcc3``, ``ccm`` (alias ``3x3``), ``pls`` and
+        ``high-precision``. ``white`` enables flat-field correction, ``frame_index`` picks the
+        frame of multi-frame files (``None`` keeps the strict single-frame check) and
+        ``overrides`` are further keyword arguments; ``input`` and ``chart`` mappings are merged.
+
+        >>> Config.from_preset("pls", white=False).CC_kwargs["model"]
+        'pls'
+        """
+        from .simple import preset_config
+        return preset_config(name, white=white, frame_index=frame_index, device=device, **overrides)
+
     def __init__(
         self,
         do_ffc: bool = UNSET,

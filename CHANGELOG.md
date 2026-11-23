@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- New two-call API: `calibrate(chart, white=..., save_to=...)` returns a `Calibration` (fitted pipeline, metrics, `delta_e`, `correct()`, `save()`), and `correct(image, calibration_or_bundle_path)` returns float RGB. Both are thin layers over `Config` and `ColorCorrection` and give identical results.
+- `Config.from_preset("rpcc2" | "rpcc3" | "ccm" | "3x3" | "pls" | "high-precision", ...)` builds a v2 configuration with `frame_index=0`, flat-field on or off, and merged `input`/`chart` overrides.
+- `ColorCorrection.fit(chart, white=None, *, name="", config=None)` and `ColorCorrection.predict(image, ...)` are lowercase aliases of `fit_or_raise` and `predict_image`; the original methods are unchanged.
+- Clearer errors: multi-frame images (camera JPEGs with a preview frame) say how to choose `frame_index`, and `CC_kwargs={"mtd": "conv"}` points to `cc_method="conv"` instead of first logging that it is using that method.
 - Make the legacy `custom` (CustomNN) color-correction method reproducible: `random_state` now seeds weight initialization, batch shuffling and dropout as well as the validation split, without changing the caller's global torch RNG. Fits with this method previously varied between runs, so their results will differ from earlier runs.
 - Define `apply_srgb_to_linear_image` and `apply_linear_to_srgb_image`, which `ColorCorrectionPipeline.core.accel.__all__` has listed since 1.4.0, so `from ColorCorrectionPipeline.core.accel import *` works.
 - Report a chart/white-image shape mismatch in legacy flat-field correction as a `ValueError`, including under `python -O`.

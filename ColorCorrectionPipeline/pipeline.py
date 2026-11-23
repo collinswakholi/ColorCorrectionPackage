@@ -665,6 +665,9 @@ class ColorCorrection:
                     "lut_grid_size": get_attr(cc_kwargs, "lut_grid_size", 33),
                     "lut_min_pixels": get_attr(cc_kwargs, "lut_min_pixels", 4096),
                 }
+                if str(params["mtd"]).lower() not in ("linear", "pls", "nn", "custom"):
+                    hint = " For the conventional CCM use cc_method='conv'." if str(params["mtd"]).lower() == "conv" else ""
+                    raise ValueError("Unknown regression method: %s. Choose linear, pls, nn or custom.%s" % (params["mtd"], hint))
                 print(f"Info: Using custom CC method: {params['mtd']}")
                 model, img_cc, corrected_card, metrics_cc = color_correction(
                     img_rgb=Image,
@@ -811,6 +814,18 @@ class ColorCorrection:
             if failed:
                 raise CalibrationError(self.last_run["errors"])
             return FitResult(name_, self.models, metrics, images, tuple(self.last_run["artifacts"]))
+
+    def fit(self, chart, white=None, *, name: str = "", config: Optional[Config] = None) -> FitResult:
+        """Fit a calibration; same as :meth:`fit_or_raise` with lowercase argument names.
+
+        Raises :class:`CalibrationError` if an enabled stage fails; a failed attempt leaves
+        the previously active calibration in place.
+        """
+        return self.fit_or_raise(chart, white, name_=name, config=config)
+
+    def predict(self, image, *, stages=None, chunk_pixels=None) -> Dict[str, np.ndarray]:
+        """Apply the active calibration; same as :meth:`predict_image` without plotting."""
+        return self.predict_image(image, stages=stages, chunk_pixels=chunk_pixels)
 
     def _run_transaction(self, Image, White_Image, name_, config):
         candidate = copy.copy(self)
