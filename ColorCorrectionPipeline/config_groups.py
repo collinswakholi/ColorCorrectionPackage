@@ -139,13 +139,14 @@ class _Step:
 
 @dataclass(frozen=True)
 class FFCOptions(_Step):
-    """FFC enable switch, surface fit, white plane, quality and reporting."""
+    """FFC enable switch, surface fit, white plane, quality, apply domain and reporting."""
 
     enabled: object = UNSET
     fit: Mapping = field(default_factory=dict)
     white_plane: Mapping = field(default_factory=dict)
     quality: Mapping = field(default_factory=dict)
     reporting: Mapping = field(default_factory=dict)
+    apply: Mapping = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -224,6 +225,7 @@ for _name in _STEP_TYPES:
     _map("steps." + _name + ".reporting", "show get_deltaE", _name.upper() + "_kwargs")
 _map("steps.ffc.fit", "method degree bins smooth_window", "FFC_kwargs", {"method": "fit_method"})
 _map("steps.ffc.white_plane", "model_path manual_crop crop_rect", "FFC_kwargs")
+_map("steps.ffc.apply", "domain", "FFC_kwargs")
 _map(
     "steps.ffc.quality",
     "safe_mode missing_plane min_signal max_saturated_fraction min_crop_fraction min_gain max_gain",

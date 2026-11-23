@@ -191,6 +191,10 @@ def options(parameters=None):
     return result
 
 
+# Row-wise CC preprocessing sub-block (see UIPredictor.predict_rgb).
+_POINTWISE_ROWS = 32768
+
+
 def features(linear_rgb, settings):
     """Native feature order, including the native 96-feature ceiling."""
     values = np.maximum(np.asarray(linear_rgb, dtype=np.float64), 0)
@@ -587,8 +591,23 @@ class UIPredictor:
         ):
             raise ValueError("UI prediction requires finite encoded RGB in [0,1]")
         shape = values.shape
-        source = srgb_to_linear(values.reshape(-1, 3))
-        design = features(source, self.settings)
+        flat = values.reshape(-1, 3)
+        if len(flat) <= _POINTWISE_ROWS:
+            source = srgb_to_linear(flat)
+            design = features(source, self.settings)
+        else:
+            # Decoding and feature expansion are row-wise; filling owned buffers
+            # in sub-blocks avoids page-mapping many large temporaries. The
+            # estimator still receives the caller's complete block unchanged.
+            source = np.empty(flat.shape, dtype=np.float64)
+            design = None
+            for start in range(0, len(flat), _POINTWISE_ROWS):
+                end = start + _POINTWISE_ROWS
+                source[start:end] = srgb_to_linear(flat[start:end])
+                part = features(source[start:end], self.settings)
+                if design is None:
+                    design = np.empty((len(flat), part.shape[1]), dtype=part.dtype)
+                design[start:end] = part
         linear = np.clip(
             (
                 self.predict(design, linear_rgb=source)
@@ -598,7 +617,14 @@ class UIPredictor:
             0,
             1,
         )
-        return linear_to_srgb(linear).reshape(shape)
+        if len(linear) <= _POINTWISE_ROWS:
+            return linear_to_srgb(linear).reshape(shape)
+        result = np.empty(linear.shape, dtype=np.float64)
+        for start in range(0, len(linear), _POINTWISE_ROWS):
+            result[start : start + _POINTWISE_ROWS] = linear_to_srgb(
+                linear[start : start + _POINTWISE_ROWS]
+            )
+        return result.reshape(shape)
 
 
 def fit_ui(X, Y, parameters=None):

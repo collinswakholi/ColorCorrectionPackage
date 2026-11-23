@@ -30,6 +30,25 @@ def runtime(value):
     return policy.get("ui_runtime") if policy.get("version") == "ui-compatible-v1" else None
 
 
+FFC_DOMAINS = ("lightness", "linear")
+
+
+def ffc_domain(value):
+    """Return the FFC gain domain; records without one replay as ``"lightness"``.
+
+    A fitting owner carries the requested domain until its metadata is
+    committed; fitted model containers read the persisted metadata.
+    """
+    if hasattr(value, "models"):
+        domain = getattr(value, "_ffc_domain", "lightness")
+    else:
+        metadata = getattr(value, "metadata", None) or {}
+        domain = metadata.get("ffc_domain", "lightness")
+    if domain not in FFC_DOMAINS:
+        raise ValueError("FFC domain must be 'lightness' or 'linear'")
+    return domain
+
+
 def enabled(value):
     return runtime(value) in (RUNTIME, HIGH_RUNTIME)
 
@@ -55,13 +74,14 @@ def _inverse(matrix):
 
 def _multiply(matrix, values):
     # Keep the native left-to-right scalar additions, avoiding a BLAS tree.
-    return np.stack(
-        [
-            values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
-            for row in matrix
-        ],
-        axis=-1,
-    )
+    # Each row is written into one owned result instead of stacking temporaries.
+    result = None
+    for index, row in enumerate(matrix):
+        channel = values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
+        if result is None:
+            result = np.empty(np.shape(channel) + (len(matrix),), dtype=np.result_type(channel))
+        result[..., index] = channel
+    return result
 
 
 _PRIMARY = np.array(
@@ -100,10 +120,11 @@ def _decode(values, scalar=False):
                 for v in values.ravel()
             ]
         ).reshape(values.shape)
-    result = values / 12.92
-    mask = values > 0.04045
-    result[mask] = ((values[mask] + 0.055) / 1.055) ** 2.4
-    return result
+    # Both branches are evaluated per element; np.where selects exactly the
+    # values the former masked assignment wrote, without gather/scatter copies.
+    # Unselected bases below -0.055 would only warn; their values are discarded.
+    with np.errstate(invalid="ignore"):
+        return np.where(values > 0.04045, ((values + 0.055) / 1.055) ** 2.4, values / 12.92)
 
 
 def _encode(values, scalar=False):
@@ -120,28 +141,31 @@ def _encode(values, scalar=False):
             ]
         ).reshape(values.shape)
     else:
-        result = values * 12.92
-        mask = np.abs(values) > 0.0031308
-        result[mask] = np.sign(values[mask]) * (1.055 * np.abs(values[mask]) ** (1.0 / 2.4) - 0.055)
+        magnitude = np.abs(values)
+        result = np.where(
+            magnitude > 0.0031308,
+            np.sign(values) * (1.055 * magnitude ** (1.0 / 2.4) - 0.055),
+            values * 12.92,
+        )
     return result
 
 
 def _xyz_to_lab(values, white):
     scaled = values / _white(white)
     f = np.where(scaled > EPSILON, np.cbrt(scaled), (KAPPA * scaled + 16.0) / 116.0)
-    return np.stack(
-        [
-            116.0 * f[..., 1] - 16.0,
-            500.0 * (f[..., 0] - f[..., 1]),
-            200.0 * (f[..., 1] - f[..., 2]),
-        ],
-        axis=-1,
-    )
+    result = np.empty(f.shape, dtype=f.dtype)
+    result[..., 0] = 116.0 * f[..., 1] - 16.0
+    result[..., 1] = 500.0 * (f[..., 0] - f[..., 1])
+    result[..., 2] = 200.0 * (f[..., 1] - f[..., 2])
+    return result
 
 
 def _lab_to_xyz(values, white):
     fy = (values[..., 0] + 16.0) / 116.0
-    f = np.stack([values[..., 1] / 500.0 + fy, fy, fy - values[..., 2] / 200.0], axis=-1)
+    f = np.empty(np.shape(fy) + (3,), dtype=np.result_type(fy, values[..., 1] / 500.0))
+    f[..., 0] = values[..., 1] / 500.0 + fy
+    f[..., 1] = fy
+    f[..., 2] = fy - values[..., 2] / 200.0
     return np.where(f > 6.0 / 29.0, f * f * f, (116.0 * f - 16.0) / KAPPA) * _white(white)
 
 
@@ -151,14 +175,21 @@ def lab(values, scalar=False):
     )
 
 
-def lightness(rgb, dtype):
-    """Compute only the native Lab L* needed by the white-field fit, in row blocks."""
+def lightness(rgb, dtype, *, domain="lightness"):
+    """Compute only the native Lab L* needed by the white-field fit, in row blocks.
+
+    ``domain="linear"`` returns relative luminance ``100*Y`` instead, so the
+    white-field ratios describe a linear-light gain.
+    """
     light = np.empty(rgb.shape[:2], dtype=dtype)
     ry, gy, by = RGB_TO_XYZ[1]
     rows = max(1, 65536 // rgb.shape[1])
     for start in range(0, len(rgb), rows):
         block = _decode(rgb[start : start + rows])
         y = block[..., 0] * ry + block[..., 1] * gy + block[..., 2] * by
+        if domain == "linear":
+            light[start : start + rows] = 100.0 * y
+            continue
         f = np.where(y > EPSILON, np.cbrt(y), (KAPPA * y + 16.0) / 116.0)
         light[start : start + rows] = 116.0 * f - 16.0
     return light
@@ -424,7 +455,7 @@ def sample_ffc(owner, face):
         + g[y0, x1] * (1 - fy) * fx
         + g[y1, x1] * fy * fx
     )
-    corrected = apply_color(samples, gains, scalar=True, rounded=False)
+    corrected = apply_color(samples, gains, scalar=True, rounded=False, domain=ffc_domain(owner))
     clipped = np.mean(np.any(corrected >= face.clipping_threshold, axis=2), axis=1)
     return replace(
         face,
@@ -441,11 +472,16 @@ def sample_ffc(owner, face):
 def render_fit_stage(owner, image, stage):
     # Fit metadata is committed only after all stages succeed. Use the resolved
     # policy and the same guarded byte-runtime renderer as bundle prediction.
+    domain = ffc_domain(owner)
     if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
         from .ui_execution import try_execute
 
         result = try_execute(
-            image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict()
+            image,
+            owner.models,
+            (stage,),
+            fit_policy=owner.fitting_policy.to_dict(),
+            ffc_domain=domain,
         )
         if result is not None:
             return result[stage]
@@ -454,13 +490,30 @@ def render_fit_stage(owner, image, stage):
         owner.models.model_ffc,
         owner.models.model_gc if stage == "GC" else None,
         rounded=not high_precision(owner),
+        domain=domain,
     )
 
 
-def apply_color(image, gain=None, curve=None, scalar=False, rounded=True):
-    value = lab(image, scalar=scalar)
-    if gain is not None:
-        value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
+def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain="lightness"):
+    """Apply the joint FFC/GC equations.
+
+    ``domain="lightness"`` (the default and the only historical rule) scales
+    Lab L* by the gain. ``domain="linear"`` decodes sRGB, multiplies all three
+    linear-light channels by the same spatial gain and re-encodes; GC, when
+    present, then maps L* of that linear-light result.
+    """
+    if gain is not None and domain == "linear":
+        linear = _decode(np.asarray(image, dtype=np.float64), scalar)
+        linear *= np.asarray(gain)[..., None]
+        if curve is None:
+            result = np.clip(_encode(linear, scalar=scalar), 0, 1)
+            return result.astype(np.float32).astype(np.float64) if rounded else result
+        value = _xyz_to_lab(_multiply(RGB_TO_XYZ, linear), D65)
+        value[..., 0] = np.clip(value[..., 0], 0, 100)
+    else:
+        value = lab(image, scalar=scalar)
+        if gain is not None:
+            value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
     if curve is not None:
         value[..., 0] = np.clip(curve.predict(value[..., 0]), 0, 100)
     result = np.clip(_encode(_multiply(XYZ_TO_RGB, _lab_to_xyz(value, D65)), scalar=scalar), 0, 1)
@@ -478,12 +531,15 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     from .ui_execution import try_execute
 
     high = high_precision(models)
+    domain = ffc_domain(models)
     if not high:
         result = try_execute(
             image, models, selected, native_codes=native_codes, chunk_pixels=chunk_pixels
         )
         if result is not None:
             return result
+    if high:
+        return _predict_high(image, models, selected, chunk_pixels, domain)
     from .core.correction import predict_
     from .prediction import chunked_cc
 
@@ -507,9 +563,9 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     for index, name in enumerate(order[: stop + 1]):
         if name == "FFC" and gain is not None:
             if "FFC" in selected or curve is None or stop == 0:
-                current = apply_color(source, gain, rounded=not high)
+                current = apply_color(source, gain, rounded=not high, domain=domain)
         elif name == "GC" and curve is not None:
-            current = apply_color(source, gain, curve, rounded=not high)
+            current = apply_color(source, gain, curve, rounded=not high, domain=domain)
         elif name == "WB" and models.model_wb is not None:
             current = np.clip(current @ models.model_wb, 0, 1)
             if not high:
@@ -533,3 +589,101 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
         if name in selected:
             result[name] = current.copy()
     return result
+
+
+# Pointwise sub-block for threaded high-precision prediction. Smaller
+# temporaries than the 65536-pixel CC chunk avoid most fresh page mapping; 32768
+# was the fastest and most stable size on 4K frames (see docs/performance.md).
+_SUB_BLOCK = 32768
+
+
+def _predict_high(image, models, selected, chunk_pixels, domain):
+    """Float64 stages in bounded pixel blocks, optionally on several threads.
+
+    Every stage is pointwise, so each block reproduces the full-frame equations
+    exactly. Blocks keep the historical CC chunk boundaries (``chunk_pixels`` or
+    65536 pixels) and the LUT/direct decision is still made once per image. Only
+    the selected stage outputs are allocated at full frame size; intermediate
+    stages and the validity checks stay within one block.
+    """
+    from ._cpu_workers import ranges, run_slices, worker_count
+    from .prediction import cc_block, cc_uses_lut
+
+    source = np.asarray(image, dtype=np.float64)
+    order = ("FFC", "GC", "WB", "CC")
+    stop = max(order.index(k) for k in selected)
+    gain = models.model_ffc
+    curve = models.model_gc
+    if gain is not None and np.shape(gain) != source.shape[:2]:
+        raise ValueError("native UI FFC requires the calibrated image dimensions")
+    flat = source.reshape(-1, 3)
+    gains = None if gain is None else np.asarray(gain).reshape(-1)
+    pixels = len(flat)
+    chunk = chunk_pixels or 65536
+    cc = models.model_cc if stop >= 3 else None
+    use_lut = cc_uses_lut(cc, pixels) if cc is not None else False
+    wb = models.model_wb
+    fused_ffc = gain is not None and ("FFC" in selected or curve is None or stop == 0)
+    outputs = {name: np.empty(flat.shape, dtype=np.float64) for name in selected}
+
+    def valid(current, block):
+        return not (
+            current.shape != block.shape
+            or not np.isfinite(current).all()
+            or np.any(current < 0)
+            or np.any(current > 1)
+        )
+
+    def run(first_block, last_block):
+        # Return the earliest stage index that produced invalid data, if any.
+        failed = None
+        staged = np.empty((min(chunk, pixels), 3), dtype=np.float64) if stop == 3 else None
+        for start in range(first_block * chunk, min(last_block * chunk, pixels), chunk):
+            end = min(start + chunk, pixels)
+            # Pointwise colour stages use sub-blocks small enough to reuse heap
+            # memory; CC keeps the historical chunk so its matrix products see
+            # exactly the same operands.
+            for first in range(start, end, _SUB_BLOCK):
+                last = min(first + _SUB_BLOCK, end)
+                block = flat[first:last]
+                block_gain = None if gains is None else gains[first:last]
+                current = block
+                for index, name in enumerate(order[: min(stop, 2) + 1]):
+                    if name == "FFC" and fused_ffc:
+                        current = apply_color(block, block_gain, rounded=False, domain=domain)
+                    elif name == "GC" and curve is not None:
+                        current = apply_color(
+                            block, block_gain, curve, rounded=False, domain=domain
+                        )
+                    elif name == "WB" and wb is not None:
+                        current = np.clip(current @ wb, 0, 1)
+                    if not valid(current, block):
+                        failed = index if failed is None else min(failed, index)
+                        break
+                    if name in outputs:
+                        outputs[name][first:last] = current
+                else:
+                    if staged is not None:
+                        staged[first - start : last - start] = current
+                    continue
+                break
+            else:
+                if staged is not None:
+                    current = staged[: end - start]
+                    if cc is not None:
+                        current = np.clip(cc_block(current, cc, use_lut), 0, 1)
+                    if not valid(current, flat[start:end]):
+                        failed = 3 if failed is None else min(failed, 3)
+                        continue
+                    if "CC" in outputs:
+                        outputs["CC"][start:end] = current
+        return failed
+
+    blocks = (pixels + chunk - 1) // chunk
+    workers = min(blocks, worker_count(pixels, 65536))
+    failures = [
+        index for index in run_slices(run, ranges(blocks, workers), workers) if index is not None
+    ]
+    if failures:
+        raise FloatingPointError("native UI %s produced invalid image data" % order[min(failures)])
+    return {name: outputs[name].reshape(source.shape) for name in order if name in outputs}

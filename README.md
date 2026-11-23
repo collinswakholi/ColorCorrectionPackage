@@ -190,7 +190,7 @@ as the white-image argument.
 
 | Category | Purpose in the example |
 | --- | --- |
-| `steps.ffc` | Enables white-field correction and selects a linear illumination surface. |
+| `steps.ffc` | Enables white-field correction and selects a linear illumination surface. Optional `apply={"domain": "linear"}` applies the gain to linear-light RGB instead of Lab L* (default `"lightness"`). |
 | `steps.gc` | Fits the neutral-lightness curve; requires at least three usable neutral patches. |
 | `steps.wb` | Fits neutral white balance with 0.95 headroom. |
 | `steps.cc` | Fits RPCC2. `fit`, `apply`/LUT options and CC-only `validation` have separate subgroups; validation is disabled for this smoke test. |
