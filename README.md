@@ -239,7 +239,13 @@ This package builds on [ML_ColorCorrection_tool](https://github.com/collinswakho
 pip install -e ".[dev,performance]"
 pytest tests                       # unit, regression and golden-output tests
 python tests/golden/capture.py     # compare against the stored 2.2.0 baseline only
+black --check ColorCorrectionPipeline tests scripts
+ruff check ColorCorrectionPipeline tests scripts --select E9,F63,F7,F82
 ```
+
+CI (`.github/workflows/lint-and-test.yml`) runs the same formatting and correctness-lint
+gates, the fast tests on Ubuntu and Windows, and the golden tests on Windows, where the
+baseline was recorded.
 
 `tests/golden` stores metrics and thumbnails for eleven configurations captured from
 2.2.0. Regenerate them with `--write` only for an intentional, documented change. The

@@ -378,7 +378,7 @@ def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False,
             - np.array([d["center"] for d in best.values()]),
             axis=1,
         )
-        if homography is None or np.median(errors) < best_error:
+        if homography is None or np.median(errors) < best_error:  # noqa: F821 (set with homography)
             homography, best_error = candidate, np.median(errors)
     if homography is None:
         return None

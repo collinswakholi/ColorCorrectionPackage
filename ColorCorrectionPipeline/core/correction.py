@@ -676,7 +676,7 @@ def fit_model(det_p: np.ndarray, ref_p: np.ndarray, kwargs: Optional[Dict] = Non
 
     # Generate polynomial features
     _load_feature_backend()
-    X, _ = get_poly_features(X, degree=M.degree)
+    X, _ = get_poly_features(X, degree=M.degree)  # noqa: F821 (lazy global)
 
     if M.ncomp == -1 or M.ncomp > X.shape[1]:
         M.ncomp = X.shape[1] - 1
@@ -780,7 +780,7 @@ def _predict_direct(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
         )
     else:
         _load_feature_backend()
-        X, _ = get_poly_features(X, degree=M.degree)
+        X, _ = get_poly_features(X, degree=M.degree)  # noqa: F821 (lazy global)
     pred = M.model.predict(X)
     return pred.reshape(orig_shape)
 
@@ -1105,11 +1105,12 @@ def estimate_gamma_profile(
         import matplotlib.pyplot as plt
 
         # Compute predictions for plotting
-        if is_cuda:
+        if is_cuda:  # noqa: F821 (lazy global)
             free_memory()
+            device = device_  # noqa: F821 (lazy global)
             prediction = poly_func_torch(
-                torch.from_numpy(values_L.flatten()).to(device_, dtype=torch.float32),
-                torch.from_numpy(coeffs).to(device_, dtype=torch.float32),
+                torch.from_numpy(values_L.flatten()).to(device, dtype=torch.float32),
+                torch.from_numpy(coeffs).to(device, dtype=torch.float32),
             )
             prediction = prediction.cpu().numpy()
             free_memory()

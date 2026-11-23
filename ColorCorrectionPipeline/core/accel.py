@@ -14,7 +14,7 @@ import numpy as np
 __all__ = [
     "HAS_NUMBA",
     "HAS_NUMBA_CUDA",
-    "HAS_TORCH_CUDA",
+    "HAS_TORCH_CUDA",  # noqa: F822 (module __getattr__)
     "backend_info",
     "nb_njit",
     "nb_prange",
