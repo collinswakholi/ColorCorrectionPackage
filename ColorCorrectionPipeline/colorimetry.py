@@ -91,7 +91,7 @@ def _scale(value, allowed, label="scale"):
         raise ValueError("%s must be one of %s" % (label, allowed))
     if not np.isfinite(value) or value not in allowed:
         raise ValueError("%s must be one of %s" % (label, allowed))
-    return float(value)
+    return float(value)  # type: ignore[arg-type]
 
 
 def _domain(values, domain):

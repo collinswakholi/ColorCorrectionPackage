@@ -12,7 +12,7 @@ Functions:
 
 import logging
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, cast
 
 import cv2
 import numpy as np
@@ -84,8 +84,10 @@ def read_image(
         if color_space.lower() == "bgr":
             pixels = pixels[..., ::-1]
         if dtype.lower() in ("uint8", "uint16"):
-            return np.rint(pixels * np.iinfo(dtype.lower()).max).astype(dtype.lower())
-        return pixels.astype(dtype.lower())
+            return cast(
+                np.ndarray, np.rint(pixels * np.iinfo(dtype.lower()).max).astype(dtype.lower())
+            )
+        return cast(np.ndarray, pixels.astype(dtype.lower()))
     if image_options is not None:
         raise ValueError("image_options requires strict=True")
     path = Path(path)
@@ -123,12 +125,13 @@ def read_image(
         float_type = np.float32 if dtype.lower() == "float32" else np.float64
         target = _RANGE_MAXIMA.get(range_)
         if img.dtype in (np.uint8, np.uint16) and target is not None:
-            source = float(np.iinfo(img.dtype).max)
-            img = img.astype(float_type)
+            source = 255.0 if img.dtype == np.uint8 else 65535.0
+            scaled: np.ndarray = img.astype(float_type)
             if source > target:
-                img /= source / target  # 255, 65535 or 257: exact divisors
+                scaled /= source / target  # 255, 65535 or 257: exact divisors
             elif source < target:
-                img *= target / source  # 257
+                scaled *= target / source  # 257
+            img = scaled
         else:
             img = img.astype(float_type)
     elif dtype.lower() == "uint8":

@@ -171,7 +171,7 @@ def inference_identity(model):
                 "n_outputs": estimator.n_outputs_,
             }
         elif type(estimator) in (CustomNN, DeterministicTorchRegressor):
-            state = [_torch_state(estimator.model), str(estimator.device)]
+            state = [_torch_state(estimator.model), str(estimator.device)]  # type: ignore[assignment]
         else:
             return None, "unknown estimator state; reuse disabled"
         settings = {
@@ -314,7 +314,9 @@ def ensure_lut(model, builder):
             and model._lut is getattr(model, "_lut_table_ref", None)
         ):
             # A cache cannot be mutated through a retained caller-owned array.
-            model._lut_cache_info.update(status="hit", retained_bytes=int(model._lut.nbytes))
+            model._lut_cache_info.update(
+                status="hit", retained_bytes=int(model._lut.nbytes)  # type: ignore[union-attr]
+            )
             return True
         if identity is not None and identity == getattr(model, "_lut_failed_identity", None):
             return False

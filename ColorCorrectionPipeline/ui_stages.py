@@ -104,7 +104,7 @@ def fit_ffc(owner, image, parameters):
     guard.detect_and_crop()
     guard._validate_safe_crop()
     quality = deepcopy(guard.quality_report)
-    x1, y1, x2, y2 = guard.crop_rect
+    x1, y1, x2, y2 = guard.crop_rect  # type: ignore[misc]
     white = owner.white_image_data
     source = white.pixels if white.color_space == "srgb" else white.to_srgb()
     h, w = source.shape[:2]

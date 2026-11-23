@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -80,6 +81,7 @@ class _FrozenMap(Mapping):
     """A deep-owned mapping that also survives Config deepcopy and pickle."""
 
     __slots__ = ("_data",)
+    _data: "MappingProxyType[str, Any]"
 
     def __init__(self, value=()):
         if not isinstance(value, Mapping):
@@ -113,10 +115,12 @@ class _FrozenMap(Mapping):
 
 
 class _Step:
+    enabled: Any  # declared by each dataclass step
+
     def __post_init__(self):
         if self.enabled is not UNSET and type(self.enabled) is not bool:
             raise TypeError(type(self).__name__ + ".enabled must be boolean")
-        for item in fields(self):
+        for item in fields(self):  # type: ignore[arg-type]
             if item.name == "enabled":
                 continue
             value = getattr(self, item.name)
@@ -127,7 +131,7 @@ class _Step:
     def to_dict(self):
         return {
             item.name: _thaw(getattr(self, item.name))
-            for item in fields(self)
+            for item in fields(self)  # type: ignore[arg-type]
             if getattr(self, item.name) is not UNSET
             and (item.name == "enabled" or bool(getattr(self, item.name)))
         }
@@ -204,7 +208,7 @@ class Steps:
 
 # Paths are the sole translation registry. Reverse presentation consumes the
 # same map, so a renamed control cannot silently diverge from serialization.
-_LEAVES = {}
+_LEAVES: Dict[Tuple[str, ...], Tuple[str, ...]] = {}
 
 
 def _map(group, names, target, aliases=None):
@@ -427,12 +431,12 @@ def grouped_dict(config):
             "grouped presentation requires modern API 2; use to_dict() for historical configurations"
         )
     remaining = config.to_dict()
-    result = {"layout": GROUPED_LAYOUT, "api_version": 2}
+    result: Dict[str, Any] = {"layout": GROUPED_LAYOUT, "api_version": 2}
     remaining.pop("api_version", None)
     for name, target in _DIRECT.items():
         result[name] = remaining.pop(target)
     kind = config.CC_kwargs.get("model", "rpcc2")
-    for path, target in _LEAVES.items():
+    for path, target in _LEAVES.items():  # type: ignore[assignment]
         if path[:4] == ("steps", "cc", "fit", "nn") and kind != "nn":
             continue
         if path[:4] == ("steps", "cc", "fit", "pls") and kind != "pls":

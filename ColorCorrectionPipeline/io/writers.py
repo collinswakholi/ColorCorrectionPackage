@@ -112,7 +112,7 @@ def write_image(
         return False
 
 
-def _legacy_to_uint8(image) -> np.ndarray:
+def _legacy_to_uint8(image):
     """Quantize a legacy ``write_image`` input to uint8 codes.
 
     Uses the same rounding as :func:`_quantize_strict`. Before 2.3 floats and uint16

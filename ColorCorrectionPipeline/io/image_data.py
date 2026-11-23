@@ -43,7 +43,7 @@ def _png_metadata_snapshot(data):
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         return False, None
     view, offset, seen_data, late = memoryview(data), 8, False, False
-    chunks = []
+    chunks: list = []
     metadata = {
         b"eXIf",
         b"iCCP",
@@ -423,12 +423,12 @@ def read_image_data(
             source_profile,
             ImageCms.createProfile("sRGB"),
             outputMode="RGB",
-            renderingIntent=1,
+            renderingIntent=1,  # type: ignore[arg-type]
         )
-        converted = np.asarray(converted)
+        converted_pixels = np.asarray(converted)
         if pixels.shape[2] == 4 and source_mode != "CMYK":
-            converted = np.concatenate((converted, pixels[..., 3:4]), axis=2)
-        pixels, selected_space = converted, "srgb"
+            converted_pixels = np.concatenate((converted_pixels, pixels[..., 3:4]), axis=2)
+        pixels, selected_space = converted_pixels, "srgb"
         icc_transform = "Pillow ImageCms profileToProfile to sRGB, relative-colorimetric intent1"
     if pixels.ndim == 2 or pixels.shape[2] == 1:
         if grayscale_policy != "replicate":

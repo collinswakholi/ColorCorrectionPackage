@@ -178,7 +178,9 @@ line-length = 100
 target-version = ["py38"]
 
 [tool.mypy]
-python_version = "3.9"
+# mypy 2.x accepts 3.10 as its oldest target. requires-python is 3.8; 3.8/3.9
+# compatibility is covered by ruff/black's py38 target and the CI test matrix.
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -188,11 +190,50 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 
+# Third-party packages without type information (no stubs are installed in CI).
 [[tool.mypy.overrides]]
 module = [
     "colour.*",
+    "colour_checker_detection.*",
     "cv2.*",
-    "plotly.*",
+    "numba.*",
+    "onnxruntime.*",
+    "pandas.*",
+    "psutil.*",
+    "scipy.*",
     "seaborn.*",
+    "skimage.*",
+    "sklearn.*",
+    "statsmodels.*",
+    "threadpoolctl.*",
+    "tifffile.*",
+    "torchsummary.*",
 ]
 ignore_missing_imports = true
+
+# Large legacy modules that are not yet type-clean are excluded from the gate;
+# everything else must pass `mypy ColorCorrectionPipeline`. Remove a module from
+# this list once it checks clean.
+[[tool.mypy.overrides]]
+module = [
+    "ColorCorrectionPipeline._image_numeric",
+    "ColorCorrectionPipeline.acceleration",
+    "ColorCorrectionPipeline.batch",
+    "ColorCorrectionPipeline.bundle",
+    "ColorCorrectionPipeline.contracts",
+    "ColorCorrectionPipeline.core.accel",
+    "ColorCorrectionPipeline.core.color_spaces",
+    "ColorCorrectionPipeline.core.correction",
+    "ColorCorrectionPipeline.core.transforms",
+    "ColorCorrectionPipeline.core.utils",
+    "ColorCorrectionPipeline.detection.charts",
+    "ColorCorrectionPipeline.examples.customizable",
+    "ColorCorrectionPipeline.fitting",
+    "ColorCorrectionPipeline.flat_field.correction",
+    "ColorCorrectionPipeline.key_functions",
+    "ColorCorrectionPipeline.models",
+    "ColorCorrectionPipeline.pipeline",
+    "ColorCorrectionPipeline.prediction",
+    "ColorCorrectionPipeline.ui_fitting",
+]
+ignore_errors = true

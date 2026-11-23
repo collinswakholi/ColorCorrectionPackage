@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union, cast
 
 import numpy as np
 
@@ -171,4 +171,4 @@ def correct(
         raise TypeError("calibration must be a Calibration, a ColorCorrection or a .ccpb path")
     outputs = pipeline.predict_image(image, stages=stage)
     key = "CC" if stage == "final" else stage
-    return outputs[key]
+    return cast(np.ndarray, outputs[key])

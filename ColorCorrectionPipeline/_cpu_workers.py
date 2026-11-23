@@ -3,6 +3,7 @@
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 _budget = threading.local()
 
@@ -16,7 +17,7 @@ def image_worker_limit():
     if threading.current_thread() is not threading.main_thread():
         return getattr(_budget, "limit", 1)
     # Do not import or initialize an optional JIT to schedule an unfitted batch.
-    numba = sys.modules.get("numba")
+    numba: Any = sys.modules.get("numba")  # None raises AttributeError below
     try:
         # Reading the configured cap must not initialize an OpenMP pool. Honor
         # an existing caller mask when another component already initialized it.

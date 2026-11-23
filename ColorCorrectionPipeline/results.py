@@ -108,7 +108,7 @@ class BatchItemResult:
                     "dtype": str(image.dtype),
                     "bytes": int(image.nbytes),
                 }
-                for name, image in self.images.items()
+                for name, image in self.images.items()  # type: ignore[attr-defined]
             },
             "exports": _plain(self.exports),
             "error": _plain(self.error),

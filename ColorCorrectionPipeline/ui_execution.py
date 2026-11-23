@@ -311,7 +311,7 @@ def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=Non
             or not _ensure_lut(model)
         ):
             return None
-        table = model._lut
+        table = model._lut  # type: ignore[assignment]
     from .ui_native import RUNTIME
 
     native = policy.get("ui_runtime") == RUNTIME

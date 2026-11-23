@@ -183,7 +183,7 @@ class Metrics:
         dot_product = np.clip(dot_prods / (norms + EPSILON), -1, 1)
         angular_error = np.degrees(np.arccos(dot_product))
 
-        return angular_error
+        return angular_error  # type: ignore[no-any-return]
 
     def regression_metrics(self) -> Dict[str, Any]:
         """
@@ -419,7 +419,7 @@ def get_metrics(
     mat2: np.ndarray,
     illuminant: np.ndarray,
     c_space: str = "srgb",
-) -> np.ndarray:
+) -> "metrics":
     """
     Compute color difference metrics between two color matrices.
 

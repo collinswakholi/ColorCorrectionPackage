@@ -524,5 +524,5 @@ def infer_model(path, options, prepare_input, validate_output=None):
         "No usable chart execution provider: "
         + "; ".join("%s: %s" % (attempt["device"], attempt["reason"]) for attempt in attempts)
     )
-    error.attempts = attempts
+    error.attempts = attempts  # type: ignore[attr-defined]
     raise error

@@ -9,7 +9,7 @@ new pickles reference the same name.
 import gc
 import os
 import tempfile
-from typing import Optional
+from typing import Any, Optional
 
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils import check_X_y
@@ -73,13 +73,13 @@ class CustomNN(BaseEstimator, RegressorMixin):
         self.validation_split = 0.15
         self._requested_batch_norm = use_batch_norm
 
-        self.input_dim = None
-        self.output_dim = None
+        self.input_dim: Any = None
+        self.output_dim: Any = None
         self.temp_path: Optional[str] = None
 
         import torch.nn as nn
 
-        self.model: Optional[nn.Module] = None
+        self.model: Any = None  # nn.Sequential once built
         self.loss_fn = nn.MSELoss()
         self.device: Optional[str] = None
 
@@ -93,7 +93,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         if self.verbose:
             print(f"Using device: '{self.device}'")
 
-        layers = []
+        layers: list = []
         current_dim = self.input_dim
 
         # Add hidden layers
@@ -180,8 +180,8 @@ class CustomNN(BaseEstimator, RegressorMixin):
         )
 
         if dataset_size < 2:
-            train_dataset = dataset
-            val_dataset = dataset
+            train_dataset: Any = dataset
+            val_dataset: Any = dataset
         else:
             generator = torch.Generator().manual_seed(self.random_state)
             train_dataset, val_dataset = random_split(
@@ -213,6 +213,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
         )
 
         # Optimizer
+        optimizer: Any
         if self.optim_type == "Adam":
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         elif self.optim_type == "SGD":

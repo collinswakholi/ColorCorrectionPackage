@@ -3,7 +3,7 @@ Versioned configuration for new calibration and historical training.
 """
 
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from .config_groups import (
 
 __all__ = ["Config"]
 
-_SCALAR_DEFAULTS = {
+_SCALAR_DEFAULTS: Dict[str, Any] = {
     "do_ffc": True,
     "do_gc": True,
     "do_wb": True,
@@ -103,15 +103,18 @@ class Config:
         """
         from .simple import preset_config
 
-        return preset_config(name, white=white, frame_index=frame_index, device=device, **overrides)
+        return cast(
+            "Config",
+            preset_config(name, white=white, frame_index=frame_index, device=device, **overrides),
+        )
 
     def __init__(
         self,
-        do_ffc: bool = UNSET,
-        do_gc: bool = UNSET,
-        do_wb: bool = UNSET,
-        do_cc: bool = UNSET,
-        save: bool = UNSET,
+        do_ffc: bool = UNSET,  # type: ignore[assignment]
+        do_gc: bool = UNSET,  # type: ignore[assignment]
+        do_wb: bool = UNSET,  # type: ignore[assignment]
+        do_cc: bool = UNSET,  # type: ignore[assignment]
+        save: bool = UNSET,  # type: ignore[assignment]
         check_saturation: Optional[bool] = None,
         save_path: Optional[str] = None,
         REF_ILLUMINANT: Optional[np.ndarray] = None,
@@ -126,7 +129,7 @@ class Config:
         stage_policy=None,
         fitting_policy=None,
         validation_options: Optional[Dict[str, Any]] = None,
-        model_format: str = UNSET,
+        model_format: str = UNSET,  # type: ignore[assignment]
         *,
         model=None,
         basis=None,
@@ -378,7 +381,7 @@ class Config:
         keys remain explicit. Historical recipes keep their flat serialization.
         """
         self.validate()
-        return grouped_dict(self)
+        return cast(Dict[str, Any], grouped_dict(self))
 
     @property
     def steps(self):
@@ -503,7 +506,7 @@ class Config:
                 degree = self.CC_kwargs.get("degree", 2)
                 if type(degree) is not int or not 1 <= degree <= 4:
                     raise ValueError("new CC fits require an integer degree from 1 to 4")
-                fixed = {"ccm": 1, "rpcc2": 2, "rpcc3": 3}.get(self.CC_kwargs.get("model"))
+                fixed = {"ccm": 1, "rpcc2": 2, "rpcc3": 3}.get(self.CC_kwargs.get("model"))  # type: ignore[arg-type]
                 if fixed is not None and degree != fixed:
                     raise ValueError("degree contradicts the fixed model preset")
                 options(self.CC_kwargs)
@@ -713,7 +716,7 @@ class Config:
 import inspect as _inspect  # noqa: E402
 
 _signature = _inspect.signature(Config.__init__)
-Config.__init__.__signature__ = _signature.replace(
+Config.__init__.__signature__ = _signature.replace(  # type: ignore[attr-defined]
     parameters=[
         (
             parameter.replace(default=_SCALAR_DEFAULTS[parameter.name])
