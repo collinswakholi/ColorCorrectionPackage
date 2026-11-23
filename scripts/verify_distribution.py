@@ -1,13 +1,13 @@
 """Inspect built archives without importing the package or detector runtimes."""
 
 import argparse
-from email.parser import BytesParser
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import tarfile
 import zipfile
+from email.parser import BytesParser
+from pathlib import Path, PurePosixPath
 
 PACKAGE = "ColorCorrectionPipeline/"
 MODELS = PACKAGE + "detection/models/"

@@ -28,7 +28,7 @@ try:
 except ImportError:
     detect_colour_checkers_segmentation = None
 
-from ..constants import EPSILON, WP_DEFAULT
+from ..constants import WP_DEFAULT
 from .color_spaces import convert_to_lab
 from .metrics import arrange_metrics, get_metrics
 from .utils import (

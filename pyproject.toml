@@ -113,10 +113,65 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    # printf-style formatting is used deliberately in error messages; rewriting
+    # 80+ call sites to f-strings has no correctness benefit.
+    "UP031",
+    # requires-python is 3.8: keep typing.Optional/List/Dict so annotations stay
+    # evaluable by typing.get_type_hints on 3.8/3.9 even under
+    # `from __future__ import annotations`.
+    "UP006",
+    "UP007",
+    "UP045",
+    # The distribution and import name ColorCorrectionPipeline is public.
+    "N999",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
+# Legacy naming kept for API compatibility: public functions, classes and keyword
+# arguments with capitalised names (convert_to_LCHab, metrics, Image=, RGB=, ...),
+# and colour-science/matrix notation for locals (X, M, RGB, Lab, Z_flat).
+"ColorCorrectionPipeline/key_functions.py" = ["N801", "N802", "N803", "N806"]
+"ColorCorrectionPipeline/core/*.py" = ["N801", "N802", "N803", "N806"]
+"ColorCorrectionPipeline/flat_field/*.py" = ["N802", "N803", "N806"]
+"ColorCorrectionPipeline/pipeline.py" = ["N803", "N806", "I001"]
+"ColorCorrectionPipeline/config.py" = ["N803", "I001"]
+"ColorCorrectionPipeline/conventional.py" = ["N803"]
+"ColorCorrectionPipeline/fitting.py" = ["N803", "N806", "I001"]
+"ColorCorrectionPipeline/evaluation.py" = ["N803", "N806"]
+"ColorCorrectionPipeline/portable_inference.py" = ["N803"]
+"ColorCorrectionPipeline/stage_policies.py" = ["N803"]
+"ColorCorrectionPipeline/ui_fitting.py" = ["N803", "N806", "I001"]
+"tests/test_custom_nn_determinism.py" = ["N806"]
+# Import sorting is not applied where it would reorder third-party or package
+# imports (import side effects: torch/cv2/onnxruntime DLL load order, lazy
+# colour-science loading, circular package imports). Files under concurrent
+# change elsewhere are also left alone. (config, fitting, pipeline and ui_fitting
+# carry I001 in their entries above.)
+"ColorCorrectionPipeline/acceleration.py" = ["I001"]
+"ColorCorrectionPipeline/bundle.py" = ["I001"]
+"ColorCorrectionPipeline/contracts.py" = ["I001"]
+"ColorCorrectionPipeline/core/accel.py" = ["I001"]
+"ColorCorrectionPipeline/core/color_spaces.py" = ["I001"]
+"ColorCorrectionPipeline/core/correction.py" = ["I001"]
+"ColorCorrectionPipeline/core/execution.py" = ["I001"]
+"ColorCorrectionPipeline/core/lut_cache.py" = ["I001"]
+"ColorCorrectionPipeline/core/metrics.py" = ["I001"]
+"ColorCorrectionPipeline/core/utils.py" = ["I001"]
+"ColorCorrectionPipeline/io/__init__.py" = ["I001"]
+"ColorCorrectionPipeline/io/image_data.py" = ["I001"]
+"ColorCorrectionPipeline/io/writers.py" = ["I001"]
+"ColorCorrectionPipeline/models.py" = ["I001"]
+"ColorCorrectionPipeline/modern.py" = ["I001"]
+"ColorCorrectionPipeline/observations.py" = ["I001"]
+"ColorCorrectionPipeline/prediction.py" = ["I001"]
+# ui_execution binds ui_native matrix constants to local role names.
+"ColorCorrectionPipeline/ui_execution.py" = ["I001", "N811"]
+"ColorCorrectionPipeline/ui_native.py" = ["I001"]
+"scripts/verify_installed.py" = ["I001"]
+"scripts/verify_v2.py" = ["I001"]
 
 [tool.black]
 line-length = 100

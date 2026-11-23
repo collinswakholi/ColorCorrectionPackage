@@ -30,9 +30,9 @@ The example expects a chart capture and its matching white field. Run
 to use the included sample images after installing the package.
 """
 
-from importlib import import_module
 import logging
 import warnings
+from importlib import import_module
 
 from .__version__ import __version__, __version_info__
 

@@ -17,7 +17,6 @@ from typing import Any, Dict, Optional
 
 from .._lazy import colour  # loads colour-science on first use
 import numpy as np
-from .._lazy import pandas as pd  # deferred: only used inside functions
 from .._lazy import scipy_stats as stats
 from .._lazy import sklearn_metrics
 

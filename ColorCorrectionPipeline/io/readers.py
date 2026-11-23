@@ -11,14 +11,13 @@ Functions:
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import cv2
 import numpy as np
 
-from ..core.utils import to_float64
+from ..core.utils import to_float64  # noqa: F401  (historical re-export)
 
 __all__ = ["read_image", "read_batch"]
 

@@ -52,7 +52,7 @@ def chunked_cc(image, cc, chunk_pixels):
     """Bound pointwise feature workspace while selecting LUT/direct once per image."""
     from .core.correction import _ensure_lut, _predict_direct
     from .core.accel import trilinear_lut_apply
-    import colour
+    import colour  # noqa: F401  (loads colour-science here, as before)
 
     model, options, method = cc
     flat = image.reshape(-1, 3)

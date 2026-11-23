@@ -7,14 +7,15 @@ selected sklearn/Torch trainer. Its iteration cap is deliberately short.
 """
 
 from ColorCorrectionPipeline import Config
+
 from ._common import (
-    sample_paths,
+    export_and_replay,
+    fit,
     input_arguments,
     inputs,
     new_output,
-    fit,
-    export_and_replay,
     report,
+    sample_paths,
 )
 
 

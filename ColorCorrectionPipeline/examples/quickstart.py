@@ -10,15 +10,16 @@ Add --chart chart.tiff --white white.tiff --scene scene.tiff for your own captur
 Omit --white with a caller-supplied chart to disable flat-field correction.
 """
 
-from ColorCorrectionPipeline import Config, Steps, FFCOptions, CCOptions
+from ColorCorrectionPipeline import CCOptions, Config, FFCOptions, Steps
+
 from ._common import (
-    sample_paths,
+    export_and_replay,
+    fit,
     input_arguments,
     inputs,
     new_output,
-    fit,
-    export_and_replay,
     report,
+    sample_paths,
     scores,
 )
 

@@ -4,11 +4,11 @@ Groups are owned immutable snapshots, never a second mutable configuration.
 The leaf map below owns both normalization and the inverse JSON presentation.
 """
 
+import numbers
+import os
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-import numbers
-import os
 from types import MappingProxyType
 
 import numpy as np

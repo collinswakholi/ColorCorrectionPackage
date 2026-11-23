@@ -11,20 +11,19 @@ qualifies the full NN100 configuration on the sample photographs.
 """
 
 import argparse
-from copy import deepcopy
-from dataclasses import FrozenInstanceError
 import hashlib
-from importlib.metadata import version
 import json
-from pathlib import Path
 import pickle
 import subprocess
-import sys
+from copy import deepcopy
+from dataclasses import FrozenInstanceError
+from importlib.metadata import version
+from pathlib import Path
 
 import numpy as np
 
-from ColorCorrectionPipeline import Config, ColorCorrection, ImageData
-from ColorCorrectionPipeline.examples._common import sample_paths, json_value
+from ColorCorrectionPipeline import ColorCorrection, Config, ImageData
+from ColorCorrectionPipeline.examples._common import json_value, sample_paths
 from ColorCorrectionPipeline.io import read_image_data, write_image_data
 
 
@@ -172,13 +171,13 @@ def fixture(method="ccm", nn_epochs=30):
 
 def configuration_contracts():
     from ColorCorrectionPipeline import (
-        Steps,
+        CCOptions,
         FFCOptions,
         GCOptions,
-        WBOptions,
-        CCOptions,
         ReferenceProfile,
         StagePolicy,
+        Steps,
+        WBOptions,
     )
 
     flat, grouped = fixture("nn")
@@ -466,8 +465,9 @@ def oracle_worker(specification):
         np.save(folder / (name + ".npy"), images[name], allow_pickle=False)
     scene = pipeline.predict_image(spec["scene"], stages="final")["CC"]
     np.save(folder / "scene.npy", scene, allow_pickle=False)
-    import ColorCorrectionPipeline
     import inspect
+
+    import ColorCorrectionPipeline
 
     source = Path(inspect.getfile(Config))
     (folder / "identity.json").write_text(

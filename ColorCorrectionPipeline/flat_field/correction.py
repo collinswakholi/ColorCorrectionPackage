@@ -531,7 +531,7 @@ class FlatFieldCorrection:
 
         try:
             w, h, _ = Z.shape
-        except:
+        except Exception:
             w, h = Z.shape
 
         bins = self.bins
@@ -715,7 +715,7 @@ class FlatFieldCorrection:
                 y1 = int(rect[1])
                 x2 = int(rect[0] + rect[2])
                 y2 = int(rect[1] + rect[3])
-            except:
+            except Exception:
                 warnings.warn("ROI not selected, using full image", stacklevel=2)
                 x1 = 0
                 y1 = 0

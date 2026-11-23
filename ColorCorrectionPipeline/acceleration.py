@@ -334,7 +334,7 @@ class PreparedExecution:
         from .core.correction import _predict_direct, predict_image
         from .core.execution import evaluate_direct, evaluate_tone, _tone_downstream_bound
         from .stage_policies import MonotonicToneModel
-        import colour
+        import colour  # noqa: F401  (loads colour-science here, as before)
 
         models = self._pipeline.models
         if (

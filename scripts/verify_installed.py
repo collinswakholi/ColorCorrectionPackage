@@ -29,7 +29,7 @@ def main():
     import importlib.metadata as metadata
     import importlib.util
     import numpy as np
-    import ColorCorrectionPipeline as package
+    import ColorCorrectionPipeline as package  # noqa: N813
     from ColorCorrectionPipeline import ColorCorrection, Config, ImageData, MyModels
     from ColorCorrectionPipeline.core.correction import predict_
     from ColorCorrectionPipeline.fitting import fit_observations

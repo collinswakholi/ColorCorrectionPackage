@@ -5,11 +5,12 @@ python -m ColorCorrectionPipeline.examples.apply_bundle --bundle run/calibration
 """
 
 import argparse
-from pathlib import Path
 import time
+from pathlib import Path
 
 from ColorCorrectionPipeline import ColorCorrection
 from ColorCorrectionPipeline.io import write_image_data
+
 from ._common import new_output, report
 
 

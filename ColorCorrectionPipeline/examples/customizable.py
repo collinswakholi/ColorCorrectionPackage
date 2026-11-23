@@ -47,16 +47,17 @@ Retained physical reference coordinates are enabled by default here.
 """
 
 import argparse
+import json
+import time
 from contextlib import ExitStack
 from copy import deepcopy
-import json
 from pathlib import Path
-import time
 
 import numpy as np
 
 from ColorCorrectionPipeline import ColorCorrection, Config, ReferenceProfile
 from ColorCorrectionPipeline.io import write_image_data
+
 from ._common import json_value, new_output, sample_paths
 
 # This is the only source of example defaults. Config validates calibration options.

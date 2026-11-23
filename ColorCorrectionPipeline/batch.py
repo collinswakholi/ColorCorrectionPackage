@@ -5,14 +5,14 @@ records, including ordered reordering. Running native kernels cannot be forcibly
 interrupted; cancellation stops consumption and cancels queued work.
 """
 
-from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
-from copy import deepcopy
-from dataclasses import replace
 import os
 import threading
 import time
 import traceback
+from collections.abc import Mapping
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from copy import deepcopy
+from dataclasses import replace
 
 from .results import BatchItemResult, BatchResult
 

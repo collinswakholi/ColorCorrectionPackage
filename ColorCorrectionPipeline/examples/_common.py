@@ -1,12 +1,12 @@
 """Shared file handling for the executable tutorials."""
 
 import argparse
-from contextlib import ExitStack, contextmanager
 import hashlib
-from importlib import resources
 import json
-from pathlib import Path
 import time
+from contextlib import ExitStack, contextmanager
+from importlib import resources
+from pathlib import Path
 
 import numpy as np
 

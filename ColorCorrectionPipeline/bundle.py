@@ -696,7 +696,7 @@ def _estimator_load(record, arrays, features, limits):
 
 
 def _conventional_options(options):
-    import colour
+    import colour  # noqa: F401  (loads colour-science here, as before)
 
     if not isinstance(options, dict) or set(options) - {
         "method",

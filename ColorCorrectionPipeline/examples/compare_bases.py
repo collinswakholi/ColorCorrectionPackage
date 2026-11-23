@@ -7,15 +7,16 @@ NN uses its full 10000-epoch cap unless --nn-epochs is supplied.
 All reported held-out colors share the already fitted upstream stages.
 """
 
-from ColorCorrectionPipeline import Config, Steps, FFCOptions, CCOptions
+from ColorCorrectionPipeline import CCOptions, Config, FFCOptions, Steps
+
 from ._common import (
-    sample_paths,
+    export_and_replay,
+    fit,
     input_arguments,
     inputs,
     new_output,
-    fit,
-    export_and_replay,
     report,
+    sample_paths,
     scores,
 )
 

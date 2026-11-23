@@ -710,7 +710,7 @@ class Config:
 
 # Omitted values need a sentinel to distinguish explicit default-value aliases
 # from grouped requests. Keep the established defaults visible to help/inspect.
-import inspect as _inspect
+import inspect as _inspect  # noqa: E402
 
 _signature = _inspect.signature(Config.__init__)
 Config.__init__.__signature__ = _signature.replace(

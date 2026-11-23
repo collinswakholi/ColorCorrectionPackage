@@ -112,7 +112,7 @@ def _pillow_allocation(image, data, maximum_pixels, maximum_bytes):
     )
 
 
-class _DuplicateMetadataKey(ValueError):
+class _DuplicateMetadataKey(ValueError):  # noqa: N818
     pass
 
 

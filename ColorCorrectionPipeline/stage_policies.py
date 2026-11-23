@@ -5,8 +5,8 @@ their targets, nor add synthetic endpoints before checking measured sufficiency.
 The historical algorithms remain selected by ``legacy-v1`` at pipeline level.
 """
 
-from dataclasses import asdict, dataclass, fields
 import math
+from dataclasses import asdict, dataclass, fields
 
 import numpy as np
 

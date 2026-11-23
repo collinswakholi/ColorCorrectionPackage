@@ -473,7 +473,7 @@ class MyModels:
 
         try:
             with open(filepath, "rb") as f:
-                loaded: "MyModels" = pickle.load(f)
+                loaded: MyModels = pickle.load(f)
             state = self._validated_state(loaded)
         except Exception as e:
             raise OSError(f"Failed to load models from {filepath}: {e}") from e

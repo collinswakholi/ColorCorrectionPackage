@@ -188,7 +188,7 @@ def fit_cc(owner, image, method, parameters):
     from .fitting import fit_observations, fit_conventional_observations
     from .evaluation import grouped_cc_validation
     from .core.correction import predict_
-    import colour
+    import colour  # noqa: F401  (loads colour-science here, as before)
 
     face = selected_face(owner, image, "CC_training")
     fractions = clipping(owner, face)

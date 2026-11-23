@@ -5,10 +5,11 @@ Collins Wakholi (2026). Legacy FFC never selects these equations implicitly.
 """
 
 from copy import deepcopy
+
 import numpy as np
 
-from .colorimetry import rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb, D65
-from .ui_fitting import round_image, _integer, _solve
+from .colorimetry import D65, lab_to_xyz, rgb_to_xyz, xyz_to_lab, xyz_to_rgb
+from .ui_fitting import _integer, _solve, round_image
 
 
 def apply_ffc(rgb, gain):
@@ -109,7 +110,8 @@ def fit_ffc(owner, image, parameters):
     h, w = source.shape[:2]
     if source.shape != image.shape:
         raise ValueError("FFC white and source images must have identical dimensions")
-    from .ui_native import enabled as native_enabled, working_input
+    from .ui_native import enabled as native_enabled
+    from .ui_native import working_input
 
     if native_enabled(owner):
         crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)

@@ -57,7 +57,7 @@ def test_customnn_pickled_before_the_module_split_still_loads():
     with open(ROOT / "tests" / "data" / "customnn_2_3_0.pkl", "rb") as handle:
         data = pickle.load(handle)
     model = data["model"]
-    from ColorCorrectionPipeline.core import CustomNN as from_core
+    from ColorCorrectionPipeline.core import CustomNN as from_core  # noqa: N813
     from ColorCorrectionPipeline.core.correction import CustomNN
 
     assert type(model) is CustomNN is from_core

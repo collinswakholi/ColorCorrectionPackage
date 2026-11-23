@@ -240,11 +240,11 @@ def _mcc_draw(checker):
 # checker detection parameters
 CDP = _create_detector_params()
 if CDP is not None:
-    _set_param_safe(CDP, "adaptiveThreshWinSizeMin", int(5))
-    _set_param_safe(CDP, "adaptiveThreshWinSizeStep", int(8))
-    _set_param_safe(CDP, "confidenceThreshold", float(0.50))
-    _set_param_safe(CDP, "maxError", float(0.15))
-    _set_param_safe(CDP, "minGroupSize", int(7))
+    _set_param_safe(CDP, "adaptiveThreshWinSizeMin", 5)
+    _set_param_safe(CDP, "adaptiveThreshWinSizeStep", 8)
+    _set_param_safe(CDP, "confidenceThreshold", 0.50)
+    _set_param_safe(CDP, "maxError", 0.15)
+    _set_param_safe(CDP, "minGroupSize", 7)
 
 if sns is not None:
     sns.set_theme(style="whitegrid")
@@ -676,7 +676,7 @@ memory_lock = threading.Lock()
 
 try:
     torch.cuda.set_per_process_memory_fraction(0.99, device=0)
-except:
+except Exception:
     pass
 
 
@@ -704,7 +704,7 @@ def check_memory():
         if "torch" in globals() and torch.cuda.is_available():
             reserved = torch.cuda.memory_reserved() / 1024**2
             max_reserved = torch.cuda.max_memory_reserved() / 1024**2
-            vram_usage = (reserved / max_reserved * 100) if max_reserved > 0 else 0.0
+            vram_usage = (reserved / max_reserved * 100) if max_reserved > 0 else 0.0  # noqa: F841
             log_(
                 f"Used GPU memory: {torch.cuda.memory_usage(0):.2f}%",
                 "light_blue",
@@ -871,8 +871,8 @@ def extract_color_charts(img: np.ndarray, n_charts: int = 1) -> Tuple[List[np.nd
         # add text to chart
         # left_corner of chart
         box_pts = checker.getBox()
-        x1, x2 = int(min(box_pts[:, 0])), int(max(box_pts[:, 0]))
-        y1, y2 = int(min(box_pts[:, 1])), int(max(box_pts[:, 1]))
+        x1 = int(min(box_pts[:, 0]))
+        y1 = int(min(box_pts[:, 1]))
 
         cv2.putText(
             img_draw,
@@ -1750,7 +1750,7 @@ def get_illuminant_from(type_="", var=None, CMFS="CIE 1931 2 Degree Standard Obs
         else:
             CRI = colour.colour_rendering_index(colour.SDS_ILLUMINANTS["D65"])
             REF_ILLUMINANT = colour.CCS_ILLUMINANTS[CMFS]["D65"]
-            log_(f"Using Default illuminant: D65", "cyan", "italic")
+            log_("Using Default illuminant: D65", "cyan", "italic")
     elif var is not None:
         if type_ == "spectra":
             var = str(var)  # must be a string path
@@ -1795,7 +1795,7 @@ def get_illuminant_from(type_="", var=None, CMFS="CIE 1931 2 Degree Standard Obs
             REF_ILLUMINANT = np.array([x, y])
         else:
             REF_ILLUMINANT = colour.CCS_ILLUMINANTS[CMFS]["D65"]
-            log_(f"Using Default illuminant: D65", "cyan", "italic")
+            log_("Using Default illuminant: D65", "cyan", "italic")
 
     if CRI is not None:
         der = ""
@@ -1919,7 +1919,7 @@ def estimate_gamma_profile(
                     min_idx = np.argmin(before_min_grad)
                 else:
                     break
-            except:
+            except Exception:
                 break
 
         return min_idx
@@ -1930,8 +1930,6 @@ def estimate_gamma_profile(
     coeffs = Coeffs[min_idx]
 
     log_(f"Optimal polynomial degree: {degree}", "cyan", "italic")
-
-    eq = "F(x) = " + "+".join(f"{round(c, 2)}x^{i}" for i, c in enumerate(reversed(coeffs)))
 
     # apply gamma profile to image
     img_rgb_gc = predict_image(img_rgb, coeffs, ref_illuminant=ref_illuminant)
@@ -1972,7 +1970,7 @@ def estimate_gamma_profile(
         x_line = np.linspace(0, 100, 25)
         y_line = poly_func(x_line, coeffs)
         plt.plot(y_line, x_line, "m-.", label=f"Order {degree} Curve")
-        plt.plot(x_line, x_line, "c--", label=f"1:1 Curve")
+        plt.plot(x_line, x_line, "c--", label="1:1 Curve")
 
         # Plot scatter of predictions
         plt.scatter(ref_L, prediction, c="blue", label="Predictions")
@@ -2265,7 +2263,7 @@ def scatter_RGB(
         reference.flatten(),
         color="k",
         linestyle="-",
-        label=f"1:1 Line",
+        label="1:1 Line",
         linewidth=1.5,
     )
     plt.legend(fontsize=font_size)
@@ -2327,7 +2325,7 @@ def get_json_file(folder):
     details = glob.glob(os.path.join(folder, "*.json"), recursive=True)
     if len(details) == 1:
         # read json file
-        with open(details[0], "r") as f:
+        with open(details[0]) as f:
             data = json.load(f)
 
         return data

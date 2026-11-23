@@ -48,7 +48,6 @@ def _update(digest, value):
 
 
 def _torch_state(network):
-    import torch
     import torch.nn as nn
 
     if type(network) is not nn.Sequential or "forward" in vars(network):

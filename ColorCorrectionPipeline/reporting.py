@@ -2,9 +2,9 @@
 
 import json
 import os
-from pathlib import Path
 import tempfile
 from collections.abc import Mapping
+from pathlib import Path
 
 from .results import _plain
 

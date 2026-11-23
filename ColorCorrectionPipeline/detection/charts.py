@@ -334,9 +334,13 @@ def _aabb_iou(a, b):
 def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False, native=False):
     if native:
         from ..ui_native import (
-            warp as warp_points,
             homography as solve_native_homography,
+        )
+        from ..ui_native import (
             order_quad,
+        )
+        from ..ui_native import (
+            warp as warp_points,
         )
     else:
         warp_points = _warp

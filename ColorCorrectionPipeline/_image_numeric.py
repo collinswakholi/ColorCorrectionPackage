@@ -4,8 +4,8 @@ These kernels allocate no model state, change no color equations, and never
 publish files. Failed qualification or execution selects the NumPy calculation.
 """
 
-from functools import lru_cache
 import logging
+from functools import lru_cache
 
 import numpy as np
 
@@ -23,7 +23,7 @@ _quantize_unsigned_serial = None
 if accel.HAS_NUMBA:
 
     def _normalize_unsigned(source, output, maximum):
-        from ._cpu_workers import worker_count, ranges, run_slices
+        from ._cpu_workers import ranges, run_slices, worker_count
 
         workers = min(source.shape[0], worker_count(source.size, 1024 * 1024))
         if workers == 1:
@@ -39,7 +39,7 @@ if accel.HAS_NUMBA:
         run_slices(fill, ranges(source.shape[0], workers), workers)
 
     def _quantize_unsigned(source, output, maximum):
-        from ._cpu_workers import worker_count, ranges, run_slices
+        from ._cpu_workers import ranges, run_slices, worker_count
 
         workers = worker_count(source.size, 1024 * 1024)
         if workers == 1:

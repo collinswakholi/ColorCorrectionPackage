@@ -1,9 +1,9 @@
 """Compact, owned batch records; report conversion never embeds pixel arrays."""
 
+import math
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
-import math
 from types import MappingProxyType
 
 import numpy as np

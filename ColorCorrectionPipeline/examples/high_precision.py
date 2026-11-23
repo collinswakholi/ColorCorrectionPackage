@@ -8,16 +8,18 @@ uint16/float TIFF files with --chart, --white and --scene for scientific inputs.
 """
 
 import numpy as np
-from ColorCorrectionPipeline import Config, ImageData, Steps, FFCOptions, CCOptions
+
+from ColorCorrectionPipeline import CCOptions, Config, FFCOptions, ImageData, Steps
 from ColorCorrectionPipeline.io import read_image_data, write_image_data
+
 from ._common import (
-    sample_paths,
+    export_and_replay,
+    fit,
     input_arguments,
     inputs,
     new_output,
-    fit,
-    export_and_replay,
     report,
+    sample_paths,
     scores,
 )
 

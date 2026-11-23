@@ -6,7 +6,7 @@ independent-capture accuracy, and must not be represented as either.
 
 import numpy as np
 
-from .fitting import _paired_data, _integer
+from .fitting import _integer, _paired_data
 
 
 def grouped_cc_validation(

@@ -9,7 +9,6 @@ operations.
 Standalone implementations copied from v1_2_01 for compatibility.
 """
 
-from typing import Optional, Tuple
 import gc
 import hashlib
 import logging
@@ -138,7 +137,7 @@ def free_memory():
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-    except:
+    except Exception:
         pass
     gc.collect()
 
@@ -236,11 +235,11 @@ def _make_adjusted_params():
     """Build a DetectorParameters with relaxed thresholds (version-safe)."""
     dp = _create_detector_params()
     if dp is not None:
-        _set_param_safe(dp, "adaptiveThreshWinSizeMin", int(3))
-        _set_param_safe(dp, "adaptiveThreshWinSizeStep", int(8))
-        _set_param_safe(dp, "confidenceThreshold", float(0.50))
-        _set_param_safe(dp, "maxError", float(0.35))
-        _set_param_safe(dp, "minGroupSize", int(4))
+        _set_param_safe(dp, "adaptiveThreshWinSizeMin", 3)
+        _set_param_safe(dp, "adaptiveThreshWinSizeStep", 8)
+        _set_param_safe(dp, "confidenceThreshold", 0.50)
+        _set_param_safe(dp, "maxError", 0.35)
+        _set_param_safe(dp, "minGroupSize", 4)
     return dp
 
 
@@ -354,7 +353,6 @@ def _extract_color_chart_mcc(img: np.ndarray, get_patch_size: bool = False):
 
     dims = []
     if get_patch_size:
-        img_roi = img[y1:y2, x1:x2]
         # Simple patch size estimation
         dims = [(x2 - x1) // 6, (y2 - y1) // 4]
 
@@ -394,8 +392,8 @@ def _extract_color_charts_mcc(img: np.ndarray, n_charts: int = 1):
 
         # Add text to chart
         box_pts = checker.getBox()
-        x1, x2 = int(min(box_pts[:, 0])), int(max(box_pts[:, 0]))
-        y1, y2 = int(min(box_pts[:, 1])), int(max(box_pts[:, 1]))
+        x1 = int(min(box_pts[:, 0]))
+        y1 = int(min(box_pts[:, 1]))
 
         cv2.putText(
             img_draw,
@@ -497,7 +495,7 @@ def extract_neutral_patches(
                 to_float64(img_draw[:, :, ::-1]),
                 title=f"Charts found: {len(src_charts) if isinstance(src_charts, list) else 1}",
             )
-        except:
+        except Exception:
             pass
 
     if src_charts is None:
@@ -590,7 +588,7 @@ def poly_func_torch(x, coeffs):
         for c in coeffs:
             result = result * x + c
         return result
-    except:
+    except Exception:
         raise NotImplementedError("poly_func_torch requires torch")
 
 

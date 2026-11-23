@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from ColorCorrectionPipeline import (
-    CalibrationError,
     Calibration,
+    CalibrationError,
     CCOptions,
     ColorCorrection,
     Config,
