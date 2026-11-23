@@ -172,12 +172,20 @@ def _create_detector_params():
         lambda: cv2.mcc.DetectorParameters.create(),
         lambda: cv2.mcc.DetectorParameters_create(),
         lambda: cv2.mcc.DetectorParameters(),
+        lambda: cv2.mcc.DetectorParametersMCC(),  # OpenCV >= 4.11 / 5.x
     ]:
         try:
             return factory()
         except Exception:
             continue
     return None
+
+
+def _mcc_draw(checker):
+    """Version-safe CCheckerDraw (OpenCV >= 4.11 draws through the detector)."""
+    from .core.utils import _create_cdraw
+
+    return _create_cdraw(checker)
 
 
 def _set_param_safe(params, name, value):
@@ -731,7 +739,9 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
     n = n_charts + 1  # increase n for extra chart detections
 
     def run_detection(current_params):
-        detector.process(img, cv2.mcc.MCC24, nc=n, params=current_params)
+        from .core.utils import _mcc_process
+
+        _mcc_process(detector, img, n, current_params)
         list_ = detector.getListColorChecker()
         if len(list_) < 0.5:
             log_("No color chart found in Image", "red", "italic", "warn")
@@ -742,7 +752,7 @@ def detect_refine_charts(detector, img, n_charts, params=CDP):
         det_ = run_detection(params)
     except Exception:
         log_("Retrying with Adjusted parameters...", "light_yellow", "italic", "warn")
-        DP = cv2.mcc.DetectorParameters()
+        DP = _create_detector_params()
         DP.adaptiveThreshWinSizeMin = 3
         DP.adaptiveThreshWinSizeStep = 8
         DP.confidenceThreshold = 0.50
@@ -789,7 +799,7 @@ def extract_color_chart(img, get_patch_size=False):
         log_("No color chart found in Image", "red", "italic", "warn")
         return None, None, None
 
-    cdraw = cv2.mcc.CCheckerDraw_create(best_checker)
+    cdraw = _mcc_draw(best_checker)
     img_draw = img.copy()
     cdraw.draw(img_draw)
 
@@ -839,7 +849,7 @@ def extract_color_charts(
     img_draw = img.copy()
 
     for i, checker in enumerate(checkers):
-        cdraw = cv2.mcc.CCheckerDraw_create(checker)
+        cdraw = _mcc_draw(checker)
         cdraw.draw(img_draw)
         # add text to chart
         # left_corner of chart
@@ -921,7 +931,7 @@ def extract_color_chart_ex(
         # Visualization (optional)
         if show:
             img_draw = img.copy()
-            cdraw = cv2.mcc.CCheckerDraw_create(best_checker)
+            cdraw = _mcc_draw(best_checker)
             cdraw.draw(img_draw)
             colour.plotting.plot_image(to_float64(img_draw[:, :, ::-1]))
         

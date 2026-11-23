@@ -132,6 +132,7 @@ def _create_detector_params():
         lambda: cv2.mcc.DetectorParameters.create(),
         lambda: cv2.mcc.DetectorParameters_create(),
         lambda: cv2.mcc.DetectorParameters(),
+        lambda: cv2.mcc.DetectorParametersMCC(),  # OpenCV >= 4.11 / 5.x
     ]:
         try:
             return factory()
@@ -163,7 +164,40 @@ def _create_cdraw(checker):
             return factory()
         except Exception:
             continue
+    if hasattr(cv2.mcc, "CCheckerDetector"):
+        # OpenCV >= 4.11 / 5.x removed CCheckerDraw; drawing moved to the detector.
+        return _DetectorDraw(checker)
     raise RuntimeError("Cannot create cv2.mcc.CCheckerDraw")
+
+
+class _DetectorDraw:
+    """CCheckerDraw stand-in for OpenCV versions that draw through the detector."""
+
+    def __init__(self, checker):
+        self._checker = checker
+
+    def draw(self, img):
+        out = _create_detector().draw([self._checker], img)
+        if out is not None and out is not img:
+            img[...] = out
+
+
+def _mcc_process(detector, img, nc=1, params=None):
+    """Run MCC24 chart detection across OpenCV API generations.
+
+    OpenCV <= 4.10 takes ``process(img, chartType, nc=..., params=...)``.
+    OpenCV >= 4.11 / 5.x takes ``process(img[, nc])`` with the chart type and
+    parameters set on the detector; passing ``MCC24`` positionally there is
+    read as ``nc=0`` and silently finds nothing.
+    """
+    if hasattr(detector, "setColorChartType"):
+        detector.setColorChartType(cv2.mcc.MCC24)
+        if params is not None and hasattr(detector, "setDetectionParams"):
+            detector.setDetectionParams(params)
+        return detector.process(img, int(nc))
+    if params is not None:
+        return detector.process(img, cv2.mcc.MCC24, nc=nc, params=params)
+    return detector.process(img, cv2.mcc.MCC24, nc=nc)
 
 
 def _set_param_safe(params, name, value):
@@ -201,17 +235,14 @@ def detect_refine_charts(detector, img, n_charts, params=None):
         detected = False
         for attempt_params in [current_params, None]:
             try:
-                if attempt_params is not None:
-                    detector.process(img, cv2.mcc.MCC24, nc=n, params=attempt_params)
-                else:
-                    detector.process(img, cv2.mcc.MCC24, nc=n)
+                _mcc_process(detector, img, n, attempt_params)
                 detected = True
                 break
             except Exception:
                 continue
         if not detected:
             # Last resort: minimal call
-            detector.process(img, cv2.mcc.MCC24)
+            _mcc_process(detector, img, n)
         list_ = detector.getListColorChecker()
         if len(list_) < 1:
             print("Warning: No color chart found in Image")

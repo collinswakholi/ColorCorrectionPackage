@@ -40,6 +40,7 @@ from .metrics import arrange_metrics, get_metrics
 from .utils import (
     _create_detector,
     _create_cdraw,
+    _mcc_process,
     compute_diag,
     estimate_fit,
     extract_color_chart,
@@ -1309,7 +1310,7 @@ def extract_color_chart_ex(
             
             # Chart detection (use version-safe factories from utils)
             detector = _create_detector()
-            detector.process(img_blur, cv2.mcc.MCC24)
+            _mcc_process(detector, img_blur, 1)
             checkers = detector.getListColorChecker()
             
             if len(checkers) == 0:
