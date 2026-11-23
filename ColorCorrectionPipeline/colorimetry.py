@@ -101,7 +101,7 @@ def _domain(values, domain):
         raise ValueError("RGB values must be in [0,1]; declare extended domain explicitly")
 
 
-def _output(values, policy):
+def _output(values, policy, *, owned=False):
     if policy not in ("clip", "preserve", "raise"):
         raise ValueError("output policy must be clip, preserve, or raise")
     if not np.isfinite(values).all():
@@ -112,7 +112,8 @@ def _output(values, policy):
         if np.any(values < -1e-12) or np.any(values > 1.0 + 1e-12):
             raise ValueError("color is outside the unit RGB gamut")
         return np.clip(values, 0.0, 1.0)
-    return values.copy()
+    # A freshly computed result is already owned by the caller.
+    return values if owned else values.copy()
 
 
 def srgb_to_linear(values, *, domain="unit"):
@@ -120,24 +121,23 @@ def srgb_to_linear(values, *, domain="unit"):
     rgb = _numeric(values, "sRGB")
     _domain(rgb, domain)
     absolute = np.abs(rgb)
-    result = rgb / 12.92
-    nonlinear = absolute > 0.04045
-    result = np.array(result, copy=True)
-    result[nonlinear] = np.sign(rgb[nonlinear]) * ((absolute[nonlinear] + 0.055) / 1.055) ** 2.4
-    return _output(result, "preserve")
+    # Per-element selection of the same expressions the masked assignment used.
+    result = np.where(
+        absolute > 0.04045, np.sign(rgb) * ((absolute + 0.055) / 1.055) ** 2.4, rgb / 12.92
+    )
+    return _output(result, "preserve", owned=True)
 
 
 def linear_to_srgb(values, *, policy="preserve"):
     """Encode linear sRGB, preserving out-of-gamut values unless requested."""
     linear = _numeric(values, "linear RGB")
     absolute = np.abs(linear)
-    result = linear * 12.92
-    nonlinear = absolute > 0.0031308
-    result = np.array(result, copy=True)
-    result[nonlinear] = np.sign(linear[nonlinear]) * (
-        1.055 * absolute[nonlinear] ** (1.0 / 2.4) - 0.055
+    result = np.where(
+        absolute > 0.0031308,
+        np.sign(linear) * (1.055 * absolute ** (1.0 / 2.4) - 0.055),
+        linear * 12.92,
     )
-    return _output(result, policy)
+    return _output(result, policy, owned=True)
 
 
 def rgb_to_xyz_matrix():

@@ -74,13 +74,14 @@ def _inverse(matrix):
 
 def _multiply(matrix, values):
     # Keep the native left-to-right scalar additions, avoiding a BLAS tree.
-    return np.stack(
-        [
-            values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
-            for row in matrix
-        ],
-        axis=-1,
-    )
+    # Each row is written into one owned result instead of stacking temporaries.
+    result = None
+    for index, row in enumerate(matrix):
+        channel = values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
+        if result is None:
+            result = np.empty(np.shape(channel) + (len(matrix),), dtype=np.result_type(channel))
+        result[..., index] = channel
+    return result
 
 
 _PRIMARY = np.array(
@@ -119,10 +120,11 @@ def _decode(values, scalar=False):
                 for v in values.ravel()
             ]
         ).reshape(values.shape)
-    result = values / 12.92
-    mask = values > 0.04045
-    result[mask] = ((values[mask] + 0.055) / 1.055) ** 2.4
-    return result
+    # Both branches are evaluated per element; np.where selects exactly the
+    # values the former masked assignment wrote, without gather/scatter copies.
+    # Unselected bases below -0.055 would only warn; their values are discarded.
+    with np.errstate(invalid="ignore"):
+        return np.where(values > 0.04045, ((values + 0.055) / 1.055) ** 2.4, values / 12.92)
 
 
 def _encode(values, scalar=False):
@@ -139,28 +141,31 @@ def _encode(values, scalar=False):
             ]
         ).reshape(values.shape)
     else:
-        result = values * 12.92
-        mask = np.abs(values) > 0.0031308
-        result[mask] = np.sign(values[mask]) * (1.055 * np.abs(values[mask]) ** (1.0 / 2.4) - 0.055)
+        magnitude = np.abs(values)
+        result = np.where(
+            magnitude > 0.0031308,
+            np.sign(values) * (1.055 * magnitude ** (1.0 / 2.4) - 0.055),
+            values * 12.92,
+        )
     return result
 
 
 def _xyz_to_lab(values, white):
     scaled = values / _white(white)
     f = np.where(scaled > EPSILON, np.cbrt(scaled), (KAPPA * scaled + 16.0) / 116.0)
-    return np.stack(
-        [
-            116.0 * f[..., 1] - 16.0,
-            500.0 * (f[..., 0] - f[..., 1]),
-            200.0 * (f[..., 1] - f[..., 2]),
-        ],
-        axis=-1,
-    )
+    result = np.empty(f.shape, dtype=f.dtype)
+    result[..., 0] = 116.0 * f[..., 1] - 16.0
+    result[..., 1] = 500.0 * (f[..., 0] - f[..., 1])
+    result[..., 2] = 200.0 * (f[..., 1] - f[..., 2])
+    return result
 
 
 def _lab_to_xyz(values, white):
     fy = (values[..., 0] + 16.0) / 116.0
-    f = np.stack([values[..., 1] / 500.0 + fy, fy, fy - values[..., 2] / 200.0], axis=-1)
+    f = np.empty(np.shape(fy) + (3,), dtype=np.result_type(fy, values[..., 1] / 500.0))
+    f[..., 0] = values[..., 1] / 500.0 + fy
+    f[..., 1] = fy
+    f[..., 2] = fy - values[..., 2] / 200.0
     return np.where(f > 6.0 / 29.0, f * f * f, (116.0 * f - 16.0) / KAPPA) * _white(white)
 
 
