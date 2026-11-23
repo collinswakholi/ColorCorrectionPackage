@@ -10,7 +10,7 @@
 > | Calibration, new process / warm | 2.0–2.4 s / 1.4–1.7 s |
 > | `predict_image` on `Sample_1.JPG` (four stages) | 100–129 ms |
 > | 4K uint8 prediction, native byte runtime, final stage | 0.56–0.59 s |
-> | 4K prediction with `precision="high"` | 8.3–12.1 s (single-threaded float64) |
+> | 4K prediction with `precision="high"` | 8.3–12.1 s (single-threaded float64); 1.6–1.7 s in 2.3.0, see below |
 > | `predict_batch`, 10 × 1152×768 | 0.95–0.98 s |
 >
 > Float input needs `numerics={"precision": "high"}`; the native byte runtime accepts
@@ -23,6 +23,35 @@ actual package calls, with no simultaneous test/build workload. Disk cache and
 thermal state can affect timings. Medians use seven repeated warm calls;
 initial compilation, preparation and model loading are reported separately.
 Existing on-disk JIT caches were available. Python imports are outside these timings.
+
+## High-precision prediction in blocks (2.3.0)
+
+`precision="high"` prediction now runs FFC/GC/WB/CC per pixel block instead of
+stage by stage over the whole frame. Pointwise colour stages use 32768-pixel
+sub-blocks; CC keeps its historical 65536-pixel (or `chunk_pixels`) chunks and
+one LUT/direct decision per image, so outputs are bit-identical to 2.2.0. Blocks
+run on up to eight threads through the package's bounded image workers (NumPy
+releases the GIL; no Numba kernel replaces the float64 equations). The sRGB
+transfer helpers use `np.where` instead of masked gather/scatter, which is also
+bit-identical. Only the selected stage outputs are allocated at full size.
+
+Measured 2026-11-23 on the same 32-core Windows machine: a fresh process loads a
+bundle, predicts once to warm caches, then times `predict_image(uint8 array,
+stages="final")` (median of 3 at 4K, 5 on the sample). The 4K calibration was
+fitted on 3840×2160 resized copies of the bundled photographs. Outputs were
+compared with `assert_array_equal` against 2.2.0-era code (commit 8ce76a9).
+
+| Input, precision | Before | After | tracemalloc peak, before → after | Peak RSS, before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 3840×2160, high | 7.89 s | 1.69 s | 1353 → 472 MB | 1902 → 907 MB |
+| 1152×768 `Sample_1.JPG`, high | 0.82 s | 0.18 s | 144 → 130 MB | 619 → 619 MB |
+| 3840×2160, native byte | 0.63 s | 0.69 s (unchanged path) | 403 → 403 MB | 854 → 854 MB |
+| 1152×768, native byte | 0.09 s | 0.08 s (unchanged path) | 43 → 43 MB | 619 → 619 MB |
+
+Threading saturates near four to eight workers; the remaining time is NumPy's
+float64 `pow`/`cbrt` work and allocator contention. Of a 4K native-byte call,
+about 0.2 s is the `ImageData` float64 snapshot and its two SHA-256 digests,
+which were left unchanged because those digests are part of the image contract.
 
 ## Bundled photographs
 
