@@ -346,9 +346,9 @@ class ColorCorrection:
                 return fit_ffc(self, Image, ffc_kwargs)
             # Convert to uint8 BGR for FFC
             img_bgr8 = to_uint8(Image[:, :, ::-1])
-            assert (
-                self.White_Image.shape == img_bgr8.shape
-            ), "Image and white image must have same shape."
+            if self.White_Image.shape != img_bgr8.shape:
+                # Explicit check: an assert would vanish under ``python -O``.
+                raise ValueError("Image and white image must have same shape.")
             
             # Extract parameters
             get_deltaE = get_attr(ffc_kwargs, "get_deltaE", True) and self.color_semantics.version == "legacy-v1"

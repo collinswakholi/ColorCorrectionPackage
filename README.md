@@ -24,7 +24,7 @@ Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPyth
 3.13 or 3.14 for a new environment; see [Python compatibility](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/python-compatibility.md).
 Optional CPU acceleration is available with
 `pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
-automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](docs/gpu-detection.md).
+automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/gpu-detection.md).
 
 ## Run the sample photographs
 
