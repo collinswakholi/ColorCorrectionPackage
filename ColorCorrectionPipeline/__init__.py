@@ -31,11 +31,17 @@ to use the included sample images after installing the package.
 """
 
 from importlib import import_module
+import logging
 import warnings
 
 from .__version__ import __version__, __version_info__
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
+
+# Library convention: never configure output for the application. Progress and
+# diagnostic messages go to the "ColorCorrectionPipeline" logger hierarchy; enable
+# them with e.g. logging.basicConfig(level=logging.INFO). See docs/logging.md.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # Resolve public names to their original objects and modules on first access.
 # Asking for the package version should not initialize training or image backends.

@@ -227,6 +227,7 @@ For a UI-native fit, omit both settings for the default 9 × 9 grid (81 points p
 - [Calibration bundles](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/calibration-bundles.md): portable validated inference parameters.
 - [Numerical policies](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
 - [Batch processing](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/batch-and-reporting.md) and [prepared execution](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/acceleration.md).
+- [Logging and warnings](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/logging.md): progress and diagnostic messages use `logging`; enable them with `logging.basicConfig(level=logging.INFO)`.
 - [Architecture](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/architecture.md) and [distribution qualification](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/distribution-qualification.md): source ownership and installed-package checks.
 
 A desktop interface is available in

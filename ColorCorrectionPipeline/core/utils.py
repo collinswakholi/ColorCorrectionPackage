@@ -12,12 +12,15 @@ Standalone implementations copied from v1_2_01 for compatibility.
 from typing import Optional, Tuple
 import gc
 import hashlib
+import logging
 import warnings
 
 import numpy as np
 from .._lazy import pandas as pd  # deferred: only used inside functions
 import cv2
 from .._lazy import colour  # loads colour-science on first use
+
+logger = logging.getLogger(__name__)
 
 # ── MCC module availability (follows accel.py HAS_NUMBA pattern) ───────────
 HAS_MCC = False
@@ -266,19 +269,19 @@ def detect_refine_charts(detector, img, n_charts, params=None):
             _mcc_process(detector, img, n)
         list_ = detector.getListColorChecker()
         if len(list_) < 1:
-            print("Warning: No color chart found in Image")
+            logger.debug("No color chart found in image on this detection attempt")
             return None
         return detector
 
     try:
         det_ = run_detection(params)
     except Exception:
-        print("Warning: Retrying with Adjusted parameters...")
+        logger.debug("Retrying chart detection with adjusted parameters")
         adjusted = _make_adjusted_params()
         det_ = run_detection(adjusted)
 
     if det_ is None:
-        print("Warning: Retrying with Adjusted parameters...")
+        logger.debug("Retrying chart detection with adjusted parameters")
         det_ = run_detection(_make_adjusted_params())
     if det_ is None:
         return []
@@ -291,7 +294,7 @@ def detect_refine_charts(detector, img, n_charts, params=None):
         charts = sorted(charts, key=lambda c: c.getCost())
         len_ = len(charts)
         if (len_ - 1) < n_charts:
-            print(f"Warning: Detected {len(charts)-1} charts instead of {n_charts}.")
+            warnings.warn(f"Detected {len(charts)-1} charts instead of {n_charts}.", stacklevel=2)
         elif (len_ - 1) >= n_charts:
             charts = sorted(charts, key=lambda c: c.getCost())[:n_charts]
         return charts
@@ -331,7 +334,7 @@ def _extract_color_chart_mcc(img: np.ndarray, get_patch_size: bool = False):
     best_checker = checkers[0] if checkers else None
 
     if best_checker is None:
-        print("Warning: No color chart found in Image")
+        logger.warning("No color chart found in image")
         return None, None, None
 
     cdraw = _create_cdraw(best_checker)
@@ -498,7 +501,7 @@ def extract_neutral_patches(
             pass
 
     if src_charts is None:
-        print("Warning: No charts detected in Image")
+        logger.warning("No charts detected in image")
         return None, None
 
     if return_one:

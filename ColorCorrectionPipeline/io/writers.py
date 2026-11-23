@@ -16,6 +16,8 @@ import struct
 import tempfile
 import zlib
 import io
+import logging
+import warnings
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional, Union
@@ -24,6 +26,8 @@ import cv2
 import numpy as np
 
 __all__ = ["write_image", "write_image_data", "ExportRecord"]
+
+logger = logging.getLogger(__name__)
 
 
 def write_image(
@@ -80,7 +84,7 @@ def write_image(
             if len(img_out.shape) == 3:
                 img_out = cv2.cvtColor(img_out, cv2.COLOR_RGB2GRAY)
         else:
-            print(f"Warning: Unknown color_space '{color_space}', assuming BGR")
+            warnings.warn(f"Unknown color_space '{color_space}', assuming BGR", stacklevel=2)
 
     # Set encoding parameters
     ext = path.suffix.lower()
@@ -99,12 +103,12 @@ def write_image(
     try:
         success = cv2.imwrite(str(path), img_out, params)
         if success:
-            print(f"Info: Image written to {path}")
+            logger.info("Image written to %s", path)
         else:
-            print(f"Error: Failed to write image to {path}")
+            logger.error("Failed to write image to %s", path)
         return success
     except Exception as e:
-        print(f"Error: Exception writing image to {path}: {e}")
+        logger.error("Exception writing image to %s: %s", path, e)
         return False
 
 

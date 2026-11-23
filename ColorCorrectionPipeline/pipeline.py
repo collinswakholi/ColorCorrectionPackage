@@ -83,6 +83,8 @@ from .models import MyModels
 
 __all__ = ["ColorCorrection", "FitResult", "CalibrationError"]
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True, eq=False)
 class FitResult:
@@ -434,7 +436,7 @@ class ColorCorrection:
                 if cache_key is not None:
                     self._ffc_multiplier_cache[cache_key] = multiplier
             elif get_attr(ffc_kwargs, "verbose", False):
-                print("Info: Reusing cached flat-field multiplier")
+                logger.info("Reusing cached flat-field multiplier")
             if self.stage_policy.version == "modern-v1" and cache_key in self._ffc_quality_cache:
                 self.numerical_report["FFC"] = copy.deepcopy(self._ffc_quality_cache[cache_key])
                 self.numerical_report["FFC"]["multiplier_cache_reused"] = cache_reused
@@ -482,7 +484,6 @@ class ColorCorrection:
             return c_rgb_f64, metrics, False
 
         except Exception as e:
-            print(f"Error: FlatFieldCorrection error: {e}")
             self._record_stage_error("FFC", e)
             return Image, None, True
 
@@ -506,7 +507,7 @@ class ColorCorrection:
             >>> img_sat, sat_vals, sat_ids = cc._check_saturation(img, True)
         """
         if not do_check:
-            print("Warning: Skipping saturation check")
+            logger.info("Skipping saturation check")
             return Image, None, None
 
         try:
@@ -542,7 +543,7 @@ class ColorCorrection:
             >>> img_gc, metrics, err = cc.do_gamma_correction(img, True, gc_kwargs)
         """
         if not do_gc:
-            print("Warning: Skipping gamma correction")
+            logger.info("Skipping gamma correction")
             return Image, None, False
 
         try:
@@ -598,7 +599,7 @@ class ColorCorrection:
             >>> img_wb, metrics, err = cc.do_white_balance(img, True, wb_kwargs)
         """
         if not do_wb:
-            print("Warning: Skipping white balance")
+            logger.info("Skipping white balance")
             return Image, None, False
 
         try:
@@ -655,7 +656,7 @@ class ColorCorrection:
             >>> img_cc, metrics, err = cc.do_color_correction(img, True, "ours", cc_kwargs)
         """
         if not do_cc:
-            print("Warning: Skipping color correction")
+            logger.info("Skipping color correction")
             return Image, None, False
 
         try:
@@ -671,7 +672,7 @@ class ColorCorrection:
                     "root_polynomial_expansion": None,
                     "terms": get_attr(cc_kwargs, "terms", None),
                 }
-                print(f"Info: Using conventional CC method: {params['method']}")
+                logger.info("Using conventional CC method: %s", params["method"])
                 ccm, img_cc, corrected_card, metrics_cc = color_correction_1(
                     img_rgb=Image,
                     ref_rgb=self.REFERENCE_RGB_PD.values,
@@ -725,7 +726,7 @@ class ColorCorrection:
                         "Unknown regression method: %s. Choose linear, pls, nn or custom.%s"
                         % (params["mtd"], hint)
                     )
-                print(f"Info: Using custom CC method: {params['mtd']}")
+                logger.info("Using custom CC method: %s", params["mtd"])
                 model, img_cc, corrected_card, metrics_cc = color_correction(
                     img_rgb=Image,
                     ref_rgb=self.REFERENCE_RGB_PD.values,
@@ -1579,7 +1580,7 @@ class ColorCorrection:
             )
             elapsed = time.perf_counter() - started
             if not _quiet:
-                print(f"Info: Prediction done in {elapsed:.2f}s")
+                logger.info("Prediction done in %.2fs", elapsed)
             if _return_context:
                 return outputs, {
                     "input_image": data.to_metadata(),
@@ -1607,7 +1608,7 @@ class ColorCorrection:
                 outputs = self._convert_outputs(accelerated)
                 elapsed = time.perf_counter() - started
                 if not _quiet:
-                    print(f"Info: Prediction done in {elapsed:.2f}s")
+                    logger.info("Prediction done in %.2fs", elapsed)
                 return outputs
         if ui_policy:
             current = round_image(current)
@@ -1682,7 +1683,7 @@ class ColorCorrection:
         outputs = self._convert_outputs(out_images)
         timings["total_seconds"] = time.perf_counter() - started
         if not _quiet:
-            print(f"Info: Prediction done in {timings['total_seconds']:.2f}s")
+            logger.info("Prediction done in %.2fs", timings["total_seconds"])
         if _return_context:
             return outputs, {
                 "input_image": input_metadata,
@@ -1868,9 +1869,12 @@ class ColorCorrection:
                         gc.collect()
 
         elapsed = time.time() - t0
-        print(
-            f"Info: Batch prediction done — {n} images in {elapsed:.2f}s "
-            f"({elapsed / max(n, 1):.2f}s/img, {max_workers} workers)"
+        logger.info(
+            "Batch prediction done — %d images in %.2fs (%.2fs/img, %d workers)",
+            n,
+            elapsed,
+            elapsed / max(n, 1),
+            max_workers,
         )
         gc.collect()
 

@@ -18,6 +18,7 @@
   - The legacy gamma curve keeps black at 0 and white at 100 and never decreases. The fit through the chart's neutrals is unchanged.
   - Lab conversion of sRGB values adapts to a non-D65 `REF_ILLUMINANT`, which removes a bias in Lab and ΔE (sRGB white read as b*=−19 under D50). D65 results are identical.
 - Add a pytest suite with golden-output tests for eleven configurations (kept out of the sdist and wheel).
+- Progress and diagnostic messages (`Info: Prediction done in ...`, `Detected white plane ...`, `FFC fitting using method ...`, `Info: Using custom CC method ...`, chart-detection retries, `read_batch`/`write_image` progress) now go to the `ColorCorrectionPipeline` logger hierarchy instead of stdout, which carries a `NullHandler`. Enable them with `logging.basicConfig(level=logging.INFO)`; see `docs/logging.md`. Fallbacks that change the result (no white plane detected, missing detector model, unknown FFC fit method, fewer charts than requested, unknown `write_image` color space) are raised as `UserWarning`s and stay visible by default. `CustomNN(verbose=True)` training output and the legacy `key_functions` reporting helpers still print.
 
 ## [2.2.0] - 2026-11-13
 

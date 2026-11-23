@@ -29,13 +29,17 @@ Example:
 """
 
 import gc
+import logging
 import os
+import warnings
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from ..constants import MODEL_PATH
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:  # annotation only; imported inside methods at run time
     from sklearn.preprocessing import PolynomialFeatures
@@ -324,18 +328,20 @@ class FlatFieldCorrection:
     def _load_detection_model(self) -> Optional[Any]:
         """Load the ONNX white-plane detector with OpenCV DNN."""
         if self.model_path == "" or not os.path.exists(self.model_path):
-            print(
-                f"Warning: plane detection model not found at {self.model_path}. "
-                "Using full image for flat-field correction."
+            warnings.warn(
+                f"plane detection model not found at {self.model_path}. "
+                "Using full image for flat-field correction.",
+                stacklevel=2,
             )
             return None
 
         try:
             return cv2.dnn.readNetFromONNX(self.model_path)
         except cv2.error as exc:
-            print(
-                f"Warning: could not load plane detection model at {self.model_path}: {exc}. "
-                "Using full image for flat-field correction."
+            warnings.warn(
+                f"could not load plane detection model at {self.model_path}: {exc}. "
+                "Using full image for flat-field correction.",
+                stacklevel=2,
             )
             return None
 
@@ -653,25 +659,30 @@ class FlatFieldCorrection:
                     )
                 if self.safe_mode:
                     self.quality_report["plane_selection"] = "explicit-full-image-fallback"
-                print("Warning: no white plane detected, using full image")
+                warnings.warn("no white plane detected, using full image", stacklevel=2)
                 x1 = 0
                 y1 = 0
                 x2 = self.img.shape[1]
                 y2 = self.img.shape[0]
             else:
                 if len(boxes) > 1:
-                    print(f"Warning: {len(boxes)} objects detected, using largest")
+                    logger.warning("%d objects detected, using largest", len(boxes))
                     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
                     max_index = np.argmax(areas)
                     selected_box = boxes[max_index]
                     selected_prob = probs[max_index]
-                    print(
-                        f"Selected object {max_index}: BB={selected_box}, prob={selected_prob:.3f}"
+                    logger.info(
+                        "Selected object %d: BB=%s, prob=%.3f",
+                        max_index,
+                        selected_box,
+                        selected_prob,
                     )
                 else:
                     selected_box = boxes[0]
                     selected_prob = probs[0]
-                    print(f"Detected white plane: BB={selected_box}, prob={selected_prob:.3f}")
+                    logger.info(
+                        "Detected white plane: BB=%s, prob=%.3f", selected_box, selected_prob
+                    )
 
                 if self.safe_mode:
                     self.quality_report.update(
@@ -705,7 +716,7 @@ class FlatFieldCorrection:
                 x2 = int(rect[0] + rect[2])
                 y2 = int(rect[1] + rect[3])
             except:
-                print("Warning: ROI not selected, using full image")
+                warnings.warn("ROI not selected, using full image", stacklevel=2)
                 x1 = 0
                 y1 = 0
                 x2 = self.img.shape[1]
@@ -912,10 +923,12 @@ class FlatFieldCorrection:
         }
 
         if fit_method not in options:
-            print(f"Warning: fit method '{fit_method}' not recognized. Using 'linear'.")
+            warnings.warn(
+                f"fit method '{fit_method}' not recognized. Using 'linear'.", stacklevel=2
+            )
             fit_method = "linear"
 
-        print(f"FFC fitting using method '{fit_method}'...")
+        logger.info("FFC fitting using method %r", fit_method)
         model = model_dict[fit_method]
         model.fit(X, y)
 

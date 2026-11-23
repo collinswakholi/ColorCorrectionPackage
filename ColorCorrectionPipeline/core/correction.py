@@ -14,6 +14,7 @@ All functions preserve backwards compatibility with the original package.
 
 import gc
 import json
+import logging
 from typing import Any, Dict, Optional, Tuple
 
 import cv2
@@ -66,6 +67,8 @@ __all__ = [
     "color_correction",
     "extract_color_chart_ex",
 ]
+
+logger = logging.getLogger(__name__)
 
 _FEATURE_BACKEND = ("is_cuda", "device_", "get_poly_features")
 
@@ -746,7 +749,7 @@ def estimate_gamma_profile(
     coeffs = Coeffs[min_idx]
 
     if show or get_deltaE:
-        print(f"Optimal polynomial degree: {degree}")
+        logger.info("Optimal polynomial degree: %d", degree)
 
     # Apply gamma correction
     img_rgb_gc = predict_image(

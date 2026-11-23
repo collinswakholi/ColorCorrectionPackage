@@ -10,6 +10,7 @@ Functions:
     - read_batch: Read multiple images in batch
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -20,6 +21,8 @@ import numpy as np
 from ..core.utils import to_float64
 
 __all__ = ["read_image", "read_batch"]
+
+logger = logging.getLogger(__name__)
 
 
 def read_image(
@@ -164,7 +167,7 @@ def read_batch(
         color_space: Desired color space ('rgb', 'bgr', 'gray')
         dtype: Output dtype ('float32', 'float64', 'uint8', 'uint16')
         range_: Output range ('0-1' for float, '0-255' for uint8)
-        verbose: Whether to print progress
+        verbose: Whether to log progress (``ColorCorrectionPipeline.io.readers`` logger)
 
     Returns:
         tuple: (images, failed_paths)
@@ -191,15 +194,15 @@ def read_batch(
             )
             images.append(img)
             if verbose:
-                print(f"Info: Read image {i+1}/{len(paths)}: {path}")
+                logger.info("Read image %d/%d: %s", i + 1, len(paths), path)
         except Exception as e:
             failed_paths.append(str(path))
             if verbose:
-                print(f"Error: Failed to read image {i+1}/{len(paths)}: {path} - {e}")
+                logger.warning("Failed to read image %d/%d: %s - %s", i + 1, len(paths), path, e)
 
     if verbose:
-        print(f"Info: Successfully read {len(images)}/{len(paths)} images")
+        logger.info("Successfully read %d/%d images", len(images), len(paths))
         if failed_paths:
-            print(f"Warning: Failed to read {len(failed_paths)} images")
+            logger.warning("Failed to read %d images", len(failed_paths))
 
     return images, failed_paths
