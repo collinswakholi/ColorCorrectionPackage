@@ -1200,6 +1200,8 @@ class ColorCorrection:
                 return {}, {}, True
         metrics, images = {}, {}
         current = self.Image
+        # Fit-time FFC gain domain; committed to metadata only when FFC is fitted.
+        self._ffc_domain = "lightness"
 
         def fit_color(image):
             method = get_attr(config.CC_kwargs, "cc_method", "ours")
@@ -1386,6 +1388,11 @@ class ColorCorrection:
                     "FFC": "precision-f64-v1; float64 Lab-D65 gain; plane/poly surface",
                 }
             )
+        if config.do_ffc and config.FFC_kwargs.get("domain", "lightness") == "linear":
+            # Absent records replay the historical L* gain, so only the opt-in
+            # linear-light domain is written.
+            self.models.metadata["ffc_domain"] = "linear"
+            self.models.metadata["algorithms"]["FFC"] += "; linear-light RGB gain"
         if getattr(config, "api_version", None) == 2:
             self.models.metadata["config_version"] = 2
             self.models.metadata["requested_precision"] = config.precision
@@ -1630,8 +1637,9 @@ class ColorCorrection:
                     )
                 if ui_policy:
                     from .ui_stages import apply_ffc
+                    from .ui_native import ffc_domain
 
-                    current = apply_ffc(current, self.models.model_ffc)
+                    current = apply_ffc(current, self.models.model_ffc, ffc_domain(self.models))
                 else:
                     current = apply_ffc_float(current, self.models.model_ffc)
             elif stage == "GC" and self.models.model_gc is not None:

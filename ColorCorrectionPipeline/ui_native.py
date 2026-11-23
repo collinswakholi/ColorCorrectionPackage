@@ -30,6 +30,25 @@ def runtime(value):
     return policy.get("ui_runtime") if policy.get("version") == "ui-compatible-v1" else None
 
 
+FFC_DOMAINS = ("lightness", "linear")
+
+
+def ffc_domain(value):
+    """Return the FFC gain domain; records without one replay as ``"lightness"``.
+
+    A fitting owner carries the requested domain until its metadata is
+    committed; fitted model containers read the persisted metadata.
+    """
+    if hasattr(value, "models"):
+        domain = getattr(value, "_ffc_domain", "lightness")
+    else:
+        metadata = getattr(value, "metadata", None) or {}
+        domain = metadata.get("ffc_domain", "lightness")
+    if domain not in FFC_DOMAINS:
+        raise ValueError("FFC domain must be 'lightness' or 'linear'")
+    return domain
+
+
 def enabled(value):
     return runtime(value) in (RUNTIME, HIGH_RUNTIME)
 
@@ -151,14 +170,21 @@ def lab(values, scalar=False):
     )
 
 
-def lightness(rgb, dtype):
-    """Compute only the native Lab L* needed by the white-field fit, in row blocks."""
+def lightness(rgb, dtype, *, domain="lightness"):
+    """Compute only the native Lab L* needed by the white-field fit, in row blocks.
+
+    ``domain="linear"`` returns relative luminance ``100*Y`` instead, so the
+    white-field ratios describe a linear-light gain.
+    """
     light = np.empty(rgb.shape[:2], dtype=dtype)
     ry, gy, by = RGB_TO_XYZ[1]
     rows = max(1, 65536 // rgb.shape[1])
     for start in range(0, len(rgb), rows):
         block = _decode(rgb[start : start + rows])
         y = block[..., 0] * ry + block[..., 1] * gy + block[..., 2] * by
+        if domain == "linear":
+            light[start : start + rows] = 100.0 * y
+            continue
         f = np.where(y > EPSILON, np.cbrt(y), (KAPPA * y + 16.0) / 116.0)
         light[start : start + rows] = 116.0 * f - 16.0
     return light
@@ -424,7 +450,7 @@ def sample_ffc(owner, face):
         + g[y0, x1] * (1 - fy) * fx
         + g[y1, x1] * fy * fx
     )
-    corrected = apply_color(samples, gains, scalar=True, rounded=False)
+    corrected = apply_color(samples, gains, scalar=True, rounded=False, domain=ffc_domain(owner))
     clipped = np.mean(np.any(corrected >= face.clipping_threshold, axis=2), axis=1)
     return replace(
         face,
@@ -441,11 +467,16 @@ def sample_ffc(owner, face):
 def render_fit_stage(owner, image, stage):
     # Fit metadata is committed only after all stages succeed. Use the resolved
     # policy and the same guarded byte-runtime renderer as bundle prediction.
+    domain = ffc_domain(owner)
     if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
         from .ui_execution import try_execute
 
         result = try_execute(
-            image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict()
+            image,
+            owner.models,
+            (stage,),
+            fit_policy=owner.fitting_policy.to_dict(),
+            ffc_domain=domain,
         )
         if result is not None:
             return result[stage]
@@ -454,13 +485,30 @@ def render_fit_stage(owner, image, stage):
         owner.models.model_ffc,
         owner.models.model_gc if stage == "GC" else None,
         rounded=not high_precision(owner),
+        domain=domain,
     )
 
 
-def apply_color(image, gain=None, curve=None, scalar=False, rounded=True):
-    value = lab(image, scalar=scalar)
-    if gain is not None:
-        value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
+def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain="lightness"):
+    """Apply the joint FFC/GC equations.
+
+    ``domain="lightness"`` (the default and the only historical rule) scales
+    Lab L* by the gain. ``domain="linear"`` decodes sRGB, multiplies all three
+    linear-light channels by the same spatial gain and re-encodes; GC, when
+    present, then maps L* of that linear-light result.
+    """
+    if gain is not None and domain == "linear":
+        linear = _decode(np.asarray(image, dtype=np.float64), scalar)
+        linear *= np.asarray(gain)[..., None]
+        if curve is None:
+            result = np.clip(_encode(linear, scalar=scalar), 0, 1)
+            return result.astype(np.float32).astype(np.float64) if rounded else result
+        value = _xyz_to_lab(_multiply(RGB_TO_XYZ, linear), D65)
+        value[..., 0] = np.clip(value[..., 0], 0, 100)
+    else:
+        value = lab(image, scalar=scalar)
+        if gain is not None:
+            value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
     if curve is not None:
         value[..., 0] = np.clip(curve.predict(value[..., 0]), 0, 100)
     result = np.clip(_encode(_multiply(XYZ_TO_RGB, _lab_to_xyz(value, D65)), scalar=scalar), 0, 1)
@@ -478,6 +526,7 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     from .ui_execution import try_execute
 
     high = high_precision(models)
+    domain = ffc_domain(models)
     if not high:
         result = try_execute(
             image, models, selected, native_codes=native_codes, chunk_pixels=chunk_pixels
@@ -507,9 +556,9 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     for index, name in enumerate(order[: stop + 1]):
         if name == "FFC" and gain is not None:
             if "FFC" in selected or curve is None or stop == 0:
-                current = apply_color(source, gain, rounded=not high)
+                current = apply_color(source, gain, rounded=not high, domain=domain)
         elif name == "GC" and curve is not None:
-            current = apply_color(source, gain, curve, rounded=not high)
+            current = apply_color(source, gain, curve, rounded=not high, domain=domain)
         elif name == "WB" and models.model_wb is not None:
             current = np.clip(current @ models.model_wb, 0, 1)
             if not high:

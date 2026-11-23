@@ -436,7 +436,13 @@ def _encode(models, limits):
     arrays = _Arrays(limits)
     stages = {"FFC": None, "GC": None, "WB": None, "CC": None}
     if models.model_ffc is not None:
-        stages["FFC"] = {"kind": "spatial-Lab-gain-v1", "array": arrays.add(models.model_ffc)}
+        # A linear-light gain uses a distinct kind so earlier readers, which
+        # only know the L* gain, reject the bundle instead of misapplying it.
+        linear = models.metadata.get("ffc_domain", "lightness") == "linear"
+        stages["FFC"] = {
+            "kind": "spatial-linear-gain-v1" if linear else "spatial-Lab-gain-v1",
+            "array": arrays.add(models.model_ffc),
+        }
     if models.model_gc is not None:
         if type(models.model_gc) is MonotonicToneModel:
             stages["GC"] = {
@@ -736,8 +742,11 @@ def _decode(manifest, arrays, limits):
     if ffc is not None:
         _keys(ffc, {"kind", "array"}, "FFC")
         values = _reference(ffc["array"], arrays)
-        if ffc["kind"] != "spatial-Lab-gain-v1" or values.ndim != 2 or np.any(values <= 0):
+        kinds = {"spatial-Lab-gain-v1": "lightness", "spatial-linear-gain-v1": "linear"}
+        if ffc["kind"] not in kinds or values.ndim != 2 or np.any(values <= 0):
             raise BundleError("invalid spatial FFC gain")
+        if kinds[ffc["kind"]] != result.metadata.get("ffc_domain", "lightness"):
+            raise BundleError("FFC gain kind contradicts the recorded FFC domain")
         result.model_ffc = values
     if gc is not None:
         if not isinstance(gc, dict):

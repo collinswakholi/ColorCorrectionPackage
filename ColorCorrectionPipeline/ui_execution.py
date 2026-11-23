@@ -243,14 +243,30 @@ if accel.HAS_NUMBA:
         return output
 
 
-def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=None, fit_policy=None):
+def try_execute(
+    image,
+    models,
+    selected,
+    *,
+    native_codes=False,
+    chunk_pixels=None,
+    fit_policy=None,
+    ffc_domain=None,
+):
     """Return owned stage arrays, or None to retain the ordinary reference path."""
     global _enabled, _decode_values
     policy = models.metadata.get("fitting_policy", {}) if fit_policy is None else fit_policy
+    if ffc_domain is None:
+        from .ui_native import ffc_domain as recorded_domain
+
+        ffc_domain = recorded_domain(models)
     if (
         not _enabled
         or policy.get("version") != "ui-compatible-v1"
         or policy.get("ui_runtime") == "precision-f64-v1"
+        # The fused kernel implements only the historical L* gain; the opt-in
+        # linear-light FFC domain always uses the reference equations.
+        or (ffc_domain != "lightness" and models.model_ffc is not None)
     ):
         return None
     from . import modern, ui_stages

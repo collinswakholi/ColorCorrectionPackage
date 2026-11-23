@@ -159,6 +159,15 @@ class MyModels:
             expected = {"native-byte": "native-v1", "high": "precision-f64-v1"}.get(requested)
             if expected is not None and fitting.ui_runtime != expected:
                 raise ValueError("recorded precision request contradicts image runtime")
+            if "ffc_domain" in metadata:
+                from .ui_native import FFC_DOMAINS
+
+                if metadata["ffc_domain"] not in FFC_DOMAINS:
+                    raise ValueError("saved FFC domain must be 'lightness' or 'linear'")
+                if metadata["ffc_domain"] == "linear" and (
+                    fitting.version != "ui-compatible-v1" or state["model_ffc"] is None
+                ):
+                    raise ValueError("linear-light FFC requires a fitted UI-compatible FFC gain")
             recorded_runtime = metadata.get("algorithms", {}).get("ui_runtime", "staged-v1")
             if fitting.version == "ui-compatible-v1" and recorded_runtime != fitting.ui_runtime:
                 raise ValueError("UI runtime contradicts recorded image equations")

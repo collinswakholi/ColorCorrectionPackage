@@ -465,6 +465,14 @@ class Config:
             raise ValueError(
                 "samples_per_patch requires UI fitting; remove it to use the selected fitting policy"
             )
+        if "domain" in self.FFC_kwargs:
+            domain = self.FFC_kwargs["domain"]
+            if not isinstance(domain, str) or domain not in ("lightness", "linear"):
+                raise ValueError("FFC domain must be 'lightness' or 'linear'")
+            if domain == "linear" and fitting.version != "ui-compatible-v1":
+                raise ValueError(
+                    "FFC domain='linear' requires the ui-compatible-v1 fitting policy (API 2)"
+                )
         if self.api_version == 2:
             if self.precision not in ("auto", "native-byte", "high"):
                 raise ValueError("precision must be auto, native-byte or high")
@@ -580,6 +588,7 @@ class Config:
                 "max_gain",
                 "learning_rate",
                 "n_components",
+                "domain",
             }
             if set(self.FFC_kwargs) - allowed_ffc:
                 raise ValueError(

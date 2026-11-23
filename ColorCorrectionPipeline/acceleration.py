@@ -689,8 +689,11 @@ class PreparedExecution:
                     raise ValueError("FFC requires the calibrated image dimensions")
                 if ui_policy:
                     from .ui_stages import apply_ffc
+                    from .ui_native import ffc_domain
 
-                    current = apply_ffc(current, pipeline.models.model_ffc)
+                    current = apply_ffc(
+                        current, pipeline.models.model_ffc, ffc_domain(pipeline.models)
+                    )
                 else:
                     current = apply_ffc_float(current, pipeline.models.model_ffc)
             if ui_policy:
