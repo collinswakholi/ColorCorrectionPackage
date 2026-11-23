@@ -5,6 +5,13 @@
 - Make the legacy `custom` (CustomNN) color-correction method reproducible: `random_state` now seeds weight initialization, batch shuffling and dropout as well as the validation split, without changing the caller's global torch RNG. Fits with this method previously varied between runs, so their results will differ from earlier runs.
 - Define `apply_srgb_to_linear_image` and `apply_linear_to_srgb_image`, which `ColorCorrectionPipeline.core.accel.__all__` has listed since 1.4.0, so `from ColorCorrectionPipeline.core.accel import *` works.
 - Report a chart/white-image shape mismatch in legacy flat-field correction as a `ValueError`, including under `python -O`.
+- Restore the OpenCV MCC chart-detection backend on opencv-contrib 4.11+/5.x, where it silently found no chart (or raised `AttributeError` in `key_functions`) after OpenCV changed the detector API.
+- Legacy-path numeric fixes. These change legacy (`legacy-v1` / `mtd` / `cc_method`) outputs slightly; v2 defaults are unchanged:
+  - `core.utils.to_uint8` rounds to the nearest code instead of truncating. On the sample, legacy FFC chart ΔE00 after goes from 10.27 to 10.11. `to_float64` accepts an explicit `scale=`.
+  - `key_functions.to_uint8` clips and rounds instead of wrapping (1.01 used to become 1, −0.01 became 254), and `to_float64` scales uint16 by 65535.
+  - The fit-time saturation adjustment is a continuous per-channel highlight knee. 1.0 still maps to 0.95, but 0.99 no longer jumps to 0.94 and unclipped channels are no longer darkened.
+  - The legacy gamma curve keeps black at 0 and white at 100 and never decreases. The fit through the chart's neutrals is unchanged.
+  - Lab conversion of sRGB values adapts to a non-D65 `REF_ILLUMINANT`, which removes a bias in Lab and ΔE (sRGB white read as b*=−19 under D50). D65 results are identical.
 - Add a pytest suite with golden-output tests for eleven configurations (kept out of the sdist and wheel).
 
 ## [2.2.0]
