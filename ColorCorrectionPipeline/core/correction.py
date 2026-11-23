@@ -341,14 +341,32 @@ class CustomNN(BaseEstimator, RegressorMixin):
     def fit(self, X, y):
         """
         Fit neural network to training data.
-        
+
+        ``random_state`` seeds weight initialisation, batch shuffling, dropout and
+        the train/validation split, so equal seeds give equal models on the same
+        device. The caller's global torch RNG state is restored afterwards.
+
         Args:
             X: Training features (N, M)
             y: Training targets (N, K)
-            
+
         Returns:
             self: Fitted model
         """
+        import torch
+
+        devices = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else []
+        with torch.random.fork_rng(devices=devices):
+            torch.manual_seed(int(self.random_state))
+            try:
+                return self._fit_seeded(X, y)
+            finally:
+                if self.temp_path and os.path.exists(self.temp_path):
+                    os.remove(self.temp_path)
+                self.temp_path = None
+
+    def _fit_seeded(self, X, y):
+        """Training body of :meth:`fit`; runs inside a seeded, forked RNG."""
         X, y = check_X_y(X, y, multi_output=True)
         self.input_dim = X.shape[1]
         self.output_dim = y.shape[1] if len(y.shape) > 1 else 1
@@ -410,6 +428,7 @@ class CustomNN(BaseEstimator, RegressorMixin):
             train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
+            generator=torch.Generator().manual_seed(int(self.random_state)),
             pin_memory=pin_memory,
             drop_last=drop_last_train_batch,
         )
@@ -485,8 +504,9 @@ class CustomNN(BaseEstimator, RegressorMixin):
                     print(f"Early stopping at epoch {epoch+1}")
                 break
 
-        # Load best model
-        if self.temp_path and os.path.exists(self.temp_path):
+        # Load best model. The checkpoint file is empty if validation never
+        # improved (e.g. non-finite loss); keep the last weights in that case.
+        if self.temp_path and os.path.exists(self.temp_path) and os.path.getsize(self.temp_path):
             self.model.load_state_dict(torch.load(self.temp_path, map_location=self.device))
             os.remove(self.temp_path)
             self.temp_path = None
