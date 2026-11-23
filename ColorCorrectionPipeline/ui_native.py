@@ -538,6 +538,8 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
         )
         if result is not None:
             return result
+    if high:
+        return _predict_high(image, models, selected, chunk_pixels, domain)
     from .core.correction import predict_
     from .prediction import chunked_cc
 
@@ -587,3 +589,101 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
         if name in selected:
             result[name] = current.copy()
     return result
+
+
+# Pointwise sub-block for threaded high-precision prediction. Smaller
+# temporaries than the 65536-pixel CC chunk avoid most fresh page mapping; 32768
+# was the fastest and most stable size on 4K frames (see docs/performance.md).
+_SUB_BLOCK = 32768
+
+
+def _predict_high(image, models, selected, chunk_pixels, domain):
+    """Float64 stages in bounded pixel blocks, optionally on several threads.
+
+    Every stage is pointwise, so each block reproduces the full-frame equations
+    exactly. Blocks keep the historical CC chunk boundaries (``chunk_pixels`` or
+    65536 pixels) and the LUT/direct decision is still made once per image. Only
+    the selected stage outputs are allocated at full frame size; intermediate
+    stages and the validity checks stay within one block.
+    """
+    from ._cpu_workers import ranges, run_slices, worker_count
+    from .prediction import cc_block, cc_uses_lut
+
+    source = np.asarray(image, dtype=np.float64)
+    order = ("FFC", "GC", "WB", "CC")
+    stop = max(order.index(k) for k in selected)
+    gain = models.model_ffc
+    curve = models.model_gc
+    if gain is not None and np.shape(gain) != source.shape[:2]:
+        raise ValueError("native UI FFC requires the calibrated image dimensions")
+    flat = source.reshape(-1, 3)
+    gains = None if gain is None else np.asarray(gain).reshape(-1)
+    pixels = len(flat)
+    chunk = chunk_pixels or 65536
+    cc = models.model_cc if stop >= 3 else None
+    use_lut = cc_uses_lut(cc, pixels) if cc is not None else False
+    wb = models.model_wb
+    fused_ffc = gain is not None and ("FFC" in selected or curve is None or stop == 0)
+    outputs = {name: np.empty(flat.shape, dtype=np.float64) for name in selected}
+
+    def valid(current, block):
+        return not (
+            current.shape != block.shape
+            or not np.isfinite(current).all()
+            or np.any(current < 0)
+            or np.any(current > 1)
+        )
+
+    def run(first_block, last_block):
+        # Return the earliest stage index that produced invalid data, if any.
+        failed = None
+        staged = np.empty((min(chunk, pixels), 3), dtype=np.float64) if stop == 3 else None
+        for start in range(first_block * chunk, min(last_block * chunk, pixels), chunk):
+            end = min(start + chunk, pixels)
+            # Pointwise colour stages use sub-blocks small enough to reuse heap
+            # memory; CC keeps the historical chunk so its matrix products see
+            # exactly the same operands.
+            for first in range(start, end, _SUB_BLOCK):
+                last = min(first + _SUB_BLOCK, end)
+                block = flat[first:last]
+                block_gain = None if gains is None else gains[first:last]
+                current = block
+                for index, name in enumerate(order[: min(stop, 2) + 1]):
+                    if name == "FFC" and fused_ffc:
+                        current = apply_color(block, block_gain, rounded=False, domain=domain)
+                    elif name == "GC" and curve is not None:
+                        current = apply_color(
+                            block, block_gain, curve, rounded=False, domain=domain
+                        )
+                    elif name == "WB" and wb is not None:
+                        current = np.clip(current @ wb, 0, 1)
+                    if not valid(current, block):
+                        failed = index if failed is None else min(failed, index)
+                        break
+                    if name in outputs:
+                        outputs[name][first:last] = current
+                else:
+                    if staged is not None:
+                        staged[first - start : last - start] = current
+                    continue
+                break
+            else:
+                if staged is not None:
+                    current = staged[: end - start]
+                    if cc is not None:
+                        current = np.clip(cc_block(current, cc, use_lut), 0, 1)
+                    if not valid(current, flat[start:end]):
+                        failed = 3 if failed is None else min(failed, 3)
+                        continue
+                    if "CC" in outputs:
+                        outputs["CC"][start:end] = current
+        return failed
+
+    blocks = (pixels + chunk - 1) // chunk
+    workers = min(blocks, worker_count(pixels, 65536))
+    failures = [
+        index for index in run_slices(run, ranges(blocks, workers), workers) if index is not None
+    ]
+    if failures:
+        raise FloatingPointError("native UI %s produced invalid image data" % order[min(failures)])
+    return {name: outputs[name].reshape(source.shape) for name in order if name in outputs}

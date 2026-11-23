@@ -48,30 +48,43 @@ def _identity(item, index):
     return {"kind": type(item).__name__, "index": index}
 
 
-def chunked_cc(image, cc, chunk_pixels):
-    """Bound pointwise feature workspace while selecting LUT/direct once per image."""
-    from .core.correction import _ensure_lut, _predict_direct
+def cc_uses_lut(cc, pixels):
+    """Select LUT or direct CC once for an image of ``pixels`` pixels."""
+    from .core.correction import _ensure_lut
+
+    model, _, method = cc
+    return method == "ours" and pixels >= model.lut_min_pixels and _ensure_lut(model)
+
+
+def cc_block(block, cc, use_lut):
+    """Predict one flat ``(N, 3)`` block with an image-level LUT decision."""
+    from .core.correction import _predict_direct
     from .core.accel import trilinear_lut_apply
-    import colour
 
     model, options, method = cc
+    if method == "conv":
+        from .conventional import apply_conventional
+
+        return apply_conventional(block, model, **options)
+    if method == "ours":
+        return (
+            trilinear_lut_apply(block, model._lut, model._lut_grid_size)
+            if use_lut
+            else _predict_direct(block, model)
+        )
+    raise ValueError("unsupported saved CC method")
+
+
+def chunked_cc(image, cc, chunk_pixels):
+    """Bound pointwise feature workspace while selecting LUT/direct once per image."""
+    import colour  # noqa: F401  (conventional CC resolves its basis through colour)
+
     flat = image.reshape(-1, 3)
-    use_lut = method == "ours" and len(flat) >= model.lut_min_pixels and _ensure_lut(model)
+    use_lut = cc_uses_lut(cc, len(flat))
     output = None
     for start in range(0, len(flat), chunk_pixels):
         block = flat[start : start + chunk_pixels]
-        if method == "conv":
-            from .conventional import apply_conventional
-
-            predicted = apply_conventional(block, model, **options)
-        elif method == "ours":
-            predicted = (
-                trilinear_lut_apply(block, model._lut, model._lut_grid_size)
-                if use_lut
-                else _predict_direct(block, model)
-            )
-        else:
-            raise ValueError("unsupported saved CC method")
+        predicted = cc_block(block, cc, use_lut)
         if output is None:
             output = np.empty(flat.shape, dtype=predicted.dtype)
         output[start : start + len(block)] = predicted

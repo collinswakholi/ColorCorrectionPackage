@@ -1,8 +1,17 @@
-"""Rewritten colour helpers must be bit-identical to their historical forms."""
+"""Blocked/threaded high-precision prediction must equal the full-frame equations."""
+
+import copy
+import warnings
+from pathlib import Path
 
 import numpy as np
+import pytest
 
-from ColorCorrectionPipeline import colorimetry, ui_native
+from ColorCorrectionPipeline import ColorCorrection, Config, _cpu_workers, colorimetry, ui_native
+from ColorCorrectionPipeline.prediction import chunked_cc
+
+IMAGES = Path(__file__).resolve().parents[1] / "Images"
+CHART, WHITE, SCENE = (str(IMAGES / n) for n in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
 
 
 def _probe_values():
@@ -101,3 +110,75 @@ def test_matrix_and_lab_helpers_match_stacked_forms():
     _same_bits(
         ui_native._lab_to_xyz(lab, ui_native.D65), expected * ui_native._white(ui_native.D65)
     )
+
+
+def _full_frame_reference(source, models, selected, chunk_pixels=None):
+    """The former single-threaded full-frame high-precision stage loop."""
+    order = ("FFC", "GC", "WB", "CC")
+    stop = max(order.index(k) for k in selected)
+    gain, curve = models.model_ffc, models.model_gc
+    domain = ui_native.ffc_domain(models)
+    current, result = source, {}
+    for name in order[: stop + 1]:
+        if name == "FFC" and gain is not None:
+            if "FFC" in selected or curve is None or stop == 0:
+                current = ui_native.apply_color(source, gain, rounded=False, domain=domain)
+        elif name == "GC" and curve is not None:
+            current = ui_native.apply_color(source, gain, curve, rounded=False, domain=domain)
+        elif name == "WB" and models.model_wb is not None:
+            current = np.clip(current @ models.model_wb, 0, 1)
+        elif name == "CC" and models.model_cc is not None:
+            current = np.clip(chunked_cc(current, models.model_cc, chunk_pixels or 65536), 0, 1)
+        if name in selected:
+            result[name] = current.copy()
+    return result
+
+
+@pytest.fixture(scope="module")
+def high_fit():
+    config = Config(
+        chart={"device": "cpu"}, input={"frame_index": 0}, numerics={"precision": "high"}
+    )
+    pipe = ColorCorrection()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        _, _, failed = pipe.run(CHART, WHITE, name_="chart", config=config)
+    assert not failed, pipe.last_run["errors"]
+    assert ui_native.high_precision(pipe.models)
+    data, source = pipe._prepare_input(SCENE, pipe.color_semantics, {"frame_index": 0})
+    return pipe, np.asarray(source, dtype=np.float64)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "selected, chunk_pixels",
+    [
+        (("CC",), None),
+        (("FFC", "GC", "WB", "CC"), None),
+        (("FFC", "WB"), None),
+        (("GC",), None),
+        (("FFC", "CC"), 10_000),
+        (("CC",), 100_003),
+    ],
+)
+@pytest.mark.parametrize("workers", [1, 8])
+def test_blocked_high_precision_matches_full_frame(
+    high_fit, selected, chunk_pixels, workers, monkeypatch
+):
+    pipe, source = high_fit
+    monkeypatch.setattr(_cpu_workers, "worker_count", lambda size, minimum: workers)
+    expected = _full_frame_reference(source, pipe.models, selected, chunk_pixels)
+    actual = ui_native.predict(source, pipe.models, selected, chunk_pixels)
+    assert list(actual) == list(expected)
+    for name in expected:
+        np.testing.assert_array_equal(actual[name], expected[name])
+        assert actual[name].dtype == np.float64 and actual[name].shape == source.shape
+
+
+@pytest.mark.slow
+def test_blocked_high_precision_reports_the_first_invalid_stage(high_fit):
+    pipe, source = high_fit
+    models = copy.deepcopy(pipe.models)
+    models.model_wb = np.diag([np.nan, 1.0, 1.0])
+    with pytest.raises(FloatingPointError, match="native UI WB produced invalid"):
+        ui_native.predict(source, models, ("FFC", "GC", "WB", "CC"))
