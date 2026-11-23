@@ -24,6 +24,9 @@ __all__ = ["read_image", "read_batch"]
 
 logger = logging.getLogger(__name__)
 
+# Full-scale value of each float output range accepted by the legacy reader.
+_RANGE_MAXIMA = {"0-1": 1.0, "0-255": 255.0, "0-65535": 65535.0}
+
 
 def read_image(
     path: Union[str, Path],
@@ -41,7 +44,10 @@ def read_image(
         path: Path to image file
         color_space: Desired color space ('rgb', 'bgr', 'gray')
         dtype: Output dtype ('float32', 'float64', 'uint8', 'uint16')
-        range_: Output range ('0-1' for float, '0-255' for uint8, '0-65535' for uint16)
+        range_: Output range ('0-1' for float, '0-255' for uint8, '0-65535' for uint16).
+            Float output from 8/16-bit files is scaled to this range from the file's
+            full scale (e.g. a uint16 file read with ``range_='0-255'`` is divided by
+            257). Any other string returns the stored code values unscaled.
 
     Returns:
         np.ndarray: Image array with shape (H, W, C) or (H, W) for grayscale
@@ -111,34 +117,37 @@ def read_image(
         else:
             raise ValueError(f"Invalid color_space: {color_space}. Use 'rgb', 'bgr', or 'gray'.")
 
-    # Handle dtype conversion
+    # Handle dtype conversion. Integer sources are scaled from their own full scale
+    # to the requested ``range_``; integer outputs round to the nearest code like
+    # the strict reader (``np.rint``), instead of truncating.
     if dtype.lower() in ("float32", "float64"):
-        if img.dtype == np.uint8:
-            img = img.astype(np.float32 if dtype.lower() == "float32" else np.float64)
-            if range_ == "0-1":
-                img /= 255.0
-        elif img.dtype == np.uint16:
-            img = img.astype(np.float32 if dtype.lower() == "float32" else np.float64)
-            if range_ == "0-1":
-                img /= 65535.0
+        float_type = np.float32 if dtype.lower() == "float32" else np.float64
+        target = _RANGE_MAXIMA.get(range_)
+        if img.dtype in (np.uint8, np.uint16) and target is not None:
+            source = float(np.iinfo(img.dtype).max)
+            img = img.astype(float_type)
+            if source > target:
+                img /= source / target  # 255, 65535 or 257: exact divisors
+            elif source < target:
+                img *= target / source  # 257
         else:
-            img = img.astype(np.float32 if dtype.lower() == "float32" else np.float64)
+            img = img.astype(float_type)
     elif dtype.lower() == "uint8":
-        if img.dtype in (np.float32, np.float64):
+        if img.dtype.kind == "f":
             if range_ == "0-1":
-                img = (np.clip(img, 0, 1) * 255).astype(np.uint8)
+                img = np.rint(np.clip(img.astype(np.float64), 0, 1) * 255).astype(np.uint8)
             else:
-                img = np.clip(img, 0, 255).astype(np.uint8)
+                img = np.rint(np.clip(img, 0, 255)).astype(np.uint8)
         elif img.dtype == np.uint16:
-            img = (img // 257).astype(np.uint8)  # Scale 0-65535 to 0-255
+            img = np.rint(img / 257.0).astype(np.uint8)  # Scale 0-65535 to 0-255
         else:
             img = img.astype(np.uint8)
     elif dtype.lower() == "uint16":
-        if img.dtype in (np.float32, np.float64):
+        if img.dtype.kind == "f":
             if range_ == "0-1":
-                img = (np.clip(img, 0, 1) * 65535).astype(np.uint16)
+                img = np.rint(np.clip(img.astype(np.float64), 0, 1) * 65535).astype(np.uint16)
             else:
-                img = np.clip(img, 0, 65535).astype(np.uint16)
+                img = np.rint(np.clip(img, 0, 65535)).astype(np.uint16)
         elif img.dtype == np.uint8:
             img = img.astype(np.uint16) * 257  # Scale 0-255 to 0-65535
         else:

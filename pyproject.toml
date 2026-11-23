@@ -80,6 +80,10 @@ docs = [
 segmentation = [
     "colour-checker-detection>=0.1.0",
 ]
+# Compressed TIFF codecs for tifffile (e.g. 16-bit LZW/Deflate TIFF reading).
+tiff = [
+    "imagecodecs>=2021.11.20",
+]
 
 [project.urls]
 Homepage = "https://github.com/collinswakholi/ColorCorrectionPackage"

@@ -50,6 +50,14 @@ def write_image(
     Returns:
         bool: True if successful, False otherwise
 
+    Raises:
+        ValueError: If a floating-point image contains NaN or infinite values.
+
+    Samples are quantized to uint8 with the strict exporter's equation
+    (``rint(value * 255)``): floats are read as 0-1 and clipped, uint16 is scaled by
+    255/65535 and rounded, other integer types are read as 0-255 codes and clipped.
+    Use :func:`write_image_data` for 16-bit or float output and export metadata.
+
     Example:
         >>> img_rgb = np.random.rand(480, 640, 3).astype(np.float64)
         >>> success = write_image("output.jpg", img_rgb, color_space="rgb", quality=95)
@@ -61,15 +69,7 @@ def write_image(
     if create_dirs:
         path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Convert to uint8 if needed
-    if image.dtype in (np.float32, np.float64):
-        # Assume 0-1 range for float
-        img_out = (np.clip(image, 0, 1) * 255).astype(np.uint8)
-    elif image.dtype == np.uint16:
-        # Scale 0-65535 to 0-255
-        img_out = (image // 257).astype(np.uint8)
-    else:
-        img_out = image.astype(np.uint8)
+    img_out = _legacy_to_uint8(image)
 
     # Handle color space conversion (OpenCV writes BGR)
     if len(img_out.shape) == 2:
@@ -110,6 +110,33 @@ def write_image(
     except Exception as e:
         logger.error("Exception writing image to %s: %s", path, e)
         return False
+
+
+def _legacy_to_uint8(image) -> np.ndarray:
+    """Quantize a legacy ``write_image`` input to uint8 codes.
+
+    Uses the same rounding as :func:`_quantize_strict`. Before 2.3 floats and uint16
+    were truncated, NaN became 0 and other integers wrapped around (300 -> 44).
+    """
+    image = np.asarray(image)
+    kind = image.dtype.kind
+    if image.dtype == np.uint8:
+        return image
+    if kind == "f":
+        values = image.astype(np.float64)
+        if not np.isfinite(values).all():
+            raise ValueError(
+                "write_image requires finite values; the image contains NaN or infinity"
+            )
+        np.clip(values, 0.0, 1.0, out=values)
+    elif image.dtype == np.uint16:
+        values = image.astype(np.float64) / 65535.0
+    elif kind in "biu":
+        return np.clip(image, 0, 255).astype(np.uint8)
+    else:
+        raise TypeError(f"write_image does not support dtype {image.dtype}")
+    storage, _ = _quantize_strict(np.ascontiguousarray(values), np.dtype(np.uint8), 255)
+    return storage
 
 
 @dataclass(frozen=True)
