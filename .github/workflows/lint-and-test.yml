@@ -18,13 +18,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install "black==26.10.1" "ruff==0.17.6"
+      # mypy resolves numpy/torch/OpenCV/Pillow types from the installed
+      # dependencies, so install the package (CPU torch) alongside the linters.
+      - name: Install linters and package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . "black==26.10.1" "ruff==0.17.6" "mypy==2.4.1"
       - name: Formatting (black)
         run: black --check ColorCorrectionPipeline tests scripts
-      # Bug-class rules only: syntax errors, undefined names, invalid comparisons and
-      # statements. The wider style set in pyproject.toml is not yet clean (legacy names).
-      - name: Correctness lint (ruff)
-        run: ruff check ColorCorrectionPipeline tests scripts --select E9,F63,F7,F82
+      # Full rule set from pyproject.toml (E, F, I, N, W, UP with documented ignores).
+      - name: Lint (ruff)
+        run: ruff check ColorCorrectionPipeline tests scripts
+      # Configuration and excluded legacy modules: [tool.mypy] in pyproject.toml.
+      - name: Type check (mypy)
+        run: mypy ColorCorrectionPipeline
 
   tests:
     needs: lint

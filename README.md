@@ -243,12 +243,17 @@ pip install -e ".[dev,performance]"
 pytest tests                       # unit, regression and golden-output tests
 python tests/golden/capture.py     # compare against the stored 2.2.0 baseline only
 black --check ColorCorrectionPipeline tests scripts
-ruff check ColorCorrectionPipeline tests scripts --select E9,F63,F7,F82
+ruff check ColorCorrectionPipeline tests scripts
+mypy ColorCorrectionPipeline       # legacy modules excluded in pyproject.toml [tool.mypy]
 ```
 
-CI (`.github/workflows/lint-and-test.yml`) runs the same formatting and correctness-lint
+CI (`.github/workflows/lint-and-test.yml`) runs the same formatting, lint and type-check
 gates, the fast tests on Ubuntu and Windows, and the golden tests on Windows, where the
 baseline was recorded.
+
+To see the package's progress and diagnostic messages while developing, enable logging
+(`logging.basicConfig(level=logging.INFO)`, or `DEBUG` for chart-detection retries); see
+[Logging and warnings](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.3.0/docs/logging.md).
 
 `tests/golden` stores metrics and thumbnails for eleven configurations captured from
 2.2.0. Regenerate them with `--write` only for an intentional, documented change. The
