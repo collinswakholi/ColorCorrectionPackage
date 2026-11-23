@@ -111,6 +111,32 @@ other unqualified FFC controls fail clearly in this policy; they remain availabl
 through the existing policies. This is a Lab-lightness correction, not a
 radiometric calibration.
 
+### Opt-in linear-light FFC domain
+
+By default the gain scales Lab L\* only and leaves a\*/b\* unchanged, so a
+vignetted chart keeps some residual chroma error. `FFC_kwargs={"domain":
+"linear"}` (grouped: `steps.ffc.apply.domain`) instead fits the white-field
+ratios from relative luminance Y and applies the gain to decoded linear-light
+RGB: decode sRGB, multiply all three channels by the same spatial gain, then
+re-encode with clipping. When GC follows FFC in the native runtimes, GC maps
+L\* of that linear-light result. The UI soft gain knee (1.3 → 1.8) is applied
+to the gain's cube root, so a luminance gain is limited like the equivalent L\*
+gain; `min_signal` keeps its L\* meaning; `min_gain`/`max_gain` bound the
+luminance gain itself (a 40 % falloff needs about 1.67).
+
+The default `"lightness"` is unchanged and bit-identical, and calibrations,
+bundles and pickles without a recorded domain replay as `"lightness"`. A linear
+fit records `metadata["ffc_domain"] = "linear"` and saves its gain as the bundle
+stage kind `spatial-linear-gain-v1`, which earlier package versions reject
+rather than misapply. The domain is available only with `ui-compatible-v1`
+fitting (all API 2 precisions); other policies reject `"linear"`. The fused
+byte-runtime kernel implements only the L\* gain, so linear-domain byte
+calibrations use the reference NumPy equations. On the sample chart with a
+simulated 40 % radial (quadratic) linear-light vignette, the chart's FFC output
+differs from the unvignetted fit by a mean ΔE00 of 0.43 (lightness) versus 0.32
+(linear), or 0.16 versus 0.04 after removing the single global exposure factor
+from white-plane peak normalization (`tests/test_ffc_domain.py`).
+
 ## Matching the native UI image pipeline
 
 For new calibrations that must follow the native UI's normal image pipeline,
