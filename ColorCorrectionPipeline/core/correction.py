@@ -818,6 +818,51 @@ def _shuffle_fit_data(
     return detected[order], reference[order]
 
 
+# L* span of the ColorChecker neutral row (black ~20.5, white ~96.5).
+_GC_NEUTRAL_RANGE = (20.5, 96.5)
+
+
+def gc_lightness(L: np.ndarray, coeffs: np.ndarray, samples: int = 1001) -> np.ndarray:
+    """Map Lab L* through a legacy gamma polynomial, pinned and monotonic.
+
+    The least-squares polynomial does not pass exactly through its (0, 0) and
+    (100, 100) anchors and may turn back near the ends, so black was lifted and
+    highlights could invert. The endpoint error is removed with ramps confined
+    to inputs darker than where the curve reaches the reference black neutral
+    (L* 20.5) or brighter than where it reaches the white neutral (L* 96.5),
+    so the fit through the chart's neutrals is unchanged; a running maximum over a dense
+    [0, 100] lookup then makes the curve non-decreasing. Values outside
+    [0, 100] use the pinned polynomial directly.
+    """
+    coeffs = np.asarray(coeffs, dtype=np.float64)
+    L = np.asarray(L, dtype=np.float64)
+    p0 = float(poly_func(0.0, coeffs))
+    p100 = float(poly_func(100.0, coeffs))
+
+    grid = np.linspace(0.0, 100.0, int(samples))
+    raw = poly_func(grid, coeffs)
+    # Measured L* at which the curve reaches the reference black / white neutral.
+    ref_low, ref_high = _GC_NEUTRAL_RANGE
+    hit_low = np.nonzero(raw >= ref_low)[0]
+    hit_high = np.nonzero(raw >= ref_high)[0]
+    low = float(grid[hit_low[0]]) if hit_low.size and grid[hit_low[0]] > 0 else ref_low
+    high = float(grid[hit_high[0]]) if hit_high.size and grid[hit_high[0]] < 100 else ref_high
+    high = max(high, low)
+
+    def pinned(x):
+        x = np.asarray(x, dtype=np.float64)
+        w_low = np.clip(1.0 - x / low, 0.0, 1.0)
+        w_high = np.clip((x - high) / max(100.0 - high, 1e-9), 0.0, 1.0)
+        return poly_func(x, coeffs) - p0 * w_low - (p100 - 100.0) * w_high
+
+    curve = np.maximum.accumulate(pinned(grid))
+    out = np.interp(L, grid, curve)
+    outside = (L < 0.0) | (L > 100.0)
+    if np.any(outside):
+        out[outside] = pinned(L[outside])
+    return out
+
+
 def predict_image(
     img: np.ndarray,
     coeffs: np.ndarray,
@@ -846,7 +891,7 @@ def predict_image(
         if white_xy(ref_illuminant) != D65:
             raise ValueError("explicit gamma application requires working D65")
         lab = xyz_to_lab(rgb_to_xyz(img_flat, encoding="srgb"), white=D65)
-        lab[:, 0] = poly_func(lab[:, 0], coeffs)
+        lab[:, 0] = gc_lightness(lab[:, 0], coeffs)
         return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="preserve").reshape(H, W, C)
 
     # ── sRGB → Lab (fast) ──
@@ -856,21 +901,9 @@ def predict_image(
         img_flat_lab = srgb_to_lab_fast_image(img_flat)
     img_flat_L = img_flat_lab[:, 0]
 
-    # Apply polynomial correction on L channel
-    import torch
-    _load_feature_backend()
-    if is_cuda:
-        try:
-            img_flat_gpu = torch.from_numpy(img_flat_L).to(device_, dtype=torch.float32)
-            coeffs_gpu = torch.from_numpy(coeffs).to(device_, dtype=torch.float32)
-            result_gpu = poly_func_torch(img_flat_gpu, coeffs_gpu)
-            result = result_gpu.cpu().numpy()
-            del img_flat_gpu, coeffs_gpu, result_gpu
-            free_memory()
-        except Exception:
-            result = poly_func(img_flat_L, coeffs)
-    else:
-        result = poly_func(img_flat_L, coeffs)
+    # Apply the pinned, monotonic lightness curve. A 1-D lookup on the CPU is
+    # cheaper than the former per-pixel GPU polynomial and identical on every device.
+    result = gc_lightness(img_flat_L, coeffs)
 
     # Replace L channel in-place (no copy needed)
     img_flat_lab[:, 0] = result
