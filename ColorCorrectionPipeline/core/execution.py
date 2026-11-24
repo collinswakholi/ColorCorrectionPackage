@@ -144,7 +144,7 @@ def evaluate_tone(rgb, model, *, backend="auto", allow_fallback=True):
     parameters = _tone_parameters(model) if actual == "numba" else None
     if actual == "numba" and parameters is not None:
         try:
-            output = _fused_tone(  # type: ignore[call-arg]
+            output = _fused_tone(  # type: ignore[call-arg, unused-ignore]
                 values.reshape(-1, 3), *parameters, _RGB_TO_XYZ, _XYZ_TO_RGB, white_xyz(D65)
             ).reshape(values.shape)
         except Exception as error:

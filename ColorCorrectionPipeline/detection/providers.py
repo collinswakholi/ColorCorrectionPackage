@@ -12,6 +12,7 @@ import json
 import os
 import platform
 import shutil
+import sys
 import tempfile
 import threading
 from collections import Counter
@@ -108,7 +109,9 @@ def _model_digest(path):
 @lru_cache(maxsize=1)
 def directml_adapters():
     """Enumerate bounded DXGI hardware adapters without WMI or driver copies."""
-    if platform.system() != "Windows":
+    # sys.platform (not platform.system()) lets type checkers on other
+    # platforms skip the Windows-only ctypes names below.
+    if sys.platform != "win32":
         return ()
     import ctypes
     import uuid
@@ -252,7 +255,12 @@ def _prepare_webgpu(ort, settings, plan, device_id, explicit_library):
         )
     library = _plugin_path(explicit_library)
     with _registration_lock:
-        if system == "Windows" and plan.graphics_backend == "Vulkan" and _vulkan_loader is None:
+        if (
+            sys.platform == "win32"
+            and system == "Windows"
+            and plan.graphics_backend == "Vulkan"
+            and _vulkan_loader is None
+        ):
             import ctypes
 
             # Search the installed system loader, not the application/CWD.
