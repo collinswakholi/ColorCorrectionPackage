@@ -1224,7 +1224,7 @@ class ColorCorrection:
             elif stage == "CC" and self.models.model_cc is not None:
                 model, params, method = self.models.model_cc
                 if chunk_pixels is not None and current.shape[0] * current.shape[1] > chunk_pixels:
-                    from .prediction import chunked_cc
+                    from .core.correction import chunked_cc
 
                     current = chunked_cc(current, self.models.model_cc, chunk_pixels)
                 elif method == "conv":

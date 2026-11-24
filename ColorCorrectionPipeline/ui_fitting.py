@@ -827,7 +827,7 @@ def fit_stage(owner, image, method, parameters):
         }
     owner.numerical_report["CC"] = numerical
     if high_precision(owner) or "basis" in settings:
-        from .prediction import chunked_cc
+        from .core.correction import chunked_cc
 
         corrected = chunked_cc(image, owner.models.model_cc, 65536)
     else:

@@ -541,7 +541,7 @@ def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
     if high:
         return _predict_high(image, models, selected, chunk_pixels, domain)
     from .core.correction import predict_
-    from .prediction import chunked_cc
+    from .core.correction import chunked_cc
 
     source = (
         np.asarray(image, dtype=np.float64)
@@ -607,7 +607,7 @@ def _predict_high(image, models, selected, chunk_pixels, domain):
     stages and the validity checks stay within one block.
     """
     from ._cpu_workers import ranges, run_slices, worker_count
-    from .prediction import cc_block, cc_uses_lut
+    from .core.correction import cc_block, cc_uses_lut
 
     source = np.asarray(image, dtype=np.float64)
     order = ("FFC", "GC", "WB", "CC")

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from ColorCorrectionPipeline import ColorCorrection, Config, _cpu_workers, colorimetry, ui_native
-from ColorCorrectionPipeline.prediction import chunked_cc
+from ColorCorrectionPipeline.core.correction import chunked_cc
 
 IMAGES = Path(__file__).resolve().parents[1] / "Images"
 CHART, WHITE, SCENE = (str(IMAGES / n) for n in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))

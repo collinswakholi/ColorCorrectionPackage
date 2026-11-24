@@ -3,7 +3,8 @@ Color-correction inference classes
 ==================================
 
 ``Regressor_Model`` holds a fitted color-correction estimator and owns its 3D LUT
-cache; ``predict_`` applies it. Fitting lives in
+cache; ``predict_`` applies it and ``chunked_cc`` applies a saved
+``(model, options, method)`` CC tuple in bounded blocks. Fitting lives in
 :mod:`ColorCorrectionPipeline.ui_fitting`. ``CustomNN`` (the 2.x ``custom``
 estimator) and the legacy polynomial gamma application ``predict_image`` are
 load-only and resolved from :mod:`ColorCorrectionPipeline._compat` so saved
@@ -620,3 +621,43 @@ def predict_(RGB: np.ndarray, M: Regressor_Model) -> np.ndarray:
     if n_pixels >= M.lut_min_pixels and M.ensure_lut():
         return M.apply_lut(RGB).reshape(orig_shape)
     return _predict_direct(RGB, M)
+
+
+# ----------------------------------------------------------------------------
+# Saved CC tuples: ``(Regressor_Model, options, "ours")`` or
+# ``(matrix, options, "conv")``.
+# ----------------------------------------------------------------------------
+
+
+def cc_uses_lut(cc, pixels):
+    """Select LUT or direct CC once for an image of ``pixels`` pixels."""
+    model, _, method = cc
+    return method == "ours" and pixels >= model.lut_min_pixels and model.ensure_lut()
+
+
+def cc_block(block, cc, use_lut):
+    """Predict one flat ``(N, 3)`` block with an image-level LUT decision."""
+    model, options, method = cc
+    if method == "conv":
+        from ..conventional import apply_conventional
+
+        return apply_conventional(block, model, **options)
+    if method == "ours":
+        return model.apply_lut(block) if use_lut else _predict_direct(block, model)
+    raise ValueError("unsupported saved CC method")
+
+
+def chunked_cc(image, cc, chunk_pixels):
+    """Bound pointwise feature workspace while selecting LUT/direct once per image."""
+    import colour  # noqa: F401  (conventional CC resolves its basis through colour)
+
+    flat = image.reshape(-1, 3)
+    use_lut = cc_uses_lut(cc, len(flat))
+    output = None
+    for start in range(0, len(flat), chunk_pixels):
+        block = flat[start : start + chunk_pixels]
+        predicted = cc_block(block, cc, use_lut)
+        if output is None:
+            output = np.empty(flat.shape, dtype=predicted.dtype)
+        output[start : start + len(block)] = predicted
+    return output.reshape(image.shape)
