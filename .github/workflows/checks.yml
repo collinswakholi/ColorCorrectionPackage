@@ -3,8 +3,12 @@ name: Package qualification
 on:
   push:
     branches: [main, develop]
+    # README, changelog and docs edits alone don't need CI. The PyPI rendering of the
+    # README is still checked by the release workflow before any upload.
+    paths-ignore: ['README.md', 'CHANGELOG.md', 'docs/**']
   pull_request:
     branches: [main, develop]
+    paths-ignore: ['README.md', 'CHANGELOG.md', 'docs/**']
   workflow_dispatch:
 
 permissions:
