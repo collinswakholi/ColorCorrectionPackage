@@ -1,12 +1,12 @@
 # Numerical policies and grouped evaluation
 
 Numerical profiles identify the training and application recipes of a calibration.
-New 2.0 fits default to UI-native RPCC2. Explicit `legacy-v1` and
-`reproducible-v1` configurations retain their historical algorithms.
-Metadata-free saved models restore legacy interpretation.
+New fits use the UI-compatible RPCC2 recipe with modern-v1 stages and
+explicit-v1 color semantics. Fitting with `legacy-v1` or `reproducible-v1` was
+removed in 3.0; models saved with them still load and apply, and metadata-free
+saved models restore legacy interpretation. See [Migrating to 3.0](migration-3.md).
 
-The examples below focus on the `reproducible-v1` encoded-RGB profile.
-See the [migration guide](migration-2.md) for new solver/basis controls and
+See the [migration guide](migration-2.md) for solver/basis controls and
 precision selection.
 
 ```python
@@ -14,11 +14,9 @@ from ColorCorrectionPipeline import ColorCorrection, Config
 
 config = Config(
     do_ffc=False,  # enable only when a suitable white-field capture is supplied
-    color_semantics={"version": "explicit-v1"},
-    stage_policy={"version": "modern-v1", "wb_headroom": 0.95},
-    fitting_policy={"version": "reproducible-v1", "random_state": 42},
-    CC_kwargs={"mtd": "linear", "degree": 1},
+    model="3x3",
     validation_options={"enabled": True, "n_splits": 4},
+    image_options={"frame_index": 0},  # camera JPEGs often carry a preview frame
 )
 pipeline = ColorCorrection()
 metrics, stages, failed = pipeline.run(image, config=config)
@@ -28,11 +26,10 @@ report = pipeline.last_run["numerical_report"]
 `image` may use the existing supported path/array/ImageData contract. Configurations
 are copied, and candidate calibration state is committed only after success. The
 new policies require explicit-v1 color interpretation and model detector geometry.
-Modern CC requires reproducible fitting or the opt-in
-[UI-compatible policy](ui-compatible-fitting.md). The latter has its own explicit
+CC uses the [UI-compatible policy](ui-compatible-fitting.md), with its own explicit
 linear-light fitting, sampling and FFC semantics. A failed new calibration preserves the
 previous active models. `show=True` for modern GC/WB/CC is rejected; inspect saved
-observations and reports instead. Legacy plotting remains available.
+observations and reports instead.
 
 ## Saturation evidence and selection
 
@@ -51,7 +48,8 @@ to recover lost information.
 In modern mode, `check_saturation` controls the standalone reporting stage. GC,
 WB and CC still obey their declared StagePolicy selection when that switch is
 false. Use `saturation='report'` to retain flagged training cells explicitly.
-Legacy mode retains its identified fit-only scaling for compatibility.
+The UI-compatible fit that `Config` builds uses `saturation='report'` and requires
+`check_saturation=False`.
 
 ## Neutral gamma and white balance
 
@@ -109,71 +107,32 @@ dimensions. Matching dimensions alone does not establish matching lens, crop,
 orientation, illumination, exposure or camera conditions. Dark-frame subtraction
 and linear/high-precision FFC remain later work.
 
-## Reproducible fitting
+## Reproducible fitting (removed in 3.0)
 
-Modern CC contributes one fixed-region mean per canonical cell. Repeated pixels
-or repeated means do not create additional independent colors or extra cell weight.
-The lower-level helper collapses repeated cell identities with consistent targets.
-Global NumPy randomness is not used. Legacy sampling controls (`n_samples`,
-`augment_extremes`, `extreme_anchor_repeat`, `shuffle_fit_data`) are rejected for
-reproducible-v1 rather than silently accepted.
-
-Supported new fits are polynomial linear least squares, PLS, sklearn MLP and a
-deterministic CPU Torch NN. `linearCC` aliases linear and `MLP` aliases nn. Linear
-fits require full column rank and acceptable conditioning. PLS components are
-bounded by centered design rank and independent-cell count. Neural learning rate,
-batch size, patience and explicit positive iteration caps affect the actual fit.
-Unsupported/irrelevant options and `param_search=True` fail clearly. The conventional
-route supports Finlayson 2015 with explicit degree/root-polynomial choice and a
-stable least-squares solver. Other conventional bases are not silently substituted.
-
-Torch initialization, dropout, data ordering and grouped internal split are seeded
-in a scoped CPU RNG context. Library fitting calls use a lock and restore caller
-RNG/determinism settings afterward. Unrelated external Torch RNG calls occurring
-concurrently in the same process are outside that isolation guarantee. GPU training
-is not qualified by reproducible-v1. Fixed software/hardware CPU results are the
-tested reproducibility scope; cross-version/platform bitwise identity is not promised.
-
-There are no default black/white anchors. Positive `FittingPolicy.anchor_weight`
-adds two named synthetic identity-endpoint assumptions with that weight for linear
-or conventional least squares. Anchors are train-only, never reported as measured,
-and do not count toward independent measured-cell sufficiency. Nonlinear estimators
-reject nonzero anchor weighting. Their internal grouped holdout remains separate
-from outer evaluation. sklearn MLP uses training-objective stopping, without a
-row-level internal validation split that could leak repeated cells.
-
-Direct estimator output remains the numerical reference. Reproducible pipeline
-CC defaults to direct application; opt-in LUT controls retain the existing LUT
-approximation. Effective parameters, feature order, group counts, weighting,
-rank/condition and execution device are recorded with the fitted model.
+The `reproducible-v1` fitter (encoded-sRGB polynomial least squares, PLS, sklearn
+MLP, deterministic CPU Torch NN and the Finlayson conventional route) was removed
+in 3.0. Models saved with it still load and apply with their recorded estimators
+and reports. See [Migrating to 3.0](migration-3.md).
 
 ## Fit objective and perceptual evaluation
 
-`reproducible-v1` fits encoded sRGB, including its affine degree-1 linear model.
-Linear fitting minimizes cell-weighted RGB squared error, not CIEDE2000.
-PLS and neural fits also retain their recorded objectives and stopping rules.
-A lower RGB error can therefore accompany a higher mean Delta-E.
+New fits minimize RGB squared error in linear light, not CIEDE2000. PLS and
+neural fits also retain their recorded objectives and stopping rules. A lower
+RGB error can therefore accompany a higher mean Delta-E.
 
 Canonical reference truth and fitting targets remain unclipped. A physical
 reference outside the display gamut can have a negative encoded channel that
-cannot be reproduced by a clipped sRGB export. Forcing an affine encoded-RGB
-fit toward that target can move otherwise accurate colors. Clipping display
+cannot be reproduced by a clipped sRGB export. Forcing a fit toward that target can move otherwise accurate colors. Clipping display
 swatches, dropping difficult cells or substituting reference-assisted samples
 would change the stated fitting problem; the package does not do so implicitly.
 
-Reproducible fit reports record `fitting_domain`, `target_domain` and
-`out_of_gamut_targets` (observed cell IDs outside the unit gamut and the
-fitting-target channel range). Linear reports
-also record `objective.optimizes_delta_e00=False`. These are additive
-diagnostics; older fits, inference equations and saved bundles keep their
-behavior. Per-stage canonical Delta-E metrics remain the separate check on
-rendered results.
+Saved `reproducible-v1` fit reports also record `fitting_domain`, `target_domain`,
+`out_of_gamut_targets` and `objective.optimizes_delta_e00=False`. Per-stage
+canonical Delta-E metrics remain the separate check on rendered results.
 
-For a linear-light matrix matched to the UI, explicitly select
-`fitting_policy="ui-native-v1"` and `CC_kwargs={"model": "ccm"}`, as in the
-README. This records the existing native image rules for new uint8 sRGB
-calibrations. It also minimizes RGB error, so perceptual improvement still
-requires measurement. The affine `linear` model and CCM are different
+For a linear-light matrix matched to the UI, select `Config(model="3x3")`.
+It also minimizes RGB error, so perceptual improvement still
+requires measurement. The affine `linear` model and the 3x3 matrix are different
 hypothesis classes; equal polynomial degree alone does not match their settings.
 See [UI-compatible fitting](ui-compatible-fitting.md) for complete controls.
 

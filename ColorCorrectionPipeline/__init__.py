@@ -6,47 +6,78 @@ A step-wise, end-to-end color correction pipeline for digital images combining
 flat-field correction, gamma correction, white-balance, and color-correction into
 a single, easy-to-use workflow.
 
-Main Components:
-    - ColorCorrection: Main pipeline class for color correction
-    - Config: Configuration container for pipeline steps  
-    - MyModels: Model storage and persistence
-    - FlatFieldCorrection: Flat-field correction utilities
+Quick start (two calls):
+    >>> from ColorCorrectionPipeline import calibrate, correct
+    >>> cal = calibrate("chart.jpg", white="white.jpg", save_to="calibration.ccpb")
+    >>> corrected = correct("scene.jpg", cal)        # float RGB, 0-1
 
-Example:
+Main components:
+    - calibrate / correct / Calibration: two-call API for the common case
+    - ColorCorrection: the pipeline (fit, predict, bundles, batch prediction)
+    - Config (+ Steps, FFCOptions, GCOptions, WBOptions, CCOptions): full configuration
+    - Config.from_preset: named presets (rpcc2, rpcc3, ccm, pls, high-precision)
+    - ImageData, ReferenceProfile, ColorSemantics, FittingPolicy, StagePolicy: contracts
+    - io / core: image readers and writers, low-level color and fitting functions
+
+Full control:
     >>> from ColorCorrectionPipeline import ColorCorrection, Config
-    >>> config = Config(model="rpcc2", image_options={"frame_index": 0})
+    >>> config = Config(model="rpcc2", input={"frame_index": 0})
     >>> cc = ColorCorrection()
-    >>> fit = cc.fit_or_raise("chart.jpg", "white.jpg", config=config)
+    >>> fit = cc.fit("chart.jpg", "white.jpg", config=config)
 
 The example expects a chart capture and its matching white field. Run
 ``python -m ColorCorrectionPipeline.examples.quickstart --output demo``
 to use the included sample images after installing the package.
 """
 
+import logging
 from importlib import import_module
-import warnings
 
 from .__version__ import __version__, __version_info__
 
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
+# Library convention: never configure output for the application. Progress and
+# diagnostic messages go to the "ColorCorrectionPipeline" logger hierarchy; enable
+# them with e.g. logging.basicConfig(level=logging.INFO). See docs/logging.md.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # Resolve public names to their original objects and modules on first access.
 # Asking for the package version should not initialize training or image backends.
 _EXPORTS = {
-    "FitResult": "pipeline", "CalibrationError": "pipeline",
-    "ColorCorrection": "pipeline", "Config": "config", "MyModels": "models",
-    "FlatFieldCorrection": "flat_field", "MODEL_PATH": "constants",
-    "ImageData": "contracts", "ReferenceProfile": "contracts",
-    "ChartObservation": "contracts", "ObservationSet": "contracts",
-    "ColorSemantics": "colorimetry", "StagePolicy": "stage_policies",
-    "MonotonicToneModel": "stage_policies", "FittingPolicy": "fitting",
-    "Steps": "config_groups", "FFCOptions": "config_groups", "GCOptions": "config_groups",
-    "WBOptions": "config_groups", "CCOptions": "config_groups",
-    "BundleLimits": "bundle", "BundleError": "bundle", "BatchItemResult": "results",
-    "BatchResult": "results", "save_report": "reporting", "ExecutionOptions": "acceleration",
-    "PreparedExecution": "acceleration", "AcceleratedResult": "acceleration",
-    "LutCache": "acceleration", "AccuracyBudgetError": "acceleration",
-    "core": "core", "io": "io",
+    "FitResult": "pipeline",
+    "CalibrationError": "pipeline",
+    "ColorCorrection": "pipeline",
+    "Config": "config",
+    "MyModels": "models",
+    "FlatFieldCorrection": "flat_field",
+    "MODEL_PATH": "constants",
+    "ImageData": "contracts",
+    "ReferenceProfile": "contracts",
+    "ChartObservation": "contracts",
+    "ObservationSet": "contracts",
+    "ColorSemantics": "colorimetry",
+    "StagePolicy": "stage_policies",
+    "MonotonicToneModel": "stage_policies",
+    "FittingPolicy": "fitting",
+    "Steps": "config_groups",
+    "FFCOptions": "config_groups",
+    "GCOptions": "config_groups",
+    "WBOptions": "config_groups",
+    "CCOptions": "config_groups",
+    "BundleLimits": "bundle",
+    "BundleError": "bundle",
+    "BatchItemResult": "results",
+    "BatchResult": "results",
+    "save_report": "reporting",
+    "ExecutionOptions": "acceleration",
+    "PreparedExecution": "acceleration",
+    "AcceleratedResult": "acceleration",
+    "LutCache": "acceleration",
+    "AccuracyBudgetError": "acceleration",
+    "core": "core",
+    "io": "io",
+    "calibrate": "simple",
+    "correct": "simple",
+    "Calibration": "simple",
 }
 __all__ = ["__version__", "__version_info__", *_EXPORTS]
 
@@ -68,4 +99,4 @@ def __dir__():
 __author__ = "Collins Wakholi"
 __email__ = "49397327+collinswakholi@users.noreply.github.com"
 __license__ = "MIT"
-__copyright__ = "Copyright (c) 2025 Collins Wakholi"
+__copyright__ = "Copyright (c) 2025-2026 Collins Wakholi"

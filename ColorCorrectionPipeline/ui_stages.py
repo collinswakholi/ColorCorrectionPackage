@@ -1,28 +1,45 @@
-"""UI-compatible FFC fitting with the package's existing quality gates.
+"""UI-compatible flat-field gain surface with the package's existing quality gates.
 
 Numerical equations ported from the MIT-licensed ccp_core/ffc.rs by
-Collins Wakholi (2026). Legacy FFC never selects these equations implicitly.
+Collins Wakholi (2026). ``apply_ffc`` also replays staged-v1 gains saved by 2.x.
 """
 
 from copy import deepcopy
+
 import numpy as np
 
-from .colorimetry import rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb, D65
-from .ui_fitting import round_image, _integer, _solve
+from .colorimetry import (
+    D65,
+    lab_to_xyz,
+    linear_to_srgb,
+    rgb_to_xyz,
+    srgb_to_linear,
+    xyz_to_lab,
+    xyz_to_rgb,
+)
+from .ui_fitting import _integer, _solve, round_image
+from .ui_native import FFC_DOMAINS, working_input
+from .ui_native import lightness as native_lightness
 
 
-def apply_ffc(rgb, gain):
-    """Apply an encoded-RGB lightness gain with a native float32 boundary."""
+def apply_ffc(rgb, gain, domain="lightness"):
+    """Apply an encoded-RGB lightness gain with a native float32 boundary.
+
+    ``domain="linear"`` multiplies decoded linear-light RGB by the gain and
+    re-encodes it instead of scaling Lab L*.
+    """
     image = round_image(rgb)
     multiplier = np.asarray(gain)
     if multiplier.shape != image.shape[:2]:
         raise ValueError("UI FFC requires the calibrated image dimensions")
+    if domain == "linear":
+        linear = srgb_to_linear(image) * multiplier[..., None]
+        return round_image(linear_to_srgb(np.clip(linear, 0, 1), policy="clip"))
+    if domain != "lightness":
+        raise ValueError("FFC domain must be 'lightness' or 'linear'")
     lab = xyz_to_lab(rgb_to_xyz(image, encoding="srgb"), white=D65)
     lab[..., 0] = np.clip(lab[..., 0] * multiplier, 0, 100)
     return round_image(xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip"))
-
-
-_REFERENCE_APPLY_FFC = apply_ffc
 
 
 def _cubic_weights(t):
@@ -54,11 +71,15 @@ def _resize(coarse, height, width, dtype=np.float32):
     return result
 
 
-def fit_ffc(owner, image, parameters):
-    """Fit the UI plane/polynomial surface; reject unqualified FFC solvers."""
+def fit_gain(white_bgr, white, shape, parameters, *, high_precision_mode):
+    """Fit the UI plane/polynomial gain surface; reject unqualified FFC solvers.
+
+    ``white_bgr`` is the uint8 BGR white capture for the crop and quality guard,
+    ``white`` its ``ImageData`` and ``shape`` the chart image shape. Returns the
+    read-only float64 gain map, its quality report and the gain domain.
+    """
     from .flat_field.correction import FlatFieldCorrection
-    from .ui_native import high_precision
-    high_precision_mode = high_precision(owner)
+
     dtype = np.float64 if high_precision_mode else np.float32
 
     p = deepcopy(parameters)
@@ -83,6 +104,7 @@ def fit_ffc(owner, image, parameters):
         "min_crop_fraction",
         "min_gain",
         "max_gain",
+        "domain",
     }
     if set(p) - allowed:
         raise ValueError("unsupported UI FFC settings: %s" % sorted(set(p) - allowed))
@@ -93,31 +115,33 @@ def fit_ffc(owner, image, parameters):
     init = {
         key: p[key]
         for key in allowed
-        if key in p and key not in ("degree", "fit_method", "cache_multiplier", "get_deltaE")
+        if key in p
+        and key not in ("degree", "fit_method", "cache_multiplier", "get_deltaE", "domain")
     }
+    domain = p.get("domain", "lightness")
+    if not isinstance(domain, str) or domain not in FFC_DOMAINS:
+        raise ValueError("FFC domain must be 'lightness' or 'linear'")
     init.update(bins=bins, safe_mode=True)
     if high_precision_mode:
-        init["quality_source"] = owner.white_image_data.to_srgb()
-    guard = FlatFieldCorrection(owner.White_Image, **init)
-    guard.detect_and_crop()
-    guard._validate_safe_crop()
+        init["quality_source"] = white.to_srgb()
+    guard = FlatFieldCorrection(white_bgr, **init)
+    guard.detect_and_crop()  # safe_mode also validates the crop
     quality = deepcopy(guard.quality_report)
-    x1, y1, x2, y2 = guard.crop_rect
-    white = owner.white_image_data
+    x1, y1, x2, y2 = guard.crop_rect  # type: ignore[misc]
     source = white.pixels if white.color_space == "srgb" else white.to_srgb()
     h, w = source.shape[:2]
-    if source.shape != image.shape:
+    if source.shape != tuple(shape):
         raise ValueError("FFC white and source images must have identical dimensions")
-    from .ui_native import enabled as native_enabled, working_input
-    if native_enabled(owner):
-        crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
-        from .ui_native import lightness as native_lightness
-        lightness = native_lightness(crop, dtype)
-    else:
-        crop = source[y1:y2, x1:x2]
-        lab = xyz_to_lab(rgb_to_xyz(round_image(crop), encoding="srgb"), white=D65)
-        lightness = lab[..., 0].astype(dtype)
-    if lightness.min() / 100 < guard.min_signal:
+    crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
+    lightness = native_lightness(crop, dtype, domain=domain)
+    # In the linear domain "lightness" holds 100*Y; ratios are luminance gains.
+    # The signal guard keeps its historical L* meaning in both domains.
+    signal = float(lightness.min()) / 100
+    if domain == "linear":
+        signal = (
+            116.0 * np.cbrt(signal) - 16.0 if signal > 216.0 / 24389.0 else signal * 24389.0 / 27.0
+        ) / 100
+    if signal < guard.min_signal:
         raise ValueError("safe UI FFC white plane has insufficient signal")
     epsilon = dtype(1e-12)
     ratios = lightness.max() / np.maximum(lightness, epsilon)
@@ -144,47 +168,50 @@ def fit_ffc(owner, image, parameters):
             axis=-1,
         )
 
-    x = (
-        dtype(x1)
-        + np.arange(bins, dtype=dtype) * dtype(x2 - x1) / dtype(bins - 1)
-    ).astype(np.float64) / (w + float(epsilon))
-    y = (
-        dtype(y1)
-        + np.arange(bins, dtype=dtype) * dtype(y2 - y1) / dtype(bins - 1)
-    ).astype(np.float64) / (h + float(epsilon))
+    x = (dtype(x1) + np.arange(bins, dtype=dtype) * dtype(x2 - x1) / dtype(bins - 1)).astype(
+        np.float64
+    ) / (w + float(epsilon))
+    y = (dtype(y1) + np.arange(bins, dtype=dtype) * dtype(y2 - y1) / dtype(bins - 1)).astype(
+        np.float64
+    ) / (h + float(epsilon))
     xx, yy = np.meshgrid(x, y)
     matrix = design(xx.ravel(), yy.ravel())
     ridge = 0 if method == "linear" else 1e-8
     coeff = _solve(matrix.T @ matrix + np.eye(matrix.shape[1]) * ridge, matrix.T @ zs)
-    x = (np.arange(bins, dtype=dtype) * dtype(w - 1) / dtype(bins - 1)).astype(
-        np.float64
-    ) / (w + float(epsilon))
-    y = (np.arange(bins, dtype=dtype) * dtype(h - 1) / dtype(bins - 1)).astype(
-        np.float64
-    ) / (h + float(epsilon))
+    x = (np.arange(bins, dtype=dtype) * dtype(w - 1) / dtype(bins - 1)).astype(np.float64) / (
+        w + float(epsilon)
+    )
+    y = (np.arange(bins, dtype=dtype) * dtype(h - 1) / dtype(bins - 1)).astype(np.float64) / (
+        h + float(epsilon)
+    )
     xx, yy = np.meshgrid(x, y)
     coarse = (design(xx, yy) @ coeff).astype(dtype) * span + low
+    if domain == "linear":
+        # Apply the same soft knee to the gain's lightness equivalent (L* ~ Y^1/3)
+        # so a luminance gain is limited like the historical L* gain.
+        coarse = np.cbrt(coarse)
     high = coarse > dtype(1.3)
-    coarse[high] = dtype(1.3) + dtype(1.8 - 1.3) * np.tanh(
-        dtype(1.8) * (coarse[high] - dtype(1.3))
-    )
+    coarse[high] = dtype(1.3) + dtype(1.8 - 1.3) * np.tanh(dtype(1.8) * (coarse[high] - dtype(1.3)))
+    if domain == "linear":
+        coarse = coarse * coarse * coarse
     gain = _resize(coarse, h, w, dtype=dtype).astype(np.float64)
     if not np.isfinite(gain).all() or gain.min() < guard.min_gain or gain.max() > guard.max_gain:
         raise ValueError("UI FFC gain violates the configured finite positive gain limits")
     gain = np.frombuffer(gain.tobytes(), dtype=np.float64).reshape(gain.shape)
     quality.update(
-        algorithm="precision-f64-v1/Lab-D65" if high_precision_mode else "ui-compatible-v1/float32-Lab-D65",
+        algorithm=(
+            "precision-f64-v1/Lab-D65"
+            if high_precision_mode
+            else "ui-compatible-v1/float32-Lab-D65"
+        )
+        + ("/linear-light-gain" if domain == "linear" else ""),
         fit_method=method,
         effective_degree=degree,
         minimum_gain=float(gain.min()),
         maximum_gain=float(gain.max()),
         ridge=ridge,
         solver="float64 normal equations",
-        upsampling=("float64" if high_precision_mode else "float32") + " endpoint-aligned Catmull-Rom",
+        upsampling=("float64" if high_precision_mode else "float32")
+        + " endpoint-aligned Catmull-Rom",
     )
-    owner.models.model_ffc = gain
-    owner.numerical_report["FFC"] = quality
-    if native_enabled(owner):
-        from .ui_native import render_fit_stage
-        return render_fit_stage(owner, image, "FFC"), {}, False
-    return apply_ffc(image, gain), {}, False
+    return gain, quality, domain

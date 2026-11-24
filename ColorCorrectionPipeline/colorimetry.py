@@ -13,11 +13,26 @@ from typing import Any, Dict, Optional, Tuple
 import numpy as np
 
 __all__ = [
-    "D50", "D65", "ColorSemantics", "white_xy", "white_xyz",
-    "srgb_to_linear", "linear_to_srgb", "rgb_to_xyz_matrix", "rgb_to_xyz", "xyz_to_rgb",
-    "adaptation_matrix", "adapt_xyz", "xyz_to_lab", "lab_to_xyz",
-    "reference_values_to_lab_d50", "reference_to_working_lab", "reference_to_working_rgb", "display_reference_rgb",
-    "delta_e00", "delta_e00_reference",
+    "D50",
+    "D65",
+    "ColorSemantics",
+    "white_xy",
+    "white_xyz",
+    "srgb_to_linear",
+    "linear_to_srgb",
+    "rgb_to_xyz_matrix",
+    "rgb_to_xyz",
+    "xyz_to_rgb",
+    "adaptation_matrix",
+    "adapt_xyz",
+    "xyz_to_lab",
+    "lab_to_xyz",
+    "reference_values_to_lab_d50",
+    "reference_to_working_lab",
+    "reference_to_working_rgb",
+    "display_reference_rgb",
+    "delta_e00",
+    "delta_e00_reference",
 ]
 
 D65 = (0.31271, 0.32902)
@@ -25,14 +40,20 @@ D50 = (0.3457, 0.3585)
 _EPSILON = 216.0 / 24389.0
 _KAPPA = 24389.0 / 27.0
 _CATS = {
-    "Bradford": np.array([[0.8951, 0.2664, -0.1614], [-0.7502, 1.7135, 0.0367], [0.0389, -0.0685, 1.0296]]),
-    "CAT02": np.array([[0.7328, 0.4296, -0.1624], [-0.7036, 1.6975, 0.0061], [0.0030, 0.0136, 0.9834]]),
+    "Bradford": np.array(
+        [[0.8951, 0.2664, -0.1614], [-0.7502, 1.7135, 0.0367], [0.0389, -0.0685, 1.0296]]
+    ),
+    "CAT02": np.array(
+        [[0.7328, 0.4296, -0.1624], [-0.7036, 1.6975, 0.0061], [0.0030, 0.0136, 0.9834]]
+    ),
 }
 
 
 def _numeric(values, label="values"):
     source = np.asarray(values)
-    if not np.issubdtype(source.dtype, np.number) or np.issubdtype(source.dtype, np.complexfloating):
+    if not np.issubdtype(source.dtype, np.number) or np.issubdtype(
+        source.dtype, np.complexfloating
+    ):
         raise TypeError("%s must contain real numbers" % label)
     result = np.asarray(source, dtype=np.float64)
     if result.size == 0 or not np.isfinite(result).all():
@@ -70,7 +91,7 @@ def _scale(value, allowed, label="scale"):
         raise ValueError("%s must be one of %s" % (label, allowed))
     if not np.isfinite(value) or value not in allowed:
         raise ValueError("%s must be one of %s" % (label, allowed))
-    return float(value)
+    return float(value)  # type: ignore[arg-type]
 
 
 def _domain(values, domain):
@@ -80,7 +101,7 @@ def _domain(values, domain):
         raise ValueError("RGB values must be in [0,1]; declare extended domain explicitly")
 
 
-def _output(values, policy):
+def _output(values, policy, *, owned=False):
     if policy not in ("clip", "preserve", "raise"):
         raise ValueError("output policy must be clip, preserve, or raise")
     if not np.isfinite(values).all():
@@ -91,7 +112,8 @@ def _output(values, policy):
         if np.any(values < -1e-12) or np.any(values > 1.0 + 1e-12):
             raise ValueError("color is outside the unit RGB gamut")
         return np.clip(values, 0.0, 1.0)
-    return values.copy()
+    # A freshly computed result is already owned by the caller.
+    return values if owned else values.copy()
 
 
 def srgb_to_linear(values, *, domain="unit"):
@@ -99,29 +121,35 @@ def srgb_to_linear(values, *, domain="unit"):
     rgb = _numeric(values, "sRGB")
     _domain(rgb, domain)
     absolute = np.abs(rgb)
-    result = rgb / 12.92
-    nonlinear = absolute > 0.04045
-    result = np.array(result, copy=True)
-    result[nonlinear] = np.sign(rgb[nonlinear]) * ((absolute[nonlinear] + 0.055) / 1.055) ** 2.4
-    return _output(result, "preserve")
+    # Per-element selection of the same expressions the masked assignment used.
+    result = np.where(
+        absolute > 0.04045, np.sign(rgb) * ((absolute + 0.055) / 1.055) ** 2.4, rgb / 12.92
+    )
+    return _output(result, "preserve", owned=True)
 
 
 def linear_to_srgb(values, *, policy="preserve"):
     """Encode linear sRGB, preserving out-of-gamut values unless requested."""
     linear = _numeric(values, "linear RGB")
     absolute = np.abs(linear)
-    result = linear * 12.92
-    nonlinear = absolute > 0.0031308
-    result = np.array(result, copy=True)
-    result[nonlinear] = np.sign(linear[nonlinear]) * (1.055 * absolute[nonlinear] ** (1.0 / 2.4) - 0.055)
-    return _output(result, policy)
+    result = np.where(
+        absolute > 0.0031308,
+        np.sign(linear) * (1.055 * absolute ** (1.0 / 2.4) - 0.055),
+        linear * 12.92,
+    )
+    return _output(result, policy, owned=True)
 
 
 def rgb_to_xyz_matrix():
     """sRGB primaries scaled to the package's declared D65 xy white."""
     primaries = np.array([[0.64, 0.33], [0.30, 0.60], [0.15, 0.06]])
-    basis = np.stack([primaries[:, 0] / primaries[:, 1], np.ones(3),
-                      (1 - primaries[:, 0] - primaries[:, 1]) / primaries[:, 1]])
+    basis = np.stack(
+        [
+            primaries[:, 0] / primaries[:, 1],
+            np.ones(3),
+            (1 - primaries[:, 0] - primaries[:, 1]) / primaries[:, 1],
+        ]
+    )
     return basis @ np.diag(np.linalg.solve(basis, white_xyz(D65)))
 
 
@@ -177,8 +205,10 @@ def xyz_to_lab(values, *, white="D50", scale=1):
     xyz = _triples(values, "XYZ") / _scale(scale, (1, 100), "XYZ scale")
     relative = xyz / white_xyz(white)
     f = np.where(relative > _EPSILON, np.cbrt(relative), (_KAPPA * relative + 16) / 116)
-    return np.stack((116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]),
-                     200 * (f[..., 1] - f[..., 2])), axis=-1)
+    return np.stack(
+        (116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]), 200 * (f[..., 1] - f[..., 2])),
+        axis=-1,
+    )
 
 
 def lab_to_xyz(values, *, white="D50", scale=1):
@@ -188,9 +218,9 @@ def lab_to_xyz(values, *, white="D50", scale=1):
     a, b = lab[..., 1] / 500, lab[..., 2] / 200
     fy = lightness + 16 / 116
     fx, fz = fy + a, fy - b
-    x = np.where(fx ** 3 > _EPSILON, fx ** 3, (lightness + a) * 116 / _KAPPA)
-    y = np.where(lab[..., 0] > _KAPPA * _EPSILON, fy ** 3, lab[..., 0] / _KAPPA)
-    z = np.where(fz ** 3 > _EPSILON, fz ** 3, (lightness - b) * 116 / _KAPPA)
+    x = np.where(fx**3 > _EPSILON, fx**3, (lightness + a) * 116 / _KAPPA)
+    y = np.where(lab[..., 0] > _KAPPA * _EPSILON, fy**3, lab[..., 0] / _KAPPA)
+    z = np.where(fz**3 > _EPSILON, fz**3, (lightness - b) * 116 / _KAPPA)
     result = np.stack((x, y, z), axis=-1) * white_xyz(white) * factor
     if not np.isfinite(result).all():
         raise ValueError("Lab conversion produced nonfinite XYZ")
@@ -269,7 +299,9 @@ def delta_e00(lab_a, lab_b):
     g = 0.5 * (1 - np.sqrt(chroma_ratio((c1 + c2) / 2)))
     ap1, ap2 = (1 + g) * a1, (1 + g) * a2
     cp1, cp2 = np.hypot(ap1, b1), np.hypot(ap2, b2)
-    h1, h2 = np.mod(np.degrees(np.arctan2(b1, ap1)), 360), np.mod(np.degrees(np.arctan2(b2, ap2)), 360)
+    h1, h2 = np.mod(np.degrees(np.arctan2(b1, ap1)), 360), np.mod(
+        np.degrees(np.arctan2(b2, ap2)), 360
+    )
     no_chroma = (cp1 == 0) | (cp2 == 0)
     dh = h2 - h1
     dh = np.where(no_chroma, 0, np.where(dh > 180, dh - 360, np.where(dh < -180, dh + 360, dh)))
@@ -277,28 +309,60 @@ def delta_e00(lab_a, lab_b):
     d_h = 2 * np.sqrt(cp1 * cp2) * np.sin(np.radians(dh / 2))
     average_l, average_c = (l1 + l2) / 2, (cp1 + cp2) / 2
     sum_h = h1 + h2
-    average_h = np.where(no_chroma, sum_h, np.where(np.abs(h1 - h2) <= 180, sum_h / 2,
-                          np.where(sum_h < 360, (sum_h + 360) / 2, (sum_h - 360) / 2)))
+    average_h = np.where(
+        no_chroma,
+        sum_h,
+        np.where(
+            np.abs(h1 - h2) <= 180,
+            sum_h / 2,
+            np.where(sum_h < 360, (sum_h + 360) / 2, (sum_h - 360) / 2),
+        ),
+    )
     radians = np.radians(average_h)
-    t = 1 - 0.17 * np.cos(radians - np.radians(30)) + 0.24 * np.cos(2 * radians) + 0.32 * np.cos(3 * radians + np.radians(6)) - 0.20 * np.cos(4 * radians - np.radians(63))
+    t = (
+        1
+        - 0.17 * np.cos(radians - np.radians(30))
+        + 0.24 * np.cos(2 * radians)
+        + 0.32 * np.cos(3 * radians + np.radians(6))
+        - 0.20 * np.cos(4 * radians - np.radians(63))
+    )
     sl = 1 + 0.015 * (average_l - 50) ** 2 / np.sqrt(20 + (average_l - 50) ** 2)
     sc, sh = 1 + 0.045 * average_c, 1 + 0.015 * average_c * t
-    rotation = -2 * np.sqrt(chroma_ratio(average_c)) * np.sin(np.radians(60 * np.exp(-((average_h - 275) / 25) ** 2)))
+    rotation = (
+        -2
+        * np.sqrt(chroma_ratio(average_c))
+        * np.sin(np.radians(60 * np.exp(-(((average_h - 275) / 25) ** 2))))
+    )
     normalized_l, normalized_c, normalized_h = dl / sl, dc / sc, d_h / sh
-    squared = normalized_l ** 2 + normalized_c ** 2 + normalized_h ** 2 + rotation * normalized_c * normalized_h
+    squared = (
+        normalized_l**2 + normalized_c**2 + normalized_h**2 + rotation * normalized_c * normalized_h
+    )
     result = np.sqrt(np.maximum(squared, 0))
     if not np.isfinite(result).all():
         raise ValueError("Delta-E calculation produced nonfinite results")
     return result
 
 
-def delta_e00_reference(rgb, canonical_lab_d50, *, input_encoding="srgb", evaluation_white="D65", adaptation="Bradford", rgb_domain="unit"):
+def delta_e00_reference(
+    rgb,
+    canonical_lab_d50,
+    *,
+    input_encoding="srgb",
+    evaluation_white="D65",
+    adaptation="Bradford",
+    rgb_domain="unit",
+):
     """Compare measured RGB and canonical truth at one explicitly shared white."""
     evaluation_white = white_xy(evaluation_white)
     measured_xyz = rgb_to_xyz(rgb, encoding=input_encoding, domain=rgb_domain)
-    measured = xyz_to_lab(adapt_xyz(measured_xyz, D65, evaluation_white, transform=adaptation), white=evaluation_white)
+    measured = xyz_to_lab(
+        adapt_xyz(measured_xyz, D65, evaluation_white, transform=adaptation), white=evaluation_white
+    )
     reference_xyz = lab_to_xyz(canonical_lab_d50, white=D50)
-    reference = xyz_to_lab(adapt_xyz(reference_xyz, D50, evaluation_white, transform=adaptation), white=evaluation_white)
+    reference = xyz_to_lab(
+        adapt_xyz(reference_xyz, D50, evaluation_white, transform=adaptation),
+        white=evaluation_white,
+    )
     return delta_e00(measured, reference)
 
 
@@ -311,6 +375,7 @@ class ColorSemantics:
     The legacy-v1 and reproducible-v1 policies fit encoded sRGB. Config
     validates the declared fitting domain against the selected policy.
     """
+
     version: str = "legacy-v1"
     input_encoding: str = "srgb"
     output_encoding: str = "srgb"
@@ -326,24 +391,40 @@ class ColorSemantics:
         if self.version not in ("legacy-v1", "explicit-v1"):
             raise ValueError("color semantics version must be legacy-v1 or explicit-v1")
         if self.primaries != "srgb" or self.fitting_domain not in ("encoded-rgb", "linear-rgb"):
-            raise ValueError("only sRGB primaries and encoded-rgb/linear-rgb fitting domains are supported")
+            raise ValueError(
+                "only sRGB primaries and encoded-rgb/linear-rgb fitting domains are supported"
+            )
         for field in ("input_encoding", "output_encoding"):
             if getattr(self, field) not in ("srgb", "linear-srgb"):
                 raise ValueError("%s must be srgb or linear-srgb" % field)
         for field in ("working_white", "reference_white", "evaluation_white"):
             object.__setattr__(self, field, white_xy(getattr(self, field)))
         if self.working_white != D65 or self.reference_white != D50:
-            raise ValueError("current explicit color contract requires working D65 and canonical reference D50")
+            raise ValueError(
+                "current explicit color contract requires working D65 and canonical reference D50"
+            )
         if self.evaluation_white not in (D50, D65):
             raise ValueError("evaluation white must be D50 or D65")
-        transform = self.adaptation if self.adaptation is not None else ("CAT02" if self.version == "legacy-v1" else "Bradford")
+        transform = (
+            self.adaptation
+            if self.adaptation is not None
+            else ("CAT02" if self.version == "legacy-v1" else "Bradford")
+        )
         if transform not in _CATS:
             raise ValueError("adaptation must be Bradford or CAT02")
         object.__setattr__(self, "adaptation", transform)
         if self.output_policy not in ("clip", "preserve", "raise"):
             raise ValueError("output policy must be clip, preserve, or raise")
-        if self.version == "legacy-v1" and (self.fitting_domain != "encoded-rgb" or self.input_encoding != "srgb" or self.output_encoding != "srgb" or self.adaptation != "CAT02" or self.output_policy != "clip"):
-            raise ValueError("legacy-v1 retains encoded sRGB, CAT02, and clipping; use explicit-v1 for new semantics")
+        if self.version == "legacy-v1" and (
+            self.fitting_domain != "encoded-rgb"
+            or self.input_encoding != "srgb"
+            or self.output_encoding != "srgb"
+            or self.adaptation != "CAT02"
+            or self.output_policy != "clip"
+        ):
+            raise ValueError(
+                "legacy-v1 retains encoded sRGB, CAT02, and clipping; use explicit-v1 for new semantics"
+            )
 
     @classmethod
     def from_value(cls, value=None):
@@ -356,11 +437,18 @@ class ColorSemantics:
         raise TypeError("color semantics must be a ColorSemantics instance or dictionary")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"version": self.version, "input_encoding": self.input_encoding,
-                "output_encoding": self.output_encoding, "primaries": self.primaries,
-                "working_white": list(self.working_white), "reference_white": list(self.reference_white),
-                "evaluation_white": list(self.evaluation_white), "adaptation": self.adaptation,
-                "fitting_domain": self.fitting_domain, "output_policy": self.output_policy}
+        return {
+            "version": self.version,
+            "input_encoding": self.input_encoding,
+            "output_encoding": self.output_encoding,
+            "primaries": self.primaries,
+            "working_white": list(self.working_white),
+            "reference_white": list(self.reference_white),
+            "evaluation_white": list(self.evaluation_white),
+            "adaptation": self.adaptation,
+            "fitting_domain": self.fitting_domain,
+            "output_policy": self.output_policy,
+        }
 
     def reference_to_working_rgb(self, canonical_lab_d50, *, clip=False):
         return reference_to_working_rgb(canonical_lab_d50, adaptation=self.adaptation, clip=clip)
@@ -369,5 +457,10 @@ class ColorSemantics:
         return reference_to_working_lab(canonical_lab_d50, adaptation=self.adaptation)
 
     def delta_e00(self, rgb, canonical_lab_d50, *, input_encoding=None):
-        return delta_e00_reference(rgb, canonical_lab_d50, input_encoding=input_encoding or self.input_encoding,
-                                  evaluation_white=self.evaluation_white, adaptation=self.adaptation)
+        return delta_e00_reference(
+            rgb,
+            canonical_lab_d50,
+            input_encoding=input_encoding or self.input_encoding,
+            evaluation_white=self.evaluation_white,
+            adaptation=self.adaptation,
+        )

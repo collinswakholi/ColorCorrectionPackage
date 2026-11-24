@@ -4,6 +4,9 @@ The batch and report APIs provide partial-failure records, cancellation,
 controlled retention and non-executable persistence. The established `run()`
 tuple, trusted pickle methods, `predict_image()` stage selection and
 `predict_images()` ordered list/exception behavior remain available.
+`predict_images(images, stages="final")` returns only each final image, as
+`predict_image` does. Its image threads share the caller's pixel-kernel budget,
+and `max_workers=1` runs on the calling thread like a loop of `predict_image`.
 
 ## Fit/save/load a portable calibration
 
@@ -12,10 +15,9 @@ from ColorCorrectionPipeline import ColorCorrection, Config
 
 config = Config(
     do_ffc=False,
-    color_semantics={"version": "explicit-v1"},
-    stage_policy="modern-v1", fitting_policy="reproducible-v1",
-    CC_kwargs={"degree": 1},
+    model="3x3",
     save=True, save_path="calibration-results", model_format="bundle",
+    image_options={"frame_index": 0},  # camera JPEGs often carry a preview frame
 )
 pipeline = ColorCorrection()
 metrics, stages, failed = pipeline.run(chart_image, name_="camera", config=config)

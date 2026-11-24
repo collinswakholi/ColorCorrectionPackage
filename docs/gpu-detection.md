@@ -1,9 +1,9 @@
 # GPU chart detection and CPU recovery
 
 Chart detection defaults to `device="auto"`. This is independent of the chart
-algorithm selector `backend="auto"|"model"|"mcc"`; a GPU failure retries the same
-ONNX model on CPU, not a different chart detector. MCC fallback remains a separate
-explicit opt-in.
+algorithm selector `backend="auto"|"model"`; a GPU failure retries the same
+ONNX model on CPU, not a different chart detector. The OpenCV MCC backend was
+removed in 3.0.
 
 | Platform | Automatic attempt order |
 | --- | --- |
@@ -31,8 +31,6 @@ config = Config(chart_detection={
 Explicit `cpu` does not probe GPU plugins. `cpu_threads` defaults to four and
 is bounded to 1–64. `chart_index` selects one detected Classic face consistently
 for both ordinary and extended sampling; out-of-range selections fail.
-MCC compatibility uses index zero only, and cannot silently substitute a face
-when a nonzero model face was requested.
 
 `device_id=None` selects CUDA device zero, lets Dawn choose a high-performance
 graphics adapter, and selects DirectML's hardware DXGI adapter with the most

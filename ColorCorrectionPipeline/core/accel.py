@@ -14,7 +14,7 @@ import numpy as np
 __all__ = [
     "HAS_NUMBA",
     "HAS_NUMBA_CUDA",
-    "HAS_TORCH_CUDA",
+    "HAS_TORCH_CUDA",  # noqa: F822 (module __getattr__)
     "backend_info",
     "nb_njit",
     "nb_prange",
@@ -25,8 +25,6 @@ __all__ = [
     "apply_linear_to_srgb_image",
     "srgb_to_xyz_matrix",
     "xyz_to_srgb_matrix",
-    "xyz_to_lab_fast",
-    "lab_to_xyz_fast",
     "srgb_to_lab_fast_image",
     "lab_to_srgb_fast_image",
     "trilinear_lut_apply",
@@ -42,14 +40,17 @@ HAS_NUMBA_CUDA = False
 try:
     import numba
     from numba import njit, prange
+
     HAS_NUMBA = True
     try:
         from numba import cuda as numba_cuda
+
         HAS_NUMBA_CUDA = numba_cuda.is_available()
     except Exception:
         pass
 except ImportError:
     pass
+
 
 @functools.lru_cache(maxsize=1)
 def _torch_cuda_available():
@@ -90,11 +91,13 @@ def backend_info() -> dict:
 
 # ── JIT wrappers (graceful fallback) ──────────────────────────────────────
 
+
 def _identity_decorator(*args, **kwargs):
     """No-op decorator when numba is not available."""
     if len(args) == 1 and callable(args[0]):
         return args[0]
     return lambda f: f
+
 
 if HAS_NUMBA:
     nb_njit = njit
@@ -114,6 +117,7 @@ else:
 # ============================================================================
 # IEC 61966-2-1 piecewise formula
 
+
 def _build_srgb_to_linear_lut() -> np.ndarray:
     """Build 256-entry LUT: sRGB [0..255] → linear [0..1]."""
     lut = np.empty(256, dtype=np.float64)
@@ -124,6 +128,7 @@ def _build_srgb_to_linear_lut() -> np.ndarray:
         else:
             lut[i] = ((c + 0.055) / 1.055) ** 2.4
     return lut
+
 
 def _build_linear_to_srgb_lut(size: int = 4096) -> np.ndarray:
     """Build LUT: linear [0..1] quantised to `size` steps → sRGB [0..1]."""
@@ -136,35 +141,43 @@ def _build_linear_to_srgb_lut(size: int = 4096) -> np.ndarray:
             lut[i] = 1.055 * (c ** (1.0 / 2.4)) - 0.055
     return lut
 
-srgb_to_linear_lut = _build_srgb_to_linear_lut()        # shape (256,)
-linear_to_srgb_lut = _build_linear_to_srgb_lut(4096)    # shape (4096,)
+
+srgb_to_linear_lut = _build_srgb_to_linear_lut()  # shape (256,)
+linear_to_srgb_lut = _build_linear_to_srgb_lut(4096)  # shape (4096,)
 
 # ── sRGB ↔ XYZ matrices (D65) ─────────────────────────────────────────────
 # Standard IEC 61966-2-1 / sRGB spec
-srgb_to_xyz_matrix = np.array([
-    [0.4124564, 0.3575761, 0.1804375],
-    [0.2126729, 0.7151522, 0.0721750],
-    [0.0193339, 0.1191920, 0.9503041],
-], dtype=np.float64)
+srgb_to_xyz_matrix = np.array(
+    [
+        [0.4124564, 0.3575761, 0.1804375],
+        [0.2126729, 0.7151522, 0.0721750],
+        [0.0193339, 0.1191920, 0.9503041],
+    ],
+    dtype=np.float64,
+)
 
-xyz_to_srgb_matrix = np.array([
-    [ 3.2404542, -1.5371385, -0.4985314],
-    [-0.9692660,  1.8760108,  0.0415560],
-    [ 0.0556434, -0.2040259,  1.0572252],
-], dtype=np.float64)
+xyz_to_srgb_matrix = np.array(
+    [
+        [3.2404542, -1.5371385, -0.4985314],
+        [-0.9692660, 1.8760108, 0.0415560],
+        [0.0556434, -0.2040259, 1.0572252],
+    ],
+    dtype=np.float64,
+)
 
 # D65 reference white XYZ (Y=1)
 _D65_XYZ = np.array([0.95047, 1.00000, 1.08883], dtype=np.float64)
 _D65_XYZ_inv = 1.0 / _D65_XYZ
 
 # CIE Lab constants
-_LAB_EPSILON = 216.0 / 24389.0   # 0.008856
-_LAB_KAPPA = 24389.0 / 27.0      # 903.3
+_LAB_EPSILON = 216.0 / 24389.0  # 0.008856
+_LAB_KAPPA = 24389.0 / 27.0  # 903.3
 
 
 # ============================================================================
 # Fast sRGB ↔ Lab (vectorised NumPy, no colour-science dependency)
 # ============================================================================
+
 
 def _srgb_to_linear(srgb: np.ndarray) -> np.ndarray:
     """Vectorised sRGB → linear (float input 0-1)."""
@@ -174,6 +187,7 @@ def _srgb_to_linear(srgb: np.ndarray) -> np.ndarray:
     out[~mask] = ((srgb[~mask] + 0.055) / 1.055) ** 2.4
     return out
 
+
 def _linear_to_srgb(linear: np.ndarray) -> np.ndarray:
     """Vectorised linear → sRGB (float input 0-1)."""
     out = np.empty_like(linear)
@@ -181,6 +195,21 @@ def _linear_to_srgb(linear: np.ndarray) -> np.ndarray:
     out[mask] = 12.92 * linear[mask]
     out[~mask] = 1.055 * (linear[~mask] ** (1.0 / 2.4)) - 0.055
     return out
+
+
+def apply_srgb_to_linear_image(img: np.ndarray) -> np.ndarray:
+    """Decode an sRGB-encoded float image (0-1 scale) to linear light.
+
+    Listed in ``__all__`` since 1.4.0 but previously undefined, which made
+    ``from ColorCorrectionPipeline.core.accel import *`` raise AttributeError.
+    """
+    return _srgb_to_linear(np.asarray(img, dtype=np.float64))
+
+
+def apply_linear_to_srgb_image(img: np.ndarray) -> np.ndarray:
+    """Encode a linear-light float image (0-1 scale) with the sRGB transfer curve."""
+    return _linear_to_srgb(np.asarray(img, dtype=np.float64))
+
 
 def _f_lab(t: np.ndarray) -> np.ndarray:
     """CIE Lab forward transform helper."""
@@ -190,10 +219,11 @@ def _f_lab(t: np.ndarray) -> np.ndarray:
     out[~mask] = (_LAB_KAPPA * t[~mask] + 16.0) / 116.0
     return out
 
+
 def _f_lab_inv(t: np.ndarray) -> np.ndarray:
     """CIE Lab inverse transform helper."""
     out = np.empty_like(t)
-    t3 = t ** 3
+    t3 = t**3
     mask = t3 > _LAB_EPSILON
     out[mask] = t3[mask]
     out[~mask] = (116.0 * t[~mask] - 16.0) / _LAB_KAPPA
@@ -219,18 +249,18 @@ def srgb_to_lab_fast_image(img: np.ndarray) -> np.ndarray:
     linear = _srgb_to_linear(flat)
 
     # linear → XYZ
-    xyz = linear @ srgb_to_xyz_matrix.T                  # (N, 3)
+    xyz = linear @ srgb_to_xyz_matrix.T  # (N, 3)
 
     # Normalise by D65 white
-    xyz_n = xyz * _D65_XYZ_inv                           # (N, 3)
+    xyz_n = xyz * _D65_XYZ_inv  # (N, 3)
 
     # Lab forward
-    f = _f_lab(xyz_n)                                    # (N, 3)
+    f = _f_lab(xyz_n)  # (N, 3)
 
     lab = np.empty_like(f)
-    lab[:, 0] = 116.0 * f[:, 1] - 16.0                  # L*
-    lab[:, 1] = 500.0 * (f[:, 0] - f[:, 1])             # a*
-    lab[:, 2] = 200.0 * (f[:, 1] - f[:, 2])             # b*
+    lab[:, 0] = 116.0 * f[:, 1] - 16.0  # L*
+    lab[:, 1] = 500.0 * (f[:, 0] - f[:, 1])  # a*
+    lab[:, 2] = 200.0 * (f[:, 1] - f[:, 2])  # b*
 
     return lab.reshape(shape)
 
@@ -260,13 +290,13 @@ def lab_to_srgb_fast_image(lab: np.ndarray) -> np.ndarray:
     f[:, 2] = fz
 
     # f → XYZ (normalised)
-    xyz_n = _f_lab_inv(f)                                # (N, 3)
+    xyz_n = _f_lab_inv(f)  # (N, 3)
 
     # Denormalise
-    xyz = xyz_n * _D65_XYZ                               # (N, 3)
+    xyz = xyz_n * _D65_XYZ  # (N, 3)
 
     # XYZ → linear sRGB
-    linear = xyz @ xyz_to_srgb_matrix.T                  # (N, 3)
+    linear = xyz @ xyz_to_srgb_matrix.T  # (N, 3)
 
     # linear → sRGB
     srgb = _linear_to_srgb(np.clip(linear, 0, 1))
@@ -275,59 +305,23 @@ def lab_to_srgb_fast_image(lab: np.ndarray) -> np.ndarray:
     return srgb.reshape(shape)
 
 
-def xyz_to_lab_fast(xyz: np.ndarray, illuminant_xy: np.ndarray = None) -> np.ndarray:
-    """Fast XYZ to Lab. Default illuminant = D65."""
-    if illuminant_xy is not None:
-        # Convert xy to XYZ (Y=1)
-        x, y = illuminant_xy[0], illuminant_xy[1]
-        wp = np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
-    else:
-        wp = _D65_XYZ
-
-    shape = xyz.shape
-    flat = xyz.reshape(-1, 3)
-    xyz_n = flat / wp
-    f = _f_lab(xyz_n)
-    lab = np.empty_like(f)
-    lab[:, 0] = 116.0 * f[:, 1] - 16.0
-    lab[:, 1] = 500.0 * (f[:, 0] - f[:, 1])
-    lab[:, 2] = 200.0 * (f[:, 1] - f[:, 2])
-    return lab.reshape(shape)
-
-
-def lab_to_xyz_fast(lab: np.ndarray, illuminant_xy: np.ndarray = None) -> np.ndarray:
-    """Fast Lab to XYZ. Default illuminant = D65."""
-    if illuminant_xy is not None:
-        x, y = illuminant_xy[0], illuminant_xy[1]
-        wp = np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
-    else:
-        wp = _D65_XYZ
-
-    shape = lab.shape
-    flat = lab.reshape(-1, 3)
-    fy = (flat[:, 0] + 16.0) / 116.0
-    fx = flat[:, 1] / 500.0 + fy
-    fz = fy - flat[:, 2] / 200.0
-    f = np.column_stack([fx, fy, fz])
-    xyz_n = _f_lab_inv(f)
-    xyz = xyz_n * wp
-    return xyz.reshape(shape)
-
-
 # ============================================================================
 # Numba-accelerated kernels (CPU parallel)
 # ============================================================================
 
 if HAS_NUMBA:
+
     @njit(parallel=True, cache=True, fastmath=True)
     def _srgb_to_lab_numba(flat_rgb, out_lab, wp_inv):
         """Parallel sRGB → Lab conversion (Numba CPU)."""
         N = flat_rgb.shape[0]
-        M = np.array([
-            [0.4124564, 0.3575761, 0.1804375],
-            [0.2126729, 0.7151522, 0.0721750],
-            [0.0193339, 0.1191920, 0.9503041],
-        ])
+        M = np.array(
+            [
+                [0.4124564, 0.3575761, 0.1804375],
+                [0.2126729, 0.7151522, 0.0721750],
+                [0.0193339, 0.1191920, 0.9503041],
+            ]
+        )
         eps = 216.0 / 24389.0
         kappa = 24389.0 / 27.0
         for i in prange(N):
@@ -356,11 +350,13 @@ if HAS_NUMBA:
     def _lab_to_srgb_numba(flat_lab, out_rgb, wp):
         """Parallel Lab → sRGB conversion (Numba CPU)."""
         N = flat_lab.shape[0]
-        M = np.array([
-            [ 3.2404542, -1.5371385, -0.4985314],
-            [-0.9692660,  1.8760108,  0.0415560],
-            [ 0.0556434, -0.2040259,  1.0572252],
-        ])
+        M = np.array(
+            [
+                [3.2404542, -1.5371385, -0.4985314],
+                [-0.9692660, 1.8760108, 0.0415560],
+                [0.0556434, -0.2040259, 1.0572252],
+            ]
+        )
         eps = 216.0 / 24389.0
         kappa = 24389.0 / 27.0
         for i in prange(N):
@@ -395,7 +391,6 @@ if HAS_NUMBA:
             out_rgb[i, 1] = max(0.0, min(1.0, g))
             out_rgb[i, 2] = max(0.0, min(1.0, b))
 
-
     def srgb_to_lab_numba(img: np.ndarray) -> np.ndarray:
         """sRGB → Lab using Numba parallel CPU. Same signature as srgb_to_lab_fast_image."""
         shape = img.shape
@@ -403,7 +398,6 @@ if HAS_NUMBA:
         out = np.empty_like(flat)
         _srgb_to_lab_numba(flat, out, _D65_XYZ_inv)
         return out.reshape(shape)
-
 
     def lab_to_srgb_numba(lab: np.ndarray) -> np.ndarray:
         """Lab → sRGB using Numba parallel CPU. Same signature as lab_to_srgb_fast_image."""
@@ -422,6 +416,7 @@ else:
 # ============================================================================
 # 3D LUT (trilinear interpolation)
 # ============================================================================
+
 
 def build_3d_lut(
     model_predict_fn,
@@ -456,6 +451,7 @@ def build_3d_lut(
 
 
 if HAS_NUMBA:
+
     @njit(parallel=True, cache=True, fastmath=True)
     def _trilinear_interp(flat_rgb, lut, grid_size):
         """Trilinear interpolation in a 3D LUT (Numba CPU parallel)."""
@@ -488,14 +484,30 @@ if HAS_NUMBA:
             w1g = 1.0 - gd
             w1b = 1.0 - bd
             # Load all 8 corners (contiguous 3-channel reads — better cache locality)
-            v000_0 = lut[r0, g0, b0, 0]; v000_1 = lut[r0, g0, b0, 1]; v000_2 = lut[r0, g0, b0, 2]
-            v001_0 = lut[r0, g0, b1, 0]; v001_1 = lut[r0, g0, b1, 1]; v001_2 = lut[r0, g0, b1, 2]
-            v010_0 = lut[r0, g1, b0, 0]; v010_1 = lut[r0, g1, b0, 1]; v010_2 = lut[r0, g1, b0, 2]
-            v011_0 = lut[r0, g1, b1, 0]; v011_1 = lut[r0, g1, b1, 1]; v011_2 = lut[r0, g1, b1, 2]
-            v100_0 = lut[r1, g0, b0, 0]; v100_1 = lut[r1, g0, b0, 1]; v100_2 = lut[r1, g0, b0, 2]
-            v101_0 = lut[r1, g0, b1, 0]; v101_1 = lut[r1, g0, b1, 1]; v101_2 = lut[r1, g0, b1, 2]
-            v110_0 = lut[r1, g1, b0, 0]; v110_1 = lut[r1, g1, b0, 1]; v110_2 = lut[r1, g1, b0, 2]
-            v111_0 = lut[r1, g1, b1, 0]; v111_1 = lut[r1, g1, b1, 1]; v111_2 = lut[r1, g1, b1, 2]
+            v000_0 = lut[r0, g0, b0, 0]
+            v000_1 = lut[r0, g0, b0, 1]
+            v000_2 = lut[r0, g0, b0, 2]
+            v001_0 = lut[r0, g0, b1, 0]
+            v001_1 = lut[r0, g0, b1, 1]
+            v001_2 = lut[r0, g0, b1, 2]
+            v010_0 = lut[r0, g1, b0, 0]
+            v010_1 = lut[r0, g1, b0, 1]
+            v010_2 = lut[r0, g1, b0, 2]
+            v011_0 = lut[r0, g1, b1, 0]
+            v011_1 = lut[r0, g1, b1, 1]
+            v011_2 = lut[r0, g1, b1, 2]
+            v100_0 = lut[r1, g0, b0, 0]
+            v100_1 = lut[r1, g0, b0, 1]
+            v100_2 = lut[r1, g0, b0, 2]
+            v101_0 = lut[r1, g0, b1, 0]
+            v101_1 = lut[r1, g0, b1, 1]
+            v101_2 = lut[r1, g0, b1, 2]
+            v110_0 = lut[r1, g1, b0, 0]
+            v110_1 = lut[r1, g1, b0, 1]
+            v110_2 = lut[r1, g1, b0, 2]
+            v111_0 = lut[r1, g1, b1, 0]
+            v111_1 = lut[r1, g1, b1, 1]
+            v111_2 = lut[r1, g1, b1, 2]
             # Trilinear interpolation — all 3 channels unrolled
             # Channel 0
             c00 = v000_0 * w1r + v100_0 * rd
@@ -522,16 +534,22 @@ if HAS_NUMBA:
             c1 = c01 * w1g + c11 * gd
             out[i, 2] = c0 * w1b + c1 * bd
         return out
+
 else:
+
     def _trilinear_interp(flat_rgb, lut, grid_size):
         """Trilinear interpolation — pure NumPy fallback."""
         from scipy.interpolate import RegularGridInterpolator
+
         axis = np.linspace(0, 1, grid_size)
         interps = []
         for c in range(3):
             interp = RegularGridInterpolator(
-                (axis, axis, axis), lut[:, :, :, c],
-                method="linear", bounds_error=False, fill_value=None,
+                (axis, axis, axis),
+                lut[:, :, :, c],
+                method="linear",
+                bounds_error=False,
+                fill_value=None,
             )
             interps.append(interp)
         out = np.column_stack([interp(flat_rgb) for interp in interps])
@@ -563,63 +581,9 @@ def trilinear_lut_apply(
 
 
 # ============================================================================
-# Vectorised saturation extrapolation
-# ============================================================================
-
-if HAS_NUMBA:
-    @njit(parallel=True, cache=True)
-    def extrapolate_saturated_pixels(flat_img, scale_factor):
-        """Replace saturated pixels (any channel >= 0.99) with scaled values."""
-        N = flat_img.shape[0]
-        out = flat_img.copy()
-        for i in prange(N):
-            if flat_img[i, 0] >= 0.99 or flat_img[i, 1] >= 0.99 or flat_img[i, 2] >= 0.99:
-                out[i, 0] = min(1.0, flat_img[i, 0] * scale_factor)
-                out[i, 1] = min(1.0, flat_img[i, 1] * scale_factor)
-                out[i, 2] = min(1.0, flat_img[i, 2] * scale_factor)
-        return out
-else:
-    def extrapolate_saturated_pixels(flat_img, scale_factor):
-        """Vectorised NumPy fallback."""
-        out = flat_img.copy()
-        mask = np.any(flat_img >= 0.99, axis=-1)
-        out[mask] = np.clip(flat_img[mask] * scale_factor, 0, 1)
-        return out
-
-
-# ============================================================================
-# FFC binned sampling (vectorised)
-# ============================================================================
-
-def ffc_sample_bins(multiplier: np.ndarray, bins: int, smooth_window: int) -> np.ndarray:
-    """
-    Sample a multiplier surface at uniform grid using cv2.blur instead of
-    Python double loop.
-
-    Parameters
-    ----------
-    multiplier : (H, W) float array
-    bins : int — grid resolution
-    smooth_window : int — smoothing kernel size
-
-    Returns
-    -------
-    Z_m : (bins, bins) float array — sampled multiplier
-    """
-    import cv2
-    h_win = max(1, smooth_window)
-    # Box-blur the entire multiplier once
-    blurred = cv2.blur(multiplier.astype(np.float64), (h_win, h_win))
-    # Subsample at uniform grid
-    rows = np.linspace(0, multiplier.shape[0] - 1, bins).astype(int)
-    cols = np.linspace(0, multiplier.shape[1] - 1, bins).astype(int)
-    Z_m = blurred[np.ix_(rows, cols)]
-    return Z_m
-
-
-# ============================================================================
 # FFC float-path (skip uint8 round-trip)
 # ============================================================================
+
 
 def apply_ffc_float(
     img_rgb: np.ndarray,
@@ -630,7 +594,7 @@ def apply_ffc_float(
 
     Converts sRGB → Lab, multiplies L channel by *multiplier*, then
     converts Lab → sRGB.  Avoids the uint8/BGR round-trip that the
-    original ``FlatFieldCorrection.apply_ffc`` uses.
+    uint8 ``FlatFieldCorrection.apply_ffc`` of 2.x used.
 
     Parameters
     ----------
@@ -649,7 +613,8 @@ def apply_ffc_float(
     # Resize multiplier if sizes don't match
     if (H, W) != (mH, mW):
         multiplier = cv2.resize(
-            multiplier.astype(np.float64), (W, H),
+            multiplier.astype(np.float64),
+            (W, H),
             interpolation=cv2.INTER_LINEAR,
         )
 

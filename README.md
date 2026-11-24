@@ -4,11 +4,13 @@ Calibrate **flat-field correction (FFC) → gamma correction (GC) → white bala
 (WB) → color correction (CC)**, then apply the fitted calibration to images
 captured under the same conditions.
 
-**Version 2.x defaults to the UI-native RPCC2 workflow.** Legacy methodology is
-retired as the default, along with `ours`/`conv` naming in the primary API.
-For a linear-light 3×3 CCM, use `Config(model="3x3")` when fitting the chart.
-Historical `conv` configurations retain their encoded-sRGB fit, and saved
-calibrations retain their original predictions. See the [conventional CCM migration note](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/migration-2.md#migrating-a-conventional-ccm-trained-on-jpegs).
+**Version 3.0 fits only the UI-native workflow (RPCC2 by default).** The 2.x
+historical fitters (`legacy-v1`, `reproducible-v1`, `staged-v1`, API-1
+configurations, the OpenCV MCC backend and the 1.x `key_functions` module) were
+removed; requesting one raises an error that names the replacement. For a
+linear-light 3×3 CCM, use `Config(model="3x3")`. Calibrations saved by 2.x and
+earlier still load and keep their original predictions. See
+[migrating to 3.0](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-3.md).
 
 ## Install
 
@@ -16,15 +18,58 @@ calibrations retain their original predictions. See the [conventional CCM migrat
 pip install --upgrade ColorCorrectionPipeline
 ```
 
-To install the version used in the example below, run `pip install ColorCorrectionPipeline==2.2.0`.
+To install the version used in the example below, run `pip install ColorCorrectionPipeline==3.0.0`.
 The distribution and Python import are both named `ColorCorrectionPipeline`;
 the repository is named ColorCorrectionPackage.
 
 Python **3.8–3.14** is qualified across the CI matrix. Prefer maintained CPython
-3.13 or 3.14 for a new environment; see [Python compatibility](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/python-compatibility.md).
+3.13 or 3.14 for a new environment; see [Python compatibility](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/python-compatibility.md).
 Optional CPU acceleration is available with
-`pip install --upgrade "ColorCorrectionPipeline[performance]"`. Chart detection separately
-automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](docs/gpu-detection.md).
+`pip install --upgrade "ColorCorrectionPipeline[performance]"`. Reading compressed
+16-bit TIFFs (LZW, Deflate) needs the `imagecodecs` codecs:
+`pip install --upgrade "ColorCorrectionPipeline[tiff]"`. Chart detection separately
+automatically tries supported GPU providers and falls back to CPU if none completes a verified model forward. No device setting is needed. Color fitting and exact bundle replay use the qualified CPU kernels; model loading does not require the GPU used for detection. See [device selection and diagnostics](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/gpu-detection.md).
+
+## Quick start
+
+> Added in 2.3.0.
+
+```python
+from ColorCorrectionPipeline import calibrate, correct
+
+cal = calibrate("chart.jpg", white="white.jpg", save_to="calibration.ccpb")
+print("Chart Delta E00 after correction:", cal.delta_e)
+
+corrected = correct("scene.jpg", cal)                  # float RGB in 0–1
+corrected = correct("scene.jpg", "calibration.ccpb")   # later, from the saved bundle
+```
+
+`calibrate` fits FFC → GC → WB → CC on a ColorChecker Classic 24 photograph and raises
+`CalibrationError` if a stage fails (for example, when no chart is found). Leave out
+`white=` to skip flat-field correction. It reads frame 0 of multi-frame files, which
+many camera JPEGs need because they embed a preview frame.
+
+Choose a model with `calibrate(..., model=...)` or build the same configuration with
+`Config.from_preset(...)` to adjust it further:
+
+| Preset | Model | Use when |
+| --- | --- | --- |
+| `rpcc2` (default) | Root-polynomial, degree 2 | General use; robust to exposure changes. |
+| `rpcc3` | Root-polynomial, degree 3 | More flexibility with a well-exposed chart. |
+| `ccm` / `3x3` | Linear-light 3×3 matrix | Simplest, most predictable transform. |
+| `pls` | Partial least squares | Many correlated features. |
+| `high-precision` | RPCC2 in float64 | 16-bit or float scenes from a byte chart. |
+
+```python
+from ColorCorrectionPipeline import Config, ColorCorrection
+
+config = Config.from_preset("rpcc2", white=False, chart={"samples_per_patch": 20, "sampling_seed": 42})
+pipeline = ColorCorrection()
+fit = pipeline.fit("chart.jpg", config=config)          # same as fit_or_raise
+outputs = pipeline.predict("scene.jpg")                 # same as predict_image
+```
+
+The rest of this page uses the full API, which these shortcuts call.
 
 ## Run the sample photographs
 
@@ -42,9 +87,9 @@ python -m ColorCorrectionPipeline.examples.apply_bundle --bundle demo/calibratio
 
 ## One complete test example
 
-Save this as `test_calibration.py` outside the source checkout and run
-`python test_calibration.py` so it imports the installed package.
-It uses the installed sample photographs, fits all four steps, saves and reloads
+Save this as `test_calibration.py` and run `python test_calibration.py`.
+It uses the sample photographs installed with the wheel (or, in a source checkout,
+the copies in `Images/`), fits all four steps, saves and reloads
 a safe calibration bundle, checks exact replay, and writes a verified PNG.
 Choose a new output directory for each run.
 
@@ -86,11 +131,18 @@ with ExitStack() as stack:
     def sample(name):
         # Keep packaged files alive until calibration and prediction finish.
         package = "ColorCorrectionPipeline.examples.data"
-        if hasattr(resources, "files"):
-            source = resources.as_file(resources.files(package).joinpath(name))
-        else:  # Python 3.8
-            source = resources.path(package, name)
-        return stack.enter_context(source)
+        try:
+            if hasattr(resources, "files"):
+                source = resources.as_file(resources.files(package).joinpath(name))
+            else:  # Python 3.8
+                source = resources.path(package, name)
+            path = stack.enter_context(source)
+            if Path(path).is_file():
+                return path
+        except (ModuleNotFoundError, FileNotFoundError):
+            pass
+        # Editable installs and source checkouts keep the samples in Images/.
+        return Path("Images") / name
 
     chart, white, scene = map(sample, ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
     pipeline = ColorCorrection()
@@ -117,7 +169,7 @@ with ExitStack() as stack:
 With automatic persistence, set the format explicitly to `bundle` and
 use the fit name to locate the file. Here it is `sample-results/chart_models.ccpb`.
 The result's `artifacts` lists the paths written by that fit. With saving enabled,
-omitting the format selects the historical pickle format. With saving disabled,
+omitting the format selects the trusted-file pickle format. With saving disabled,
 call `pipeline.save_bundle(path)` after a successful fit to choose the filename,
 as the quickstart does.
 
@@ -140,7 +192,7 @@ as the white-image argument.
 
 | Category | Purpose in the example |
 | --- | --- |
-| `steps.ffc` | Enables white-field correction and selects a linear illumination surface. |
+| `steps.ffc` | Enables white-field correction and selects a linear illumination surface. Optional `apply={"domain": "linear"}` applies the gain to linear-light RGB instead of Lab L* (default `"lightness"`). |
 | `steps.gc` | Fits the neutral-lightness curve; requires at least three usable neutral patches. |
 | `steps.wb` | Fits neutral white balance with 0.95 headroom. |
 | `steps.cc` | Fits RPCC2. `fit`, `apply`/LUT options and CC-only `validation` have separate subgroups; validation is disabled for this smoke test. |
@@ -154,13 +206,14 @@ as the white-image argument.
 
 CC supports `3x3`/`ccm`, `rpcc2`, `rpcc3`, `linear`, `pls` and `nn`.
 Linear, PLS and NN fits support polynomial, root or hybrid features through
-degree four. See the [grouped configuration reference](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/grouped-configuration.md)
+degree four. See the [grouped configuration reference](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/grouped-configuration.md)
 for solver-specific controls, defaults, constraints and JSON.
 
 Grouped options are immutable snapshots over the existing flat configuration.
 Old constructor arguments and kwargs remain supported; contradictory aliases
-fail explicitly. Unversioned flat dictionaries retain their historical API-1
-interpretation. A loaded calibration owns its recorded numerical recipe.
+fail explicitly. `Config.from_dict` needs a recorded `api_version` (or
+`source_version=2`): unversioned dictionaries were API-1 requests, which 3.0
+removed. A loaded calibration owns its recorded numerical recipe.
 
 ### Reproducible random chart sampling
 
@@ -172,23 +225,48 @@ For a UI-native fit, omit both settings for the default 9 × 9 grid (81 points p
 
 ## Further usage
 
-- [Fully customizable example](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/ColorCorrectionPipeline/examples/customizable.py):
+- [Fully customizable example](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/ColorCorrectionPipeline/examples/customizable.py):
   editable grouped JSON, custom references, multiple scenes, TIFF/PNG exports and replay checks.
-- [Migration and model selection](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/migration-2.md): retired defaults, historical training and feature bases.
-- [Images and exports](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/image-io-policies.md): encoding, range, precision consent and strict readback.
-- [Calibration bundles](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/calibration-bundles.md): portable validated inference parameters.
-- [Numerical policies](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
-- [Batch processing](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/batch-and-reporting.md) and [prepared execution](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/acceleration.md).
-- [Architecture](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/architecture.md) and [distribution qualification](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/docs/distribution-qualification.md): source ownership and installed-package checks.
+- [Migrating to 3.0](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-3.md): removed fitters and APIs, their replacements, and loading saved models.
+- [Migration and model selection](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-2.md): 2.x defaults and feature bases.
+- [Images and exports](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/image-io-policies.md): encoding, range, precision consent and strict readback.
+- [Calibration bundles](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/calibration-bundles.md): portable validated inference parameters.
+- [Numerical policies](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
+- [Batch processing](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/batch-and-reporting.md) and [prepared execution](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/acceleration.md).
+- [Logging and warnings](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/logging.md): progress and diagnostic messages use `logging`; enable them with `logging.basicConfig(level=logging.INFO)`.
+- [Architecture](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/architecture.md) and [distribution qualification](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/distribution-qualification.md): source ownership and installed-package checks.
 
 A desktop interface is available in
 [ColorCorrectionPackage_UI](https://github.com/collinswakholi/ColorCorrectionPackage_UI).
 This package builds on [ML_ColorCorrection_tool](https://github.com/collinswakholi/ML_ColorCorrection_tool).
 
+## Development
+
+```shell
+pip install -e ".[dev,performance]"
+pytest tests                       # unit, regression and golden-output tests
+python tests/golden/capture.py     # compare against the stored 2.2.0 baseline only
+black --check ColorCorrectionPipeline tests scripts
+ruff check ColorCorrectionPipeline tests scripts
+mypy ColorCorrectionPipeline       # untyped modules excluded in pyproject.toml [tool.mypy]
+```
+
+CI (`.github/workflows/lint-and-test.yml`) runs the same formatting, lint and type-check
+gates, the fast tests on Ubuntu and Windows, and the golden tests on Windows, where the
+baseline was recorded.
+
+To see the package's progress and diagnostic messages while developing, enable logging
+(`logging.basicConfig(level=logging.INFO)`, or `DEBUG` for chart-detection retries); see
+[Logging and warnings](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/logging.md).
+
+`tests/golden` stores metrics and thumbnails for eleven configurations captured from
+2.2.0. Regenerate them with `--write` only for an intentional, documented change. The
+`tests/` folder is not shipped in the sdist or wheel.
+
 ## License and citation
 
-Python source is [MIT licensed](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/LICENSE). Bundled detector models declare
-AGPL-3.0; their [notices and provenance](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v2.2.0/ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md)
+Python source is [MIT licensed](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/LICENSE). Bundled detector models declare
+AGPL-3.0; their [notices and provenance](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/ColorCorrectionPipeline/detection/models/UPSTREAM-NOTICE.md)
 are retained, including the recorded model-ancestry and training-data rights limitations.
 
 Wakholi, C., Hardigan, M. A., Lee, J., Lukas, S. B., Feldman, M. J., Altendorf,

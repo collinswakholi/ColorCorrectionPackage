@@ -1,5 +1,22 @@
 # Measured performance
 
+> **2.2.0 re-measurement (2026-11-23, review branch).** The figures below were taken on
+> 2026-10-29, before 2.0–2.2. A re-run of the same calls on 2.2.0 (Windows, Python 3.12,
+> 32 cores, CPU chart detection, warm `.pyc`/Numba caches) measured:
+>
+> | Operation | 2.2.0 |
+> | --- | --- |
+> | `from ColorCorrectionPipeline import ColorCorrection` | 3.6 s (colour-science pulls in matplotlib) |
+> | Calibration, new process / warm | 2.0–2.4 s / 1.4–1.7 s |
+> | `predict_image` on `Sample_1.JPG` (four stages) | 100–129 ms |
+> | 4K uint8 prediction, native byte runtime, final stage | 0.56–0.59 s |
+> | 4K prediction with `precision="high"` | 8.3–12.1 s (single-threaded float64); 1.6–1.7 s in 2.3.0, see below |
+> | `predict_batch`, 10 × 1152×768 | 0.95–0.98 s |
+>
+> Float input needs `numerics={"precision": "high"}`; the native byte runtime accepts
+> full-range uint8 sRGB only. The CHANGELOG 2.1.0 cold first-prediction range
+> (2.38–4.78 s) supersedes the 12.00 s NN100 figure below.
+
 Measured on Windows with an Intel Core i9-14900K, Python 3.12.10 and eight
 numerical worker threads on 2026-10-29. These are wall-clock measurements of
 actual package calls, with no simultaneous test/build workload. Disk cache and
@@ -7,12 +24,42 @@ thermal state can affect timings. Medians use seven repeated warm calls;
 initial compilation, preparation and model loading are reported separately.
 Existing on-disk JIT caches were available. Python imports are outside these timings.
 
+## High-precision prediction in blocks (2.3.0)
+
+`precision="high"` prediction now runs FFC/GC/WB/CC per pixel block instead of
+stage by stage over the whole frame. Pointwise colour stages use 32768-pixel
+sub-blocks; CC keeps its historical 65536-pixel (or `chunk_pixels`) chunks and
+one LUT/direct decision per image, so outputs are bit-identical to 2.2.0. Blocks
+run on up to eight threads through the package's bounded image workers (NumPy
+releases the GIL; no Numba kernel replaces the float64 equations). The sRGB
+transfer helpers use `np.where` instead of masked gather/scatter, which is also
+bit-identical. Only the selected stage outputs are allocated at full size.
+
+Measured 2026-11-23 on the same 32-core Windows machine: a fresh process loads a
+bundle, predicts once to warm caches, then times `predict_image(uint8 array,
+stages="final")` (median of 3 at 4K, 5 on the sample). The 4K calibration was
+fitted on 3840×2160 resized copies of the bundled photographs. Outputs were
+compared with `assert_array_equal` against 2.2.0-era code (commit 8ce76a9).
+
+| Input, precision | Before | After | tracemalloc peak, before → after | Peak RSS, before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 3840×2160, high | 7.89 s | 1.69 s | 1353 → 472 MB | 1902 → 907 MB |
+| 1152×768 `Sample_1.JPG`, high | 0.82 s | 0.18 s | 144 → 130 MB | 619 → 619 MB |
+| 3840×2160, native byte | 0.63 s | 0.69 s (unchanged path) | 403 → 403 MB | 854 → 854 MB |
+| 1152×768, native byte | 0.09 s | 0.08 s (unchanged path) | 43 → 43 MB | 619 → 619 MB |
+
+Threading saturates near four to eight workers; the remaining time is NumPy's
+float64 `pow`/`cbrt` work and allocator contention. Of a 4K native-byte call,
+about 0.2 s is the `ImageData` float64 snapshot and its two SHA-256 digests,
+which were left unchanged because those digests are part of the image contract.
+
 ## Bundled photographs
 
 A fresh calibration used the Classic24 chart in `Images/Image_1.JPG` and the
 white-field photograph `Images/white.JPG`, with all
 FFC/GC/WB/CC stages enabled, explicit color semantics, modern stage policies,
-reproducible degree-1 linear fitting and no regressor LUT. Frame 0 was selected
+reproducible degree-1 linear fitting (a 2.x recipe removed in 3.0) and no
+regressor LUT. Frame 0 was selected
 explicitly. Both photographs are 1152×768. Chart inference actually executed
 210 nodes on the WebGPU provider through D3D12; this is execution evidence,
 not merely an advertised GPU provider.
@@ -134,6 +181,3 @@ For memory-bound captures start with `iter_predict(..., max_workers=1,
 max_in_flight=1)`. A single runnable image can use the caller's bounded CPU
 workers for native pixel kernels; concurrent images and external executor
 threads do not multiply that budget. Strict export still reads back the PNG.
-On the reproducible fitting path, the built-in neutral GC curve processes
-large frames in row blocks to bound temporary Lab arrays. Custom curves keep
-their existing whole-input semantics.

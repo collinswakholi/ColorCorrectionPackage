@@ -3,12 +3,14 @@
 Groups are owned immutable snapshots, never a second mutable configuration.
 The leaf map below owns both normalization and the inverse JSON presentation.
 """
+
+import numbers
+import os
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-import numbers
-import os
 from types import MappingProxyType
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -32,7 +34,16 @@ def _unset():
 
 
 UNSET = _Unset()
-GROUP_NAMES = ("steps", "input", "chart", "reference", "color", "numerics", "observations", "persistence")
+GROUP_NAMES = (
+    "steps",
+    "input",
+    "chart",
+    "reference",
+    "color",
+    "numerics",
+    "observations",
+    "persistence",
+)
 GROUPED_LAYOUT = "grouped-v1"
 
 
@@ -68,14 +79,18 @@ def _thaw(value, *, json_ready=False):
 
 class _FrozenMap(Mapping):
     """A deep-owned mapping that also survives Config deepcopy and pickle."""
+
     __slots__ = ("_data",)
+    _data: "MappingProxyType[str, Any]"
 
     def __init__(self, value=()):
         if not isinstance(value, Mapping):
             value = dict(value)
         if any(not isinstance(key, str) for key in value):
             raise TypeError("grouped option keys must be strings")
-        object.__setattr__(self, "_data", MappingProxyType({key: _freeze(item) for key, item in value.items()}))
+        object.__setattr__(
+            self, "_data", MappingProxyType({key: _freeze(item) for key, item in value.items()})
+        )
 
     def __getitem__(self, key):
         return self._data[key]
@@ -100,10 +115,12 @@ class _FrozenMap(Mapping):
 
 
 class _Step:
+    enabled: Any  # declared by each dataclass step
+
     def __post_init__(self):
         if self.enabled is not UNSET and type(self.enabled) is not bool:
             raise TypeError(type(self).__name__ + ".enabled must be boolean")
-        for item in fields(self):
+        for item in fields(self):  # type: ignore[arg-type]
             if item.name == "enabled":
                 continue
             value = getattr(self, item.name)
@@ -112,24 +129,30 @@ class _Step:
             object.__setattr__(self, item.name, _FrozenMap(value))
 
     def to_dict(self):
-        return {item.name: _thaw(getattr(self, item.name)) for item in fields(self)
-                if getattr(self, item.name) is not UNSET and
-                (item.name == "enabled" or bool(getattr(self, item.name)))}
+        return {
+            item.name: _thaw(getattr(self, item.name))
+            for item in fields(self)  # type: ignore[arg-type]
+            if getattr(self, item.name) is not UNSET
+            and (item.name == "enabled" or bool(getattr(self, item.name)))
+        }
 
 
 @dataclass(frozen=True)
 class FFCOptions(_Step):
-    """FFC enable switch, surface fit, white plane, quality and reporting."""
+    """FFC enable switch, surface fit, white plane, quality, apply domain and reporting."""
+
     enabled: object = UNSET
     fit: Mapping = field(default_factory=dict)
     white_plane: Mapping = field(default_factory=dict)
     quality: Mapping = field(default_factory=dict)
     reporting: Mapping = field(default_factory=dict)
+    apply: Mapping = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class GCOptions(_Step):
     """Monotonic neutral-lightness fitting guards and reporting."""
+
     enabled: object = UNSET
     quality: Mapping = field(default_factory=dict)
     reporting: Mapping = field(default_factory=dict)
@@ -138,6 +161,7 @@ class GCOptions(_Step):
 @dataclass(frozen=True)
 class WBOptions(_Step):
     """Neutral WB headroom, eligibility/gain guards and reporting."""
+
     enabled: object = UNSET
     fit: Mapping = field(default_factory=dict)
     quality: Mapping = field(default_factory=dict)
@@ -147,6 +171,7 @@ class WBOptions(_Step):
 @dataclass(frozen=True)
 class CCOptions(_Step):
     """CC solver/features, conditional NN/PLS controls, LUT and validation."""
+
     enabled: object = UNSET
     fit: Mapping = field(default_factory=dict)
     apply: Mapping = field(default_factory=dict)
@@ -160,6 +185,7 @@ _STEP_TYPES = {"ffc": FFCOptions, "gc": GCOptions, "wb": WBOptions, "cc": CCOpti
 @dataclass(frozen=True)
 class Steps:
     """Sparse immutable requests, or a fresh snapshot of Config's flat state."""
+
     ffc: FFCOptions = field(default_factory=FFCOptions)
     gc: GCOptions = field(default_factory=GCOptions)
     wb: WBOptions = field(default_factory=WBOptions)
@@ -183,13 +209,15 @@ class Steps:
 
 # Paths are the sole translation registry. Reverse presentation consumes the
 # same map, so a renamed control cannot silently diverge from serialization.
-_LEAVES = {}
+_LEAVES: Dict[Tuple[str, ...], Tuple[str, ...]] = {}
 
 
 def _map(group, names, target, aliases=None):
     aliases = aliases or {}
     for name in names.split():
-        _LEAVES[tuple(group.split(".")) + (name,)] = (target, aliases.get(name, name)) if target else (aliases[name],)
+        _LEAVES[tuple(group.split(".")) + (name,)] = (
+            (target, aliases.get(name, name)) if target else (aliases[name],)
+        )
 
 
 for _name in _STEP_TYPES:
@@ -197,20 +225,56 @@ for _name in _STEP_TYPES:
     _map("steps." + _name + ".reporting", "show get_deltaE", _name.upper() + "_kwargs")
 _map("steps.ffc.fit", "method degree bins smooth_window", "FFC_kwargs", {"method": "fit_method"})
 _map("steps.ffc.white_plane", "model_path manual_crop crop_rect", "FFC_kwargs")
-_map("steps.ffc.quality", "safe_mode missing_plane min_signal max_saturated_fraction min_crop_fraction min_gain max_gain", "FFC_kwargs")
-_map("steps.gc.quality", "min_neutrals min_span duplicate_tolerance target_tolerance", "stage_policy",
-     {key: "gc_" + key for key in ("min_neutrals", "min_span", "duplicate_tolerance", "target_tolerance")})
+_map("steps.ffc.apply", "domain", "FFC_kwargs")
+_map(
+    "steps.ffc.quality",
+    "safe_mode missing_plane min_signal max_saturated_fraction min_crop_fraction min_gain max_gain",
+    "FFC_kwargs",
+)
+_map(
+    "steps.gc.quality",
+    "min_neutrals min_span duplicate_tolerance target_tolerance",
+    "stage_policy",
+    {
+        key: "gc_" + key
+        for key in ("min_neutrals", "min_span", "duplicate_tolerance", "target_tolerance")
+    },
+)
 _map("steps.wb.fit", "headroom", "stage_policy", {"headroom": "wb_headroom"})
-_map("steps.wb.quality", "min_signal max_gain", "stage_policy", {"min_signal": "wb_min_signal", "max_gain": "wb_max_gain"})
+_map(
+    "steps.wb.quality",
+    "min_signal max_gain",
+    "stage_policy",
+    {"min_signal": "wb_min_signal", "max_gain": "wb_max_gain"},
+)
 _map("steps.cc.fit", "model basis degree include_combinations device random_state", "CC_kwargs")
-_map("steps.cc.fit.nn", "hidden_layers max_iterations patience learning_rate tol batch_size optim_type dropout_rate use_batch_norm verbose", "CC_kwargs")
+_map(
+    "steps.cc.fit.nn",
+    "hidden_layers max_iterations patience learning_rate tol batch_size optim_type dropout_rate use_batch_norm verbose",
+    "CC_kwargs",
+)
 _map("steps.cc.fit.pls", "components tol max_iterations", "CC_kwargs", {"components": "ncomp"})
-_map("steps.cc.apply", "use_lut lazy_lut grid_size min_pixels", "CC_kwargs", {"grid_size": "lut_grid_size", "min_pixels": "lut_min_pixels"})
+_map(
+    "steps.cc.apply",
+    "use_lut lazy_lut grid_size min_pixels",
+    "CC_kwargs",
+    {"grid_size": "lut_grid_size", "min_pixels": "lut_min_pixels"},
+)
 _map("steps.cc.validation", "enabled n_splits random_state", "validation_options")
 _map("numerics", "precision", None, {"precision": "precision"})
 _map("observations", "saturation max_clipped_fraction", "stage_policy")
-_map("persistence", "enabled directory format", None, {"enabled": "save", "directory": "save_path", "format": "model_format"})
-_DIRECT = {"input": "image_options", "chart": "chart_detection", "reference": "reference_profile", "color": "color_semantics"}
+_map(
+    "persistence",
+    "enabled directory format",
+    None,
+    {"enabled": "save", "directory": "save_path", "format": "model_format"},
+)
+_DIRECT = {
+    "input": "image_options",
+    "chart": "chart_detection",
+    "reference": "reference_profile",
+    "color": "color_semantics",
+}
 
 
 def _mapping(value, path):
@@ -235,7 +299,9 @@ def _equal(first, second):
     if hasattr(second, "to_dict"):
         second = second.to_dict()
     if isinstance(first, Mapping) and isinstance(second, Mapping):
-        return first.keys() == second.keys() and all(_equal(first[key], second[key]) for key in first)
+        return first.keys() == second.keys() and all(
+            _equal(first[key], second[key]) for key in first
+        )
     if isinstance(first, (tuple, list)) and isinstance(second, (tuple, list)):
         return len(first) == len(second) and all(_equal(a, b) for a, b in zip(first, second))
     # Equal numeric values are not interchangeable validation requests: True
@@ -278,15 +344,18 @@ def _walk(value, prefix):
         if not isinstance(key, str):
             raise TypeError("grouped option keys must be strings")
         path = prefix + (key,)
-        if not any(leaf[:len(path)] == path for leaf in _LEAVES):
+        if not any(leaf[: len(path)] == path for leaf in _LEAVES):
             raise ValueError("unknown grouped option: " + ".".join(path))
         yield from _walk(item, path)
 
 
 def resolve_grouped(config_type, arguments, groups, required_keys=()):
     """Resolve an additive request through the unchanged numerical constructor."""
-    request = {key: deepcopy(value) for key, value in arguments.items()
-               if value is not UNSET and (value is not None or key in required_keys)}
+    request = {
+        key: deepcopy(value)
+        for key, value in arguments.items()
+        if value is not UNSET and (value is not None or key in required_keys)
+    }
     policies = {}
     steps = groups.get("steps")
     if steps is not None:
@@ -315,19 +384,28 @@ def resolve_grouped(config_type, arguments, groups, required_keys=()):
                     policies.setdefault("stage_policy", {})[target[1]] = item
                     # Check old partial policy fields, without materializing defaults.
                     if arguments.get("stage_policy") is not None:
-                        check = {"stage_policy": _mapping(arguments["stage_policy"], "stage_policy")}
+                        check = {
+                            "stage_policy": _mapping(arguments["stage_policy"], "stage_policy")
+                        }
                         _put(check, target, item, ".".join(path))
                 else:
                     _put(request, target, item, ".".join(path))
     baseline = config_type(**request)
     if baseline.api_version != 2 or baseline.fitting_policy["version"] != "ui-compatible-v1":
-        raise ValueError("grouped configuration requires modern API 2; retain flat forms for historical training")
+        raise ValueError(
+            "grouped configuration requires modern API 2; retain flat forms for historical training"
+        )
     for root, patch in policies.items():
         original = arguments.get(root)
         if original is not None:
             check = {root: _mapping(original, root)}
             for key, value in patch.items():
-                _put(check, (root, key), value, ("color" if root == "color_semantics" else "steps/observations") + "." + key)
+                _put(
+                    check,
+                    (root, key),
+                    value,
+                    ("color" if root == "color_semantics" else "steps/observations") + "." + key,
+                )
         request[root] = {**getattr(baseline, root), **patch}
     result = config_type(**request)
     cc = (groups.get("steps") or {}).get("cc", {}).get("fit", {})
@@ -351,14 +429,16 @@ def resolve_grouped(config_type, arguments, groups, required_keys=()):
 def grouped_dict(config):
     """Lossless categorized presentation of the existing API-2 flat state."""
     if config.api_version != 2 or config.fitting_policy["version"] != "ui-compatible-v1":
-        raise ValueError("grouped presentation requires modern API 2; use to_dict() for historical configurations")
+        raise ValueError(
+            "grouped presentation requires modern API 2; use to_dict() for historical configurations"
+        )
     remaining = config.to_dict()
-    result = {"layout": GROUPED_LAYOUT, "api_version": 2}
+    result: Dict[str, Any] = {"layout": GROUPED_LAYOUT, "api_version": 2}
     remaining.pop("api_version", None)
     for name, target in _DIRECT.items():
         result[name] = remaining.pop(target)
     kind = config.CC_kwargs.get("model", "rpcc2")
-    for path, target in _LEAVES.items():
+    for path, target in _LEAVES.items():  # type: ignore[assignment]
         if path[:4] == ("steps", "cc", "fit", "nn") and kind != "nn":
             continue
         if path[:4] == ("steps", "cc", "fit", "pls") and kind != "pls":
@@ -374,7 +454,9 @@ def grouped_dict(config):
         branch[path[-1]] = value
     # Fixed policy identities and any supported flat compatibility controls
     # remain explicit; no old key is discarded by the presentation adapter.
-    result.update({key: value for key, value in remaining.items() if value is not None and value != {}})
+    result.update(
+        {key: value for key, value in remaining.items() if value is not None and value != {}}
+    )
     return _thaw(_FrozenMap(result), json_ready=True)
 
 

@@ -1,0 +1,27 @@
+"""Numeric helper contracts: uint8 rounding and float scale handling."""
+
+import numpy as np
+
+from ColorCorrectionPipeline.core.utils import to_float64, to_uint8
+
+# --- to_uint8 / to_float64 (core) -------------------------------------------------
+
+
+def test_core_to_uint8_rounds_to_nearest_code():
+    codes = np.arange(256, dtype=np.float64)
+    assert np.array_equal(to_uint8((codes + 0.4) / 255.0), codes.astype(np.uint8))
+    assert np.array_equal(to_uint8((codes[:-1] + 0.6) / 255.0), (codes[:-1] + 1).astype(np.uint8))
+
+
+def test_core_to_uint8_clips_and_round_trips():
+    assert to_uint8(np.array([-0.2, 1.3])).tolist() == [0, 255]
+    codes = np.arange(256, dtype=np.uint8)
+    assert np.array_equal(to_uint8(to_float64(codes)), codes)
+
+
+def test_core_to_float64_explicit_scale_overrides_guess():
+    dark = np.array([0.5, 0.9, 1.5])  # float data on a 0-1 scale with overshoot
+    np.testing.assert_allclose(to_float64(dark, scale=1.0), dark)
+    np.testing.assert_allclose(to_float64(np.array([127.5]), scale=255.0), [0.5])
+    # Default behaviour (scale guessed from content) is unchanged.
+    np.testing.assert_allclose(to_float64(np.array([0.25, 1.0])), [0.25, 1.0])

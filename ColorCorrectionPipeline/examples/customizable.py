@@ -45,19 +45,20 @@ ReferenceProfile.from_values. Supply values, color_space, white, scale,
 profile_id, revision, names and neutral_ids in the declared chart order.
 Retained physical reference coordinates are enabled by default here.
 """
+
 import argparse
+import json
+import time
 from contextlib import ExitStack
 from copy import deepcopy
-import json
 from pathlib import Path
-import time
 
 import numpy as np
 
 from ColorCorrectionPipeline import ColorCorrection, Config, ReferenceProfile
 from ColorCorrectionPipeline.io import write_image_data
-from ._common import json_value, new_output, sample_paths
 
+from ._common import json_value, new_output, sample_paths
 
 # This is the only source of example defaults. Config validates calibration options.
 SETTINGS = {
@@ -78,8 +79,12 @@ SETTINGS = {
             "gc": {
                 "enabled": True,
                 # GC fits its neutral curve automatically; these are measured-data guards.
-                "quality": {"min_neutrals": 3, "min_span": 20.0,
-                            "duplicate_tolerance": 1e-6, "target_tolerance": 1.0},
+                "quality": {
+                    "min_neutrals": 3,
+                    "min_span": 20.0,
+                    "duplicate_tolerance": 1e-6,
+                    "target_tolerance": 1.0,
+                },
             },
             "wb": {
                 "enabled": True,
@@ -163,7 +168,9 @@ def input_paths(settings, base, stack, config):
     white = existing(settings["white"]) if needs_white and settings["white"] else None
     scenes = [existing(scene) for scene in settings["scenes"]]
     if needs_white and white is None:
-        raise ValueError("Provide white or disable calibration.steps.ffc.enabled (earlier alias: do_ffc).")
+        raise ValueError(
+            "Provide white or disable calibration.steps.ffc.enabled (earlier alias: do_ffc)."
+        )
     return chart, white, scenes
 
 
@@ -178,7 +185,12 @@ def export_options(entries, encoding):
             raise ValueError("Each export must be an object with a filename.")
         options = dict(entry)
         name = options.pop("filename")
-        if not isinstance(name, str) or not name or name in (".", "..") or any(c in name for c in "/\\:"):
+        if (
+            not isinstance(name, str)
+            or not name
+            or name in (".", "..")
+            or any(c in name for c in "/\\:")
+        ):
             raise ValueError("Each export filename must be a basename without path separators.")
         if name.casefold() in filenames:
             raise ValueError("Export filenames must be distinct.")
@@ -191,11 +203,14 @@ def export_options(entries, encoding):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--settings", type=Path, help="JSON overrides for SETTINGS.")
-    source.add_argument("--write-settings", type=Path, help="Write a new starter JSON file and exit.")
+    source.add_argument(
+        "--write-settings", type=Path, help="Write a new starter JSON file and exit."
+    )
     parser.add_argument("--output", type=Path, help="New output directory.")
     args = parser.parse_args()
 
@@ -210,7 +225,10 @@ def main():
     base = args.settings.resolve().parent if args.settings else Path.cwd()
     parameters = deepcopy(settings["calibration"])
     if settings["reference"] is not None:
-        if parameters.get("reference_profile") is not None or parameters.get("reference") is not None:
+        if (
+            parameters.get("reference_profile") is not None
+            or parameters.get("reference") is not None
+        ):
             raise ValueError("Choose reference or calibration.reference/profile.")
         reference = dict(settings["reference"])
         reference.setdefault("retain_source", True)
@@ -248,10 +266,20 @@ def main():
             for filename, options in exports:
                 started = time.perf_counter()
                 record = write_image_data(folder / filename, corrected, **options)
-                records.append({"export": record.to_dict(),
-                                "verified_export_seconds": time.perf_counter() - started})
-            results.append({"input": str(scene), "apply_seconds": apply_seconds,
-                            "bundle_replay_exact": True, "outputs": records})
+                records.append(
+                    {
+                        "export": record.to_dict(),
+                        "verified_export_seconds": time.perf_counter() - started,
+                    }
+                )
+            results.append(
+                {
+                    "input": str(scene),
+                    "apply_seconds": apply_seconds,
+                    "bundle_replay_exact": True,
+                    "outputs": records,
+                }
+            )
 
         result = {
             "bundle": str(bundle),
@@ -261,12 +289,14 @@ def main():
             "numerical_report": pipeline.numerical_report,
             "training_chart_metrics": fit.metrics,
             "metric_scope": "Training-chart scores; when enabled, CC-only held-out colors "
-                            "conditional on fitted upstream stages. Scene pixels have no "
-                            "measured reference.",
+            "conditional on fitted upstream stages. Scene pixels have no "
+            "measured reference.",
             "scenes": results,
         }
         (output / "results.json").write_text(
-            json.dumps(result, indent=2, default=json_value, allow_nan=False) + "\n", encoding="utf8")
+            json.dumps(result, indent=2, default=json_value, allow_nan=False) + "\n",
+            encoding="utf8",
+        )
         print("Calibration:", bundle.resolve())
         print("Effective fitting policy:", pipeline.models.metadata["fitting_policy"])
         print("Calibration seconds:", round(calibration_seconds, 3))

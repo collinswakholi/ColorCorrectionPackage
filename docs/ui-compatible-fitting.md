@@ -1,25 +1,23 @@
 # UI-compatible fitting
 
-In 2.0, new calibrations default to UI-native RPCC2. The
-[migration guide](migration-2.md) documents model/basis selection, high precision
-and retained historical training. This page describes the explicit v1 policies
-for reproducing a recorded workflow.
+New calibrations default to UI-native RPCC2. The
+[migration guide](migration-2.md) documents model/basis selection and high
+precision. This page describes the fitting policy behind that default.
 
-`fitting_policy="ui-compatible-v1"` selects numerical implementations
-of the UI engine's CCM, root-polynomial, polynomial, PLS and residual NN fits.
-Explicit `legacy-v1` and `reproducible-v1` fits retain their feature domains,
-and previously saved calibrations retain their recorded interpretation.
-Select it through the pipeline `Config`. The legacy `fit_model` adapter rejects
-this policy because it has no reference or observation contract to interpret it.
+`Config()` selects `ui-compatible-v1`, the numerical implementations of the UI
+engine's CCM, root-polynomial, polynomial, PLS and residual NN fits, with the
+`native-v1` or `precision-f64-v1` runtime (`precision="auto"` chooses one at
+calibration). The staged-v1 runtime (the bare `"ui-compatible-v1"` string),
+`legacy-v1` and `reproducible-v1` can no longer be fitted (removed in 3.0; see
+[Migrating to 3.0](migration-3.md)). Previously saved calibrations of every
+policy still load and apply with their recorded interpretation.
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, Config
 
 config = Config(
-    fitting_policy="ui-compatible-v1",
+    model="rpcc2",
     do_ffc=False,
-    check_saturation=False,
-    CC_kwargs={"model": "rpcc2"},
     validation_options={"enabled": True, "n_splits": 4},
     save=True,
     model_format="bundle",
@@ -32,12 +30,11 @@ if failed:
 images = pipeline.predict_image("sample.png", stages="final")
 ```
 
-When omitted, this policy selects explicit sRGB/D65 semantics with linear-RGB
+This policy selects explicit sRGB/D65 semantics with linear-RGB
 fitting, modern neutral stages, saturation reporting, UI Classic24 reference
 values, and UI sampling. Supplied conflicting policies fail validation. Input
 normalization, output encodings and reference contracts still use the existing
-explicit APIs. Fitting uses Bradford adaptation; another adaptation must use a
-different fitting policy.
+explicit APIs. Fitting uses Bradford adaptation; other adaptations are rejected.
 
 ## Model choices
 
@@ -46,16 +43,17 @@ different fitting policy.
 | `{"model": "ccm"}` | Linear-light 3-channel matrix, no intercept |
 | `{"model": "rpcc2"}` | Six-term degree-2 root-polynomial matrix |
 | `{"model": "rpcc3"}` | Thirteen-term degree-3 root-polynomial matrix |
-| `{"mtd": "linear", "degree": 2}` | Polynomial ridge with separate intercept |
-| `{"mtd": "pls", "degree": 2, "ncomp": 6}` | Population-standardized NIPALS PLS |
-| `{"mtd": "nn", "degree": 2, "hidden_layers": [100]}` | Float64 residual ReLU network |
+| `{"model": "linear", "degree": 2}` | Polynomial ridge with separate intercept |
+| `{"model": "pls", "degree": 2, "ncomp": 6}` | Population-standardized NIPALS PLS |
+| `{"model": "nn", "degree": 2, "hidden_layers": [100]}` | Float64 residual ReLU network |
 
 The `model` choice determines CCM/root-polynomial features. `degree` controls
 the polynomial basis for `linear`, `pls` and `nn`, with the UI's 96-feature
 ceiling. `include_combinations=False` is supported for polynomial linear fits.
-Existing `cc_method="conv"`, `method="Finlayson 2015"`, degree 1/2/3 and
-`root_polynomial_expansion=True` map to CCM/RPCC2/RPCC3 in this policy. The
-`custom` and `mlp` method aliases select the same UI residual NN.
+The historical `cc_method` (`"conv"`/`"ours"`), `method="Finlayson 2015"`,
+`root_polynomial_expansion` and `mtd` (`custom`/`mlp` for `nn`) keys are still
+accepted together with an explicit `model` and must agree with it. Without a
+`model` they raise; in 2.x they selected the removed `legacy-v1` fitter.
 
 CCM, RPCC and polynomial linear fits use ridge 1e-5. PLS uses population
 standardization, a fixed 500-iteration inner cap, default tolerance 1e-6, and
@@ -107,17 +105,42 @@ FFC_kwargs = {
 
 The crop uses `[x1,y1,x2,y2]`. Quality checks still require adequate signal,
 coverage, positive bounded gains and matching image dimensions. FFC PLS/NN and
-other unqualified FFC controls fail clearly in this policy; they remain available
-through the existing policies. This is a Lab-lightness correction, not a
+other unqualified FFC controls fail clearly. This is a Lab-lightness correction, not a
 radiometric calibration.
+
+### Opt-in linear-light FFC domain
+
+By default the gain scales Lab L\* only and leaves a\*/b\* unchanged, so a
+vignetted chart keeps some residual chroma error. `FFC_kwargs={"domain":
+"linear"}` (grouped: `steps.ffc.apply.domain`) instead fits the white-field
+ratios from relative luminance Y and applies the gain to decoded linear-light
+RGB: decode sRGB, multiply all three channels by the same spatial gain, then
+re-encode with clipping. When GC follows FFC in the native runtimes, GC maps
+L\* of that linear-light result. The UI soft gain knee (1.3 → 1.8) is applied
+to the gain's cube root, so a luminance gain is limited like the equivalent L\*
+gain; `min_signal` keeps its L\* meaning; `min_gain`/`max_gain` bound the
+luminance gain itself (a 40 % falloff needs about 1.67).
+
+The default `"lightness"` is unchanged and bit-identical, and calibrations,
+bundles and pickles without a recorded domain replay as `"lightness"`. A linear
+fit records `metadata["ffc_domain"] = "linear"` and saves its gain as the bundle
+stage kind `spatial-linear-gain-v1`, which earlier package versions reject
+rather than misapply. The domain is available at every precision. The fused
+byte-runtime kernel implements only the L\* gain, so linear-domain byte
+calibrations use the reference NumPy equations. On the sample chart with a
+simulated 40 % radial (quadratic) linear-light vignette, the chart's FFC output
+differs from the unvignetted fit by a mean ΔE00 of 0.43 (lightness) versus 0.32
+(linear), or 0.16 versus 0.04 after removing the single global exposure factor
+from white-plane peak normalization (`tests/test_ffc_domain.py`).
 
 ## Matching the native UI image pipeline
 
 For new calibrations that must follow the native UI's normal image pipeline,
-select `fitting_policy="ui-native-v1"`. This is an explicit runtime variant of
-the UI-compatible fitters, recorded in the calibration and checked on reload.
-The existing `"ui-compatible-v1"` selection keeps its staged image equations;
-neither default selection nor an existing calibration is silently upgraded.
+select `fitting_policy="ui-native-v1"` (the `native-v1` runtime, also chosen by
+`precision="native-byte"` or by `"auto"` for uint8 inputs). The runtime is
+recorded in the calibration and checked on reload. Saved staged-v1 calibrations
+keep their staged image equations when applied; an existing calibration is never
+silently upgraded.
 
 ```python
 config = Config(
@@ -135,8 +158,8 @@ FFC and GC are enabled together, GC training samples the original capture
 before applying the spatial gain to each sample. Rendering applies FFC and GC
 in one Lab conversion, matching UI `fast_mode=False` without an FFC preview.
 Requesting an FFC output also returns that standalone stage; the final GC/WB/CC
-output retains the recorded fusion rule. This differs from the older staged
-policy's separate FFC and GC image boundaries.
+output retains the recorded fusion rule. This differs from the separate FFC and
+GC image boundaries of saved staged-v1 calibrations.
 
 For a custom reference supplied as physical XYZ or Lab values, construct it with
 `ReferenceProfile.from_values(..., retain_source=True)` to retain its original
@@ -202,11 +225,11 @@ equations; training changes do not reinterpret their stored parameters. Each
 saved model retains deterministic prediction and exact bundle reload semantics.
 
 With the `performance` extra, ordinary unchunked `predict_image` calls can run
-supported UI stages in one CPU pass, with the recorded CC LUT. The staged
-runtime retains each float32 boundary; the native runtime retains its recorded
+supported UI stages in one CPU pass, with the recorded CC LUT. A saved staged-v1
+calibration retains each float32 boundary; the native runtime retains its recorded
 FFC/GC fusion rule. This adds no combined LUT approximation. Guarded optional
 execution and kernel failures use the corresponding reference implementation.
-The staged runtime also uses reference execution for custom hooks, direct CC
+Staged-v1 calibrations also use reference execution for custom hooks, direct CC
 and batch calls requesting stage timing context. Native hook and prepared-mode
 limits are described above. Initial JIT compilation is separate from warm
 execution; see [measured performance](performance.md).

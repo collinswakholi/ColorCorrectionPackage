@@ -2,11 +2,8 @@
 Image writing utilities
 =======================
 
-This module provides utilities for writing images with proper color space
-handling and format conversion.
-
 Functions:
-    - write_image: Write image to file
+    - write_image_data: strict, verified, atomically published image export
 """
 
 import os
@@ -16,101 +13,23 @@ import struct
 import tempfile
 import zlib
 import io
+import logging
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import cv2
 import numpy as np
 
-__all__ = ["write_image", "write_image_data", "ExportRecord"]
+__all__ = ["write_image_data", "ExportRecord"]
 
-
-def write_image(
-    path: Union[str, Path],
-    image: np.ndarray,
-    color_space: str = "rgb",
-    quality: int = 95,
-    create_dirs: bool = True,
-) -> bool:
-    """
-    Write image to file with proper color space handling.
-    
-    Args:
-        path: Output file path
-        image: Image array (H, W, C) or (H, W)
-        color_space: Input color space ('rgb', 'bgr', 'gray')
-        quality: JPEG quality (1-100) or PNG compression (0-9)
-        create_dirs: Whether to create parent directories
-        
-    Returns:
-        bool: True if successful, False otherwise
-        
-    Example:
-        >>> img_rgb = np.random.rand(480, 640, 3).astype(np.float64)
-        >>> success = write_image("output.jpg", img_rgb, color_space="rgb", quality=95)
-        >>> print(f"Write {'succeeded' if success else 'failed'}")
-    """
-    path = Path(path)
-    
-    # Create parent directories if needed
-    if create_dirs:
-        path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Convert to uint8 if needed
-    if image.dtype in (np.float32, np.float64):
-        # Assume 0-1 range for float
-        img_out = (np.clip(image, 0, 1) * 255).astype(np.uint8)
-    elif image.dtype == np.uint16:
-        # Scale 0-65535 to 0-255
-        img_out = (image // 257).astype(np.uint8)
-    else:
-        img_out = image.astype(np.uint8)
-    
-    # Handle color space conversion (OpenCV writes BGR)
-    if len(img_out.shape) == 2:
-        # Grayscale - no conversion needed
-        pass
-    else:
-        if color_space.lower() == "rgb":
-            img_out = cv2.cvtColor(img_out, cv2.COLOR_RGB2BGR)
-        elif color_space.lower() == "bgr":
-            pass  # Already BGR
-        elif color_space.lower() == "gray":
-            if len(img_out.shape) == 3:
-                img_out = cv2.cvtColor(img_out, cv2.COLOR_RGB2GRAY)
-        else:
-            print(f"Warning: Unknown color_space '{color_space}', assuming BGR")
-    
-    # Set encoding parameters
-    ext = path.suffix.lower()
-    if ext in (".jpg", ".jpeg"):
-        params = [cv2.IMWRITE_JPEG_QUALITY, quality]
-    elif ext == ".png":
-        # PNG compression level (0-9)
-        compression = min(9, max(0, (100 - quality) // 10))
-        params = [cv2.IMWRITE_PNG_COMPRESSION, compression]
-    elif ext == ".webp":
-        params = [cv2.IMWRITE_WEBP_QUALITY, quality]
-    else:
-        params = []
-    
-    # Write image
-    try:
-        success = cv2.imwrite(str(path), img_out, params)
-        if success:
-            print(f"Info: Image written to {path}")
-        else:
-            print(f"Error: Failed to write image to {path}")
-        return success
-    except Exception as e:
-        print(f"Error: Exception writing image to {path}: {e}")
-        return False
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class ExportRecord:
     """Facts about an atomically published image, without retained image arrays."""
+
     path: str
     format: str
     dtype: str
@@ -141,7 +60,7 @@ class ExportRecord:
 
 
 def _png_chunk(kind, payload):
-    crc = zlib.crc32(payload, zlib.crc32(kind)) & 0xffffffff
+    crc = zlib.crc32(payload, zlib.crc32(kind)) & 0xFFFFFFFF
     return b"".join((struct.pack(">I", len(payload)), kind, payload, struct.pack(">I", crc)))
 
 
@@ -154,10 +73,14 @@ def _png_metadata(payload, encoding):
     if payload[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError("encoder did not produce PNG")
     ihdr_end = 8 + 12 + struct.unpack(">I", payload[8:12])[0]
-    description = json.dumps({"ColorCorrectionPipeline": {"schema": 1, "encoding": encoding}}, sort_keys=True).encode("ascii")
-    extra = (_png_chunk(b"sRGB", b"\x00") if encoding == "srgb" else b"")
+    description = json.dumps(
+        {"ColorCorrectionPipeline": {"schema": 1, "encoding": encoding}}, sort_keys=True
+    ).encode("ascii")
+    extra = _png_chunk(b"sRGB", b"\x00") if encoding == "srgb" else b""
     extra += _png_chunk(b"gAMA", struct.pack(">I", 45455 if encoding == "srgb" else 100000))
-    extra += _png_chunk(b"cHRM", struct.pack(">8I", 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000))
+    extra += _png_chunk(
+        b"cHRM", struct.pack(">8I", 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000)
+    )
     extra += _png_chunk(b"tEXt", b"ColorCorrectionPipeline\0" + description)
     return payload[:ihdr_end] + extra + payload[ihdr_end:]
 
@@ -166,14 +89,30 @@ def _encode_strict(path, pixels, encoding, quality):
     suffix = path.suffix.lower()
     if suffix in (".tif", ".tiff"):
         import tifffile
+
         stream = io.BytesIO()
-        description = json.dumps({"ColorCorrectionPipeline": {"schema": 1, "encoding": encoding}}, sort_keys=True)
+        description = json.dumps(
+            {"ColorCorrectionPipeline": {"schema": 1, "encoding": encoding}}, sort_keys=True
+        )
         # No OpenCV LogLuv conversion or lossy compressor is used.
-        tifffile.imwrite(stream, pixels, photometric="rgb", compression=None,
-                         metadata=None, description=description, extratags=[(274, "H", 1, 1, False)])
+        tifffile.imwrite(
+            stream,
+            pixels,
+            photometric="rgb",
+            compression=None,
+            metadata=None,
+            description=description,
+            extratags=[(274, "H", 1, 1, False)],
+        )
         return stream.getvalue(), "TIFF", False
-    params = [cv2.IMWRITE_PNG_COMPRESSION, min(9, (100-quality)//10)] if suffix == ".png" else [
-        cv2.IMWRITE_JPEG_QUALITY if suffix in (".jpg", ".jpeg") else cv2.IMWRITE_WEBP_QUALITY, quality]
+    params = (
+        [cv2.IMWRITE_PNG_COMPRESSION, min(9, (100 - quality) // 10)]
+        if suffix == ".png"
+        else [
+            cv2.IMWRITE_JPEG_QUALITY if suffix in (".jpg", ".jpeg") else cv2.IMWRITE_WEBP_QUALITY,
+            quality,
+        ]
+    )
     # This is an exact channel permutation, not a color transform. OpenCV's
     # native swap avoids NumPy's generic strided full-frame channel copy.
     ok, encoded = cv2.imencode(suffix, cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR), params)
@@ -182,7 +121,11 @@ def _encode_strict(path, pixels, encoding, quality):
     payload = encoded.tobytes()
     if suffix == ".png":
         payload = _png_metadata(payload, encoding)
-    return payload, {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".webp": "WEBP"}[suffix], suffix != ".png"
+    return (
+        payload,
+        {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".webp": "WEBP"}[suffix],
+        suffix != ".png",
+    )
 
 
 def _encode_png_fast(pixels, encoding):
@@ -206,8 +149,16 @@ def _encode_png_fast(pixels, encoding):
     # Bounded IDAT chunks also keep each CRC workspace bounded.
     view = memoryview(compressed)
     header = _png_metadata(b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header), encoding)
-    return b"".join([header, *(_png_chunk(b"IDAT", view[start:start + 1024*1024])
-                               for start in range(0, len(view), 1024*1024)), _png_chunk(b"IEND", b"")])
+    return b"".join(
+        [
+            header,
+            *(
+                _png_chunk(b"IDAT", view[start : start + 1024 * 1024])
+                for start in range(0, len(view), 1024 * 1024)
+            ),
+            _png_chunk(b"IEND", b""),
+        ]
+    )
 
 
 _EXPORT_CHUNK_VALUES = 3 * 65536
@@ -228,6 +179,7 @@ def _quantize_strict(values, dtype, maximum):
     storage_flat = storage.reshape(-1)
     if dtype.kind == "u":
         from .._image_numeric import try_quantize_unsigned
+
         accelerated_error = try_quantize_unsigned(values, storage, maximum)
         if accelerated_error is not None:
             return storage, accelerated_error
@@ -260,8 +212,10 @@ def _codec_error_strict(decoded, storage, maximum):
     # a contiguous full-frame copy merely to bound comparison workspace.
     error = 0.0
     for region in _export_regions(storage.shape):
-        difference = np.abs(decoded[region].astype(np.float64) / maximum
-                            - storage[region].astype(np.float64) / maximum)
+        difference = np.abs(
+            decoded[region].astype(np.float64) / maximum
+            - storage[region].astype(np.float64) / maximum
+        )
         error = max(error, float(difference.max()))
     return error
 
@@ -276,9 +230,13 @@ def _export_regions(shape):
 
 
 def _verify_export_metadata(facts, fmt, encoding):
-    if (facts.get("orientation") != 1 or facts.get("frame_count") != 1
-            or facts.get("frame_index") != 0 or facts.get("profile")
-            or facts.get("associated_alpha", False)):
+    if (
+        facts.get("orientation") != 1
+        or facts.get("frame_count") != 1
+        or facts.get("frame_index") != 0
+        or facts.get("profile")
+        or facts.get("associated_alpha", False)
+    ):
         raise OSError("encoded image read-back contradicts canonical RGB interpretation")
     if fmt == "TIFF" and facts.get("photometric") != "RGB":
         raise OSError("encoded TIFF read-back contradicts RGB photometric interpretation")
@@ -287,9 +245,21 @@ def _verify_export_metadata(facts, fmt, encoding):
         raise OSError("encoded image read-back contradicts declared transfer encoding")
 
 
-def write_image_data(path, image, *, dtype="preserve", input_encoding=None, output_encoding=None,
-                     channel_order="RGB", value_range=None, allow_precision_loss=False,
-                     quality=95, create_dirs=True, overwrite=False, png_profile="compatible"):
+def write_image_data(
+    path,
+    image,
+    *,
+    dtype="preserve",
+    input_encoding=None,
+    output_encoding=None,
+    channel_order="RGB",
+    value_range=None,
+    allow_precision_loss=False,
+    quality=95,
+    create_dirs=True,
+    overwrite=False,
+    png_profile="compatible",
+):
     """Publish a validated RGB export atomically and return its actual facts.
 
     Defaults preserve source storage precision. PNG supports uint8/uint16; TIFF
@@ -303,14 +273,23 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
     from ..contracts import ImageData
     from ..colorimetry import srgb_to_linear, linear_to_srgb
     from .image_data import _decode
-    for key, value in (("allow_precision_loss", allow_precision_loss), ("create_dirs", create_dirs), ("overwrite", overwrite)):
+
+    for key, value in (
+        ("allow_precision_loss", allow_precision_loss),
+        ("create_dirs", create_dirs),
+        ("overwrite", overwrite),
+    ):
         if type(value) is not bool:
             raise TypeError(key + " must be boolean")
     if type(quality) is not int or not 1 <= quality <= 100:
         raise ValueError("quality must be an integer from 1 to 100")
     if png_profile not in ("compatible", "fast-lossless"):
         raise ValueError("png_profile must be compatible or fast-lossless")
-    if input_encoding not in (None, "srgb", "linear-srgb") or output_encoding not in (None, "srgb", "linear-srgb"):
+    if input_encoding not in (None, "srgb", "linear-srgb") or output_encoding not in (
+        None,
+        "srgb",
+        "linear-srgb",
+    ):
         raise ValueError("input/output encoding must be srgb or linear-srgb")
     if isinstance(image, ImageData):
         if value_range is not None or channel_order != "RGB":
@@ -319,7 +298,12 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
             raise ValueError("input_encoding conflicts with ImageData")
         source = image
     else:
-        source = ImageData.from_array(image, channel_order=channel_order, color_space=input_encoding or "srgb", value_range=value_range)
+        source = ImageData.from_array(
+            image,
+            channel_order=channel_order,
+            color_space=input_encoding or "srgb",
+            value_range=value_range,
+        )
     prepared = source.with_orientation_applied()
     encoding = output_encoding or source.color_space
     # ImageData owns immutable pixels. All conversions below produce new arrays;
@@ -328,7 +312,11 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
     # source ndarray's shape/dtype cannot alter this in-flight working view.
     values = prepared.pixels.view()
     if source.color_space != encoding:
-        values = srgb_to_linear(values) if encoding == "linear-srgb" else linear_to_srgb(values, policy="raise")
+        values = (
+            srgb_to_linear(values)
+            if encoding == "linear-srgb"
+            else linear_to_srgb(values, policy="raise")
+        )
     if dtype == "preserve":
         dtype = source.source_dtype
         if dtype == "float16":
@@ -336,19 +324,31 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
     if dtype not in ("uint8", "uint16", "float32", "float64"):
         raise ValueError("dtype must be preserve, uint8, uint16, float32 or float64")
     ranks = {"uint8": 8, "uint16": 16, "float16": 16, "float32": 32, "float64": 64}
-    precision_loss = (ranks[dtype] < ranks[source.source_dtype]
-                      or (np.dtype(source.source_dtype).kind == "f" and np.dtype(dtype).kind == "u")
-                      or (source.color_space != encoding and np.dtype(dtype).kind == "u"))
+    precision_loss = (
+        ranks[dtype] < ranks[source.source_dtype]
+        or (np.dtype(source.source_dtype).kind == "f" and np.dtype(dtype).kind == "u")
+        or (source.color_space != encoding and np.dtype(dtype).kind == "u")
+    )
     if precision_loss and not allow_precision_loss:
-        raise ValueError("requantizing converted RGB or reducing source precision requires allow_precision_loss=True")
+        raise ValueError(
+            "requantizing converted RGB or reducing source precision requires allow_precision_loss=True"
+        )
     path = Path(path)
     suffix = path.suffix.lower()
     if png_profile != "compatible" and suffix != ".png":
         raise ValueError("fast-lossless PNG profile requires a .png destination")
-    supported = {".png": {"uint8", "uint16"}, ".tif": {"uint8", "uint16", "float32", "float64"},
-                 ".tiff": {"uint8", "uint16", "float32", "float64"}, ".jpg": {"uint8"}, ".jpeg": {"uint8"}, ".webp": {"uint8"}}
+    supported = {
+        ".png": {"uint8", "uint16"},
+        ".tif": {"uint8", "uint16", "float32", "float64"},
+        ".tiff": {"uint8", "uint16", "float32", "float64"},
+        ".jpg": {"uint8"},
+        ".jpeg": {"uint8"},
+        ".webp": {"uint8"},
+    }
     if suffix not in supported or dtype not in supported[suffix]:
-        raise ValueError("requested format cannot preserve selected dtype; explicitly choose a supported format/dtype")
+        raise ValueError(
+            "requested format cannot preserve selected dtype; explicitly choose a supported format/dtype"
+        )
     if suffix in (".jpg", ".jpeg", ".webp") and encoding != "srgb":
         raise ValueError("JPEG/WebP preview export requires output_encoding='srgb'")
     if path.exists() and not overwrite:
@@ -368,7 +368,9 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
         payload, fmt, codec_lossy = _encode_strict(path, storage, encoding, quality)
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(mode="wb", dir=path.parent, prefix="." + path.name + ".", suffix=".tmp", delete=False) as stream:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", dir=path.parent, prefix="." + path.name + ".", suffix=".tmp", delete=False
+        ) as stream:
             temporary = Path(stream.name)
             stream.write(payload)
             stream.flush()
@@ -379,18 +381,34 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
             raise OSError("temporary image read-back differs from encoded bytes")
         pixels = storage.shape[0] * storage.shape[1]
         try:
-            decoded, facts = _decode(saved, path, 0, max_pixels=pixels,
-                max_decoded_bytes=storage.nbytes + storage.size * 8)
+            decoded, facts = _decode(
+                saved,
+                path,
+                0,
+                max_pixels=pixels,
+                max_decoded_bytes=storage.nbytes + storage.size * 8,
+            )
         except ValueError as error:
-            if "exceed" in str(error) and ("max_pixels" in str(error) or "max_decoded_bytes" in str(error)):
-                raise OSError("encoded image read-back exceeds requested image allocation") from error
+            if "exceed" in str(error) and (
+                "max_pixels" in str(error) or "max_decoded_bytes" in str(error)
+            ):
+                raise OSError(
+                    "encoded image read-back exceeds requested image allocation"
+                ) from error
             raise
         if facts["channel_order"] == "BGR":
             decoded = decoded[..., ::-1]
-        if decoded.shape != storage.shape or decoded.dtype != storage.dtype or facts["format"] != fmt:
+        if (
+            decoded.shape != storage.shape
+            or decoded.dtype != storage.dtype
+            or facts["format"] != fmt
+        ):
             raise OSError("encoded image read-back contradicts requested shape/dtype/format")
         _verify_export_metadata(facts, fmt, encoding)
-        if not codec_lossy and any(not np.array_equal(decoded[region], storage[region]) for region in _export_regions(storage.shape)):
+        if not codec_lossy and any(
+            not np.array_equal(decoded[region], storage[region])
+            for region in _export_regions(storage.shape)
+        ):
             raise OSError("lossless export did not reproduce encoded samples exactly")
         # Exact sample equality above proves a zero codec error for lossless
         # formats; normalizing/copying both full frames cannot add evidence.
@@ -404,11 +422,27 @@ def write_image_data(path, image, *, dtype="preserve", input_encoding=None, outp
             # Atomic no-clobber publication on the same filesystem. A race with
             # another writer fails without truncating or replacing its output.
             os.link(temporary, path)
-        return ExportRecord(str(path.resolve()), fmt, dtype, tuple(storage.shape), encoding, source.color_space,
-                            source.source_dtype, source.digest, source.pixel_digest, hashlib.sha256(saved).hexdigest(),
-                            len(saved), precision_loss, codec_lossy, quantization, codec_error,
-                            tuple(source.source_range), source.source_channel_order, source.source_orientation,
-                            source.provenance.get("file_sha256"))
+        return ExportRecord(
+            str(path.resolve()),
+            fmt,
+            dtype,
+            tuple(storage.shape),
+            encoding,
+            source.color_space,
+            source.source_dtype,
+            source.digest,
+            source.pixel_digest,
+            hashlib.sha256(saved).hexdigest(),
+            len(saved),
+            precision_loss,
+            codec_lossy,
+            quantization,
+            codec_error,
+            tuple(source.source_range),
+            source.source_channel_order,
+            source.source_orientation,
+            source.provenance.get("file_sha256"),
+        )
     finally:
         if temporary is not None:
             try:

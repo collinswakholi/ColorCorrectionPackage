@@ -5,13 +5,13 @@ Run from a neutral directory with the built package installed:
 
 The UI reference engine is not a runtime dependency of these checks.
 """
+
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import hashlib
 from importlib.metadata import version
 import json
-import logging
 import os
 from pathlib import Path
 import tempfile
@@ -39,25 +39,28 @@ def expect_invalid(**options):
 
 def numerical_contracts():
     from ColorCorrectionPipeline.ui_native import points
-    quad = np.array([[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]])
+
+    quad = np.array([[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]])
     # Frozen coordinates also exercise unsigned overflow in the UI worker.
     first = points(quad, 1, 42)[0, 0]
-    np.testing.assert_allclose(first, [0.32664162234868854, 0.21168753178790212], atol=1e-15, rtol=0)
+    np.testing.assert_allclose(
+        first, [0.32664162234868854, 0.21168753178790212], atol=1e-15, rtol=0
+    )
     for n in (1, 10, 20, 50):
         pts = points(quad, n, 42)
-        assert pts.shape == (1, n, 2) and np.all((pts >= .15) & (pts < .85))
+        assert pts.shape == (1, n, 2) and np.all((pts >= 0.15) & (pts < 0.85))
         assert np.array_equal(pts, points(quad, 50, 42)[:, :n])
         assert not np.array_equal(pts, points(quad, n, 43))
 
     from colour.characterisation import polynomial_expansion_Finlayson2015
 
     rng = np.random.default_rng(20261106)
-    rgb = np.vstack((np.zeros((1, 3)), np.eye(3), np.ones((1, 3)),
-                     rng.uniform(.002, .98, (150, 3))))
-    encoded = rng.uniform(.02, .97, (48, 3))
-    target = srgb_to_linear(encoded) * .88 + .015
-    counts = {"polynomial": (3, 9, 19, 34), "root": (3, 6, 13, 22),
-              "hybrid": (3, 12, 29, 53)}
+    rgb = np.vstack(
+        (np.zeros((1, 3)), np.eye(3), np.ones((1, 3)), rng.uniform(0.002, 0.98, (150, 3)))
+    )
+    encoded = rng.uniform(0.02, 0.97, (48, 3))
+    target = srgb_to_linear(encoded) * 0.88 + 0.015
+    counts = {"polynomial": (3, 9, 19, 34), "root": (3, 6, 13, 22), "hybrid": (3, 12, 29, 53)}
     rows = []
     for model in ("linear", "pls", "nn"):
         for basis, dimensions in counts.items():
@@ -75,23 +78,30 @@ def numerical_contracts():
                 if basis == "root" and model == "linear":
                     actual = ui_fitting.features(rgb, ui_fitting.options(requested))
                     independent = polynomial_expansion_Finlayson2015(
-                        rgb, degree=degree, root_polynomial_expansion=True)
+                        rgb, degree=degree, root_polynomial_expansion=True
+                    )
                     distance = np.max(np.abs(actual[:, :, None] - independent[:, None, :]), axis=0)
                     matching = np.argmin(distance, axis=1)
                     assert len(set(matching)) == expected
                     assert np.max(distance[np.arange(expected), matching]) < 1e-13
                     np.testing.assert_allclose(
-                        ui_fitting.features(rgb * .37, ui_fitting.options(requested)),
-                        actual * .37, rtol=1e-13, atol=1e-14)
+                        ui_fitting.features(rgb * 0.37, ui_fitting.options(requested)),
+                        actual * 0.37,
+                        rtol=1e-13,
+                        atol=1e-14,
+                    )
                 if model == "nn":
                     zero = ui_fitting.UIPredictor(
                         dict(fitted.settings),
                         weights=[np.zeros_like(weight) for weight in fitted.weights],
-                        biases=[np.zeros_like(bias) for bias in fitted.biases])
-                    np.testing.assert_allclose(zero.predict_rgb(encoded[:8]),
-                                               encoded[:8], rtol=0, atol=2e-15)
-                rows.append({"model": model, "basis": basis, "degree": degree,
-                             "features": expected})
+                        biases=[np.zeros_like(bias) for bias in fitted.biases],
+                    )
+                    np.testing.assert_allclose(
+                        zero.predict_rgb(encoded[:8]), encoded[:8], rtol=0, atol=2e-15
+                    )
+                rows.append(
+                    {"model": model, "basis": basis, "degree": degree, "features": expected}
+                )
     for degree, preset in ((1, "ccm"), (2, "rpcc2"), (3, "rpcc3")):
         a, _ = ui_fitting.fit_ui(encoded, target, dict(model="linear", basis="root", degree=degree))
         b, _ = ui_fitting.fit_ui(encoded, target, dict(model=preset))
@@ -102,7 +112,8 @@ def numerical_contracts():
 def render_contracts():
     from types import SimpleNamespace
     from ColorCorrectionPipeline.models import MyModels
-    from ColorCorrectionPipeline import ui_native
+    from ColorCorrectionPipeline import ui_execution, ui_native
+    from ColorCorrectionPipeline.modern import StageFit
     from ColorCorrectionPipeline.stage_policies import MonotonicToneModel
     from ColorCorrectionPipeline.ui_stages import _resize
     from ColorCorrectionPipeline.fitting import FittingPolicy
@@ -111,8 +122,9 @@ def render_contracts():
     # A strided crop spans multiple resize/white-field tiles.
     white = rng.random((260, 546, 3))[:, ::2]
     for dtype in (np.float32, np.float64):
-        np.testing.assert_array_equal(ui_native.lightness(white, dtype),
-                                      ui_native.lab(white)[..., 0].astype(dtype))
+        np.testing.assert_array_equal(
+            ui_native.lightness(white, dtype), ui_native.lab(white)[..., 0].astype(dtype)
+        )
         coarse = np.full((4, 4), 1.0, dtype=dtype)
         np.testing.assert_allclose(_resize(coarse, 260, 273, dtype), 1, rtol=1e-6, atol=1e-6)
     # Stage methods accept an explicit image, even outside the top-level fit.
@@ -123,18 +135,18 @@ def render_contracts():
     models = MyModels()
     policy = FittingPolicy.from_value({"version": "ui-compatible-v1", "ui_runtime": "native-v1"})
     owner = SimpleNamespace(Image=np.zeros_like(image), models=models, fitting_policy=policy)
-    gain = rng.uniform(.75, 1.6, image.shape[:2])
+    gain = rng.uniform(0.75, 1.6, image.shape[:2])
     models.model_ffc = np.frombuffer(gain.tobytes(), dtype=gain.dtype).reshape(gain.shape)
-    curve = MonotonicToneModel(np.array([0., 18, 40, 72, 100]), np.array([0., 22, 45, 75, 100]))
+    curve = MonotonicToneModel(np.array([0.0, 18, 40, 72, 100]), np.array([0.0, 22, 45, 75, 100]))
     models.model_gc = curve
     models.metadata = {"fitting_policy": policy.to_dict()}
     for stage, tone in (("FFC", None), ("GC", curve)):
         expected = ui_native.apply_color(image, gain, tone)
-        actual = ui_native.render_fit_stage(owner, image, stage)
+        actual = StageFit().render(owner, image, stage)
         np.testing.assert_allclose(actual, expected, rtol=0, atol=np.finfo(np.float32).eps)
-        replayed = ui_native.predict(canonical, models, (stage,), native_codes=True)[stage]
+        replayed = ui_execution.predict(canonical, models, (stage,), native_codes=True)[stage]
         np.testing.assert_array_equal(replayed, actual)
-    q = np.array([[[0., 0.], [3., 0.], [3., 3.], [0., 3.]]])
+    q = np.array([[[0.0, 0.0], [3.0, 0.0], [3.0, 3.0], [0.0, 3.0]]])
     for bad in (float("nan"), float("inf"), -0.25, 1.25):
         source = np.zeros((10, 10, 3))
         source[-1, -1, 0] = bad
@@ -148,29 +160,36 @@ def configurations():
     cfg.validate()
     assert cfg.fitting_policy["version"] == "ui-compatible-v1"
     assert cfg.fitting_policy["ui_runtime"] == "auto-v2"
-    old = Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "custom", "degree": 2})
-    old.validate()
-    assert Config.from_dict(old.to_dict()).fitting_policy["version"] == "legacy-v1"
-    # A detector sampling override cannot give a legacy fit a random sampler.
-    for sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
-        legacy = Config(fitting_policy="legacy-v1", chart_detection={
-            "sampling_policy": sampling_policy, "samples_per_patch": 20, "sampling_seed": 42,
-        })
-        with np.testing.assert_raises_regex(ValueError, "samples_per_patch"):
-            legacy.validate()
+    # 3.0 removed the historical fitters: requesting one fails with a pointer to
+    # the replacement instead of silently selecting a different recipe.
+    for removed in (
+        dict(fitting_policy="legacy-v1"),
+        dict(fitting_policy="reproducible-v1"),
+        dict(fitting_policy="ui-compatible-v1"),
+        dict(CC_kwargs={"mtd": "custom", "degree": 2}),
+        dict(api_version=1),
+    ):
+        with np.testing.assert_raises_regex(ValueError, "3.0"):
+            Config(**removed)
+    with np.testing.assert_raises_regex(ValueError, "source_version=2"):
+        Config.from_dict({"do_ffc": False})
     new = Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 3})
     new.validate()
     replay = Config.from_dict(new.to_dict())
     assert replay.to_dict() == new.to_dict()
     for kwargs in (
-        dict(model="missing"), dict(model="nn", degree=True),
-        dict(model="linear", degree=0), dict(model="linear", degree=5),
+        dict(model="missing"),
+        dict(model="nn", degree=True),
+        dict(model="linear", degree=0),
+        dict(model="linear", degree=5),
         dict(model="rpcc2", degree=3),
         dict(model="pls", basis="root", degree=3),
         dict(model="pls", basis="hybrid", degree=4, CC_kwargs={"ncomp": 0}),
         dict(model="linear", precision="float32"),
-        dict(fitting_policy={"version": "ui-compatible-v1", "ui_runtime": "precision-f64-v1"},
-             precision="native-byte"),
+        dict(
+            fitting_policy={"version": "ui-compatible-v1", "ui_runtime": "precision-f64-v1"},
+            precision="native-byte",
+        ),
     ):
         expect_invalid(**kwargs)
     mutated = Config(precision="native-byte")
@@ -181,70 +200,39 @@ def configurations():
         pass
     else:
         raise AssertionError("Mutated precision contradicts the stored byte runtime")
-    return {"default": cfg.to_dict(), "historical_custom_roundtrip": True,
-            "generalized_roundtrip": True, "invalid_controls": 10}
+    return {
+        "default": cfg.to_dict(),
+        "removed_policies_rejected": 6,
+        "generalized_roundtrip": True,
+        "invalid_controls": 10,
+    }
 
 
-def historical_trainers():
-    from ColorCorrectionPipeline.core.correction import fit_model, predict_
+def legacy_pickle_contracts():
+    """1.x pickles name key_functions classes; loading maps them to current classes."""
+    import io
+    from ColorCorrectionPipeline._compat import load_pickle
 
-    rng = np.random.default_rng(1729)
-    x = rng.uniform(.03, .96, (96, 3))
-    rows = []
-    for method in ("linear", "pls", "nn", "custom"):
-        model = fit_model(x, x * .85 + .05,
-                          dict(mtd=method, degree=2, hidden_layers=[8], max_iterations=20,
-                               ncomp=2, batch_size=12, patience=4, random_state=17, use_lut=False))
-        prediction = predict_(x[:6].reshape(2, 3, 3), model)
-        assert np.isfinite(prediction).all() and prediction.shape == (2, 3, 3)
-        rows.append({"method": method, "estimator": type(model.model).__name__})
-    return rows
-
-
-def legacy_import_contracts():
-    """Historical model imports remain usable without optional chart backends."""
-    import pickle
-    import sys
-    from types import SimpleNamespace
-    from ColorCorrectionPipeline import key_functions as legacy
-
-    model = legacy.Regressor_Model()
-    model.degree = 2
-    restored = pickle.loads(pickle.dumps(model))
-    assert type(restored) is type(model) and restored.degree == 2
-    assert type(restored).__module__ == "ColorCorrectionPipeline.key_functions"
-    image = np.zeros((8, 8, 3), dtype=np.uint8)
-    with patch.dict(sys.modules, {"colour_checker_detection": None}):
-        try:
-            legacy.detect_colour_checkers_segmentation(image)
-        except ImportError as exc:
-            assert "ColorCorrectionPipeline[segmentation]" in str(exc)
-        else:
-            raise AssertionError("Missing segmentation backend was accepted")
-    with patch.object(legacy, "cv2", SimpleNamespace()):
-        requests = (
-            lambda: legacy.extract_color_chart(image),
-            lambda: legacy.extract_color_charts(image),
-            lambda: legacy.extract_color_chart_ex(image, np.zeros((24, 3))),
-        )
-        for request in requests:
-            try:
-                request()
-            except ImportError as exc:
-                assert "opencv-contrib-python" in str(exc)
-            else:
-                raise AssertionError("Missing MCC backend was accepted")
-    return {"base_import": True, "pickle_class_path": type(restored).__module__,
-            "optional_backend_errors": 4}
+    # Protocol-2 bytes as a 1.x pickler wrote them: key_functions.Regressor_Model
+    # with __dict__ {"degree": 2}. The module itself no longer exists.
+    data = (
+        b"\x80\x02cColorCorrectionPipeline.key_functions\nRegressor_Model\nq\x00)\x81}"
+        b"X\x06\x00\x00\x00degreeK\x02sb."
+    )
+    restored = load_pickle(io.BytesIO(data))
+    assert type(restored).__module__ == "ColorCorrectionPipeline.core.correction"
+    assert type(restored).__name__ == "Regressor_Model" and restored.degree == 2
+    assert restored.use_lut is False  # pre-LUT artifacts keep exact prediction
+    return {"pickle_class_path": type(restored).__module__, "degree": restored.degree}
 
 
 def precision_estimation():
     from types import SimpleNamespace
     from ColorCorrectionPipeline import FittingPolicy
-    from ColorCorrectionPipeline.ui_stages import fit_ffc
+    from ColorCorrectionPipeline.modern import StageFit
 
-    white = np.full((64, 64, 3), .6)
-    changed = white + np.linspace(0, 2.0 ** -26, 64)[None, :, None]
+    white = np.full((64, 64, 3), 0.6)
+    changed = white + np.linspace(0, 2.0**-26, 64)[None, :, None]
     np.testing.assert_array_equal(np.rint(white * 255), np.rint(changed * 255))
     gains = []
     for pixels in (white, changed):
@@ -252,9 +240,14 @@ def precision_estimation():
             fitting_policy=FittingPolicy(version="ui-compatible-v1", ui_runtime="precision-f64-v1"),
             white_image_data=ImageData.from_array(pixels),
             White_Image=np.rint(pixels[:, :, ::-1] * 255).astype(np.uint8),
-            models=SimpleNamespace(model_ffc=None), numerical_report={})
-        fit_ffc(owner, white, {"fit_method": "linear", "crop_rect": [0, 0, 64, 64],
-                              "bins": 8, "smooth_window": 3})
+            models=SimpleNamespace(model_ffc=None),
+            numerical_report={},
+        )
+        StageFit().ffc(
+            owner,
+            white,
+            {"fit_method": "linear", "crop_rect": [0, 0, 64, 64], "bins": 8, "smooth_window": 3},
+        )
         gains.append(owner.models.model_ffc)
     difference = float(np.max(np.abs(gains[0] - gains[1])))
     assert difference > 1e-9, difference
@@ -271,6 +264,7 @@ def altered_bundle(bundle, folder, alteration):
     elif alteration == "chart-selection":
         manifest["metadata"]["chart_selection"] = []
     elif alteration == "high-lut":
+
         def enable_lut(value):
             if isinstance(value, dict):
                 for key, item in value.items():
@@ -281,13 +275,17 @@ def altered_bundle(bundle, folder, alteration):
             elif isinstance(value, list):
                 for item in value:
                     enable_lut(item)
+
         enable_lut(manifest)
     else:
         raise ValueError(alteration)
     manifest.pop("content_sha256")
+
     def encode(value):
-        return json.dumps(value, sort_keys=True, ensure_ascii=True, allow_nan=False,
-                          separators=(",", ":")).encode("utf8")
+        return json.dumps(
+            value, sort_keys=True, ensure_ascii=True, allow_nan=False, separators=(",", ":")
+        ).encode("utf8")
+
     manifest["content_sha256"] = hashlib.sha256(encode(manifest)).hexdigest()
     members["manifest.json"] = encode(manifest)
     altered = folder / (alteration + ".ccpb")
@@ -298,8 +296,10 @@ def altered_bundle(bundle, folder, alteration):
 
 
 def reject_altered_bundle(bundle, folder, alteration):
-    expected_error = {"downgraded": "require bundle version 2",
-                      "high-lut": "high precision requires direct CC"}[alteration]
+    expected_error = {
+        "downgraded": "require bundle version 2",
+        "high-lut": "high precision requires direct CC",
+    }[alteration]
     altered = altered_bundle(bundle, folder, alteration)
     try:
         ColorCorrection().load_bundle(altered)
@@ -333,8 +333,9 @@ def verify_native_batch_tiles(calibration, scene):
     # Deliberately split scanlines and leave a partial last tile.
     limit = 65521
     with patch.object(ui_execution, "_run_into", record_tile):
-        item, = calibration.predict_batch([scene], stages=stages, chunk_pixels=limit,
-                                          max_workers=1).items
+        (item,) = calibration.predict_batch(
+            [scene], stages=stages, chunk_pixels=limit, max_workers=1
+        ).items
     assert item.status == "succeeded", item.error
     assert tuple(item.images) == stages
     assert sum(tile_sizes) == expected["CC"].size // 3 and max(tile_sizes) <= limit
@@ -399,13 +400,19 @@ def verify_refits(samples, folder, device):
     pipe = ColorCorrection()
 
     def config(model):
-        return Config(model=model, input={"frame_index": 0}, chart={"device": device},
-                      persistence={"enabled": True, "directory": str(folder), "format": "bundle"})
+        return Config(
+            model=model,
+            input={"frame_index": 0},
+            chart={"device": device},
+            persistence={"enabled": True, "directory": str(folder), "format": "bundle"},
+        )
 
     first = pipe.fit_or_raise(chart, white, "chart", config("ccm"))
     bundle = folder / "chart_models.ccpb"
     assert str(bundle) in first.artifacts and first.name == "chart" and first.images
-    artifacts = {Path(path): hashlib.sha256(Path(path).read_bytes()).digest() for path in first.artifacts}
+    artifacts = {
+        Path(path): hashlib.sha256(Path(path).read_bytes()).digest() for path in first.artifacts
+    }
     baseline = pipe.predict_image(scene, stages="final")["CC"]
     previous = ColorCorrection().load_bundle(bundle)
     verify_native_batch_tiles(previous, scene)
@@ -450,7 +457,9 @@ def verify_refits(samples, folder, device):
     assert second.models is pipe.models and second.models is not first.models
     changed_pixels = int(np.count_nonzero(np.any(corrected != baseline, axis=-1)))
     assert changed_pixels > 0
-    np.testing.assert_array_equal(ColorCorrection().load_bundle(bundle).predict_image(scene, stages="final")["CC"], corrected)
+    np.testing.assert_array_equal(
+        ColorCorrection().load_bundle(bundle).predict_image(scene, stages="final")["CC"], corrected
+    )
     first.models.save_bundle(folder / "first.ccpb")
     with prediction_in_flight(pipe, scene, corrected):
         assert pipe.load_bundle(folder / "first.ccpb") is pipe
@@ -459,66 +468,41 @@ def verify_refits(samples, folder, device):
         assert pipe.Image is None and pipe.White_Image is None and pipe.fitted_config is None
         assert pipe.image_data is None and pipe.white_image_data is None
         assert pipe.REFERENCE_RGB_PD is None and pipe.REFERENCE_DISPLAY_RGB_PD is None
-        assert not pipe._ffc_multiplier_cache and not pipe._ffc_quality_cache
         assert pipe.observations.to_dict() == previous.observations.to_dict()
         assert pipe.last_run["contracts"] == previous.last_run["contracts"]
         np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
-    return {"successful_refit": True, "failed_refit_preserved": True, "named_bundle_replay_exact": True,
-            "failed_save_rollback_files": len(artifacts), "corrupt_load_preserved": True, "malformed_metadata_preserved": True,
-            "in_flight_refit_exact": True, "in_flight_load_exact": True, "ccm_rpcc3_distinct_scene_pixels": changed_pixels,
-            "ccm_chart_de00": first.metrics["chart_CC"]["delta_e00_after_mean"],
-            "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"]}
-
-
-def verify_legacy_conv_notice(samples, folder, device):
-    chart, scene = samples["Image_1.JPG"], samples["Sample_1.JPG"]
-    options = dict(do_ffc=False, do_gc=False, do_wb=False, check_saturation=False,
-                   chart_detection={"device": device}, CC_kwargs={"cc_method": "CoNv"})
-    logger = logging.getLogger("ColorCorrectionPipeline.pipeline")
-    with patch.object(logger, "warning", wraps=logger.warning) as notice:
-        implicit = Config.from_dict(options)
-        explicit = Config(fitting_policy="legacy-v1", **options)
-        assert implicit.to_dict() == explicit.to_dict()
-        implicit.validate()
-        pipe = ColorCorrection()
-        notice.assert_not_called()
-
-        _, _, failed = pipe.run(chart, config=implicit)
-        assert not failed, pipe.last_run
-        notice.assert_called_once()
-        message = notice.call_args[0][0]
-        assert "encoded sRGB" in message and 'Config(model="3x3")' in message
-        assert 'fitting_policy="legacy-v1"' in message
-        notice.reset_mock()
-
-        expected = pipe.predict_image(scene, stages="final")["CC"]
-        bundle = folder / "legacy-conv.ccpb"
-        pipe.save_bundle(bundle)
-        restored = ColorCorrection().load_bundle(bundle)
-        np.testing.assert_array_equal(restored.predict_image(scene, stages="final")["CC"], expected)
-        for cfg in (explicit, Config.from_dict(implicit.to_dict())):
-            restored.fit_or_raise(chart, config=cfg)
-            np.testing.assert_array_equal(restored.models.model_cc[0], pipe.models.model_cc[0])
-            np.testing.assert_array_equal(restored.predict_image(scene, stages="final")["CC"], expected)
-        implicit.do_cc = False
-        restored.fit_or_raise(chart, config=implicit)
-        notice.assert_not_called()
-    return {"implicit_conv_notices": 1, "explicit_and_replay_quiet": True,
-            "legacy_matrix_and_prediction_exact": True}
+    return {
+        "successful_refit": True,
+        "failed_refit_preserved": True,
+        "named_bundle_replay_exact": True,
+        "failed_save_rollback_files": len(artifacts),
+        "corrupt_load_preserved": True,
+        "malformed_metadata_preserved": True,
+        "in_flight_refit_exact": True,
+        "in_flight_load_exact": True,
+        "ccm_rpcc3_distinct_scene_pixels": changed_pixels,
+        "ccm_chart_de00": first.metrics["chart_CC"]["delta_e00_after_mean"],
+        "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"],
+    }
 
 
 def verify_batch_worker_budget():
     from ColorCorrectionPipeline.batch import BatchStream
     from ColorCorrectionPipeline._cpu_workers import image_worker_limit
+
     def limits(workers, in_flight):
         seen = []
+
         def work(item, index):
             seen.append(image_worker_limit())
             return {}
-        with BatchStream([0, 1], work, calibration_id="threads", max_workers=workers,
-                         max_in_flight=in_flight) as stream:
+
+        with BatchStream(
+            [0, 1], work, calibration_id="threads", max_workers=workers, max_in_flight=in_flight
+        ) as stream:
             assert all(item.status == "succeeded" for item in stream)
         return seen
+
     limit = image_worker_limit()
     assert limits(1, 2) == limits(2, 1) == [limit, limit]
     assert limits(2, 2) == [1, 1]
@@ -530,11 +514,15 @@ def verify_batch_worker_budget():
 def verify_mpo_budget(path):
     """The shipped chart is a two-frame RGB MPO; use the real decoder at the boundary."""
     from PIL import Image
+
     with Image.open(path) as im:
         assert im.format == "MPO" and im.n_frames == 2
         budget = im.width * im.height * (3 + 3 * 8)
     expected = read_image_data(path, frame_index=0)
-    assert read_image_data(path, frame_index=0, max_decoded_bytes=budget).pixel_digest == expected.pixel_digest
+    assert (
+        read_image_data(path, frame_index=0, max_decoded_bytes=budget).pixel_digest
+        == expected.pixel_digest
+    )
     with patch("cv2.imdecode", side_effect=AssertionError("rejected frame was decoded")):
         try:
             read_image_data(path, frame_index=0, max_decoded_bytes=budget - 1)
@@ -547,10 +535,16 @@ def verify_mpo_budget(path):
 
 def verify_seeded_batch_replay(samples, folder, device):
     """A reloaded seeded calibration must produce the same strict final export."""
-    cfg = Config(model="rpcc3", input={"frame_index": 0},
-                 chart={"device": device, "samples_per_patch": 20, "sampling_seed": 42},
-                 do_ffc=True, do_gc=True, do_wb=True, do_cc=True,
-                 validation_options={"enabled": False})
+    cfg = Config(
+        model="rpcc3",
+        input={"frame_index": 0},
+        chart={"device": device, "samples_per_patch": 20, "sampling_seed": 42},
+        do_ffc=True,
+        do_gc=True,
+        do_wb=True,
+        do_cc=True,
+        validation_options={"enabled": False},
+    )
     pipe = ColorCorrection()
     pipe.fit_or_raise(samples["Image_1.JPG"], samples["white.JPG"], "seeded", cfg)
     face = pipe.observations.observations[0]
@@ -561,9 +555,15 @@ def verify_seeded_batch_replay(samples, folder, device):
     pipe.save_bundle(bundle)
     restored = ColorCorrection().load_bundle(bundle)
     np.testing.assert_array_equal(reference, restored.predict_image(scene, stages="final")["CC"])
-    with restored.iter_predict([scene], stages="final", max_workers=1, max_in_flight=1,
-                               output_dir=folder / "seeded-batch", output_ext=".png",
-                               export_options={"dtype": "uint8", "allow_precision_loss": True}) as stream:
+    with restored.iter_predict(
+        [scene],
+        stages="final",
+        max_workers=1,
+        max_in_flight=1,
+        output_dir=folder / "seeded-batch",
+        output_ext=".png",
+        export_options={"dtype": "uint8", "allow_precision_loss": True},
+    ) as stream:
         item = next(iter(stream))
         assert item.status == "succeeded", item.error
         record = item.exports["CC"]
@@ -580,8 +580,11 @@ def photos(device):
         results.append(verify_mpo_budget(samples["Image_1.JPG"]))
         results.append(verify_seeded_batch_replay(samples, folder, device))
         results.append(verify_refits(samples, folder, device))
-        results.append(verify_legacy_conv_notice(samples, folder, device))
-        for model, basis, degree in (("rpcc2", None, None), ("pls", "root", 3), ("nn", "hybrid", 2)):
+        for model, basis, degree in (
+            ("rpcc2", None, None),
+            ("pls", "root", 3),
+            ("nn", "hybrid", 2),
+        ):
             settings = {"model": model}
             cc = {"use_lut": False}
             if basis:
@@ -590,13 +593,18 @@ def photos(device):
                 cc["ncomp"] = 3
             if model == "nn":
                 cc.update(hidden_layers=[8], max_iterations=100, patience=50)
-            cfg = Config(**settings, image_options={"frame_index": 0},
-                         chart_detection={"device": device},
-                         validation_options={"enabled": False}, CC_kwargs=cc)
+            cfg = Config(
+                **settings,
+                image_options={"frame_index": 0},
+                chart_detection={"device": device},
+                validation_options={"enabled": False},
+                CC_kwargs=cc,
+            )
             pipe = ColorCorrection()
             started = time.perf_counter()
-            metrics, _, failed = pipe.run(samples["Image_1.JPG"], samples["white.JPG"],
-                                         name_="fit", config=cfg)
+            metrics, _, failed = pipe.run(
+                samples["Image_1.JPG"], samples["white.JPG"], name_="fit", config=cfg
+            )
             assert not failed, pipe.last_run
             assert pipe.models.metadata["fitting_policy"]["ui_runtime"] == "native-v1"
             elapsed = time.perf_counter() - started
@@ -608,22 +616,40 @@ def photos(device):
             np.testing.assert_array_equal(before, after)
             if basis is not None:
                 reject_altered_bundle(bundle, folder, "downgraded")
-            record = write_image_data(folder / (model + ".png"), after, dtype="uint8",
-                                      allow_precision_loss=True, png_profile="fast-lossless")
+            record = write_image_data(
+                folder / (model + ".png"),
+                after,
+                dtype="uint8",
+                allow_precision_loss=True,
+                png_profile="fast-lossless",
+            )
             assert record.maximum_codec_error == 0
-            results.append({"model": model, "basis": basis, "degree": degree,
-                            "calibration_seconds": elapsed,
-                            "training_chart_de00": metrics["fit_CC"]["delta_e00_after_mean"],
-                            "runtime": "native-v1", "use_lut": False,
-                            "reload_exact": True, "codec_error": 0})
+            results.append(
+                {
+                    "model": model,
+                    "basis": basis,
+                    "degree": degree,
+                    "calibration_seconds": elapsed,
+                    "training_chart_de00": metrics["fit_CC"]["delta_e00_after_mean"],
+                    "runtime": "native-v1",
+                    "use_lut": False,
+                    "reload_exact": True,
+                    "codec_error": 0,
+                }
+            )
         # Check the high runtime with genuinely adjacent source values, using CC only.
         chart = read_image_data(samples["Image_1.JPG"], color_space="srgb", frame_index=0)
         white = read_image_data(samples["white.JPG"], color_space="srgb", frame_index=0)
         white16 = ImageData.from_array(np.rint(white.to_srgb() * 65535).astype(np.uint16))
         mixed = ColorCorrection()
         _, _, failed = mixed.run(
-            chart, white16, name_="mixed",
-            config=Config(chart_detection={"device": device}, validation_options={"enabled": False}))
+            chart,
+            white16,
+            name_="mixed",
+            config=Config(
+                chart_detection={"device": device}, validation_options={"enabled": False}
+            ),
+        )
         assert not failed, mixed.last_run
         assert mixed.models.metadata["fitting_policy"]["ui_runtime"] == "precision-f64-v1"
         scene = read_image_data(samples["Sample_1.JPG"], color_space="srgb", frame_index=0)
@@ -631,38 +657,67 @@ def photos(device):
         mixed_before = mixed.predict_image(scene16, stages="final")["CC"]
         mixed.save_bundle(folder / "mixed.ccpb")
         reject_altered_bundle(folder / "mixed.ccpb", folder, "high-lut")
-        mixed_after = ColorCorrection().load_bundle(folder / "mixed.ccpb").predict_image(
-            scene16, stages="final")["CC"]
+        mixed_after = (
+            ColorCorrection()
+            .load_bundle(folder / "mixed.ccpb")
+            .predict_image(scene16, stages="final")["CC"]
+        )
         np.testing.assert_array_equal(mixed_before, mixed_after)
-        linear_scene = ImageData.from_array(srgb_to_linear(scene16.to_srgb()), color_space="linear-srgb")
-        np.testing.assert_allclose(mixed.predict_image(linear_scene, stages="final")["CC"],
-                                   mixed_before, rtol=0, atol=1e-12)
-        twelve_bit = ImageData.from_array(np.rint(scene.to_srgb() * 4095).astype(np.uint16),
-                                         value_range=(0, 4095))
+        linear_scene = ImageData.from_array(
+            srgb_to_linear(scene16.to_srgb()), color_space="linear-srgb"
+        )
+        np.testing.assert_allclose(
+            mixed.predict_image(linear_scene, stages="final")["CC"],
+            mixed_before,
+            rtol=0,
+            atol=1e-12,
+        )
+        twelve_bit = ImageData.from_array(
+            np.rint(scene.to_srgb() * 4095).astype(np.uint16), value_range=(0, 4095)
+        )
         assert np.isfinite(mixed.predict_image(twelve_bit, stages="final")["CC"]).all()
-        results.append({"mixed_chart_uint8_white_uint16": True, "reload_exact": True,
-                        "linear_srgb_scene_equivalent": True, "declared_uint12_scene": True})
-        cfg = Config(model="rpcc2", precision="high", do_ffc=False, do_gc=False, do_wb=False,
-                     chart_detection={"device": device},
-                     validation_options={"enabled": False}, CC_kwargs={"use_lut": False})
+        results.append(
+            {
+                "mixed_chart_uint8_white_uint16": True,
+                "reload_exact": True,
+                "linear_srgb_scene_equivalent": True,
+                "declared_uint12_scene": True,
+            }
+        )
+        cfg = Config(
+            model="rpcc2",
+            precision="high",
+            do_ffc=False,
+            do_gc=False,
+            do_wb=False,
+            chart_detection={"device": device},
+            validation_options={"enabled": False},
+            CC_kwargs={"use_lut": False},
+        )
         pipe = ColorCorrection()
         _, _, failed = pipe.run(chart, name_="high", config=cfg)
         assert not failed, pipe.last_run
         assert pipe.models.metadata["fitting_policy"]["ui_runtime"] == "precision-f64-v1"
         probes = [
             np.repeat(np.arange(32768, 32832, dtype=np.uint16).reshape(8, 8, 1), 3, axis=2),
-            np.repeat((.5 + np.arange(4) * 2.0 ** -32).reshape(2, 2, 1), 3, axis=2),
+            np.repeat((0.5 + np.arange(4) * 2.0**-32).reshape(2, 2, 1), 3, axis=2),
         ]
         for index, values in enumerate(probes):
             typed = ImageData.from_array(values, color_space="srgb")
             corrected = pipe.predict_image(typed, stages="final")["CC"]
             levels = len(np.unique(corrected.reshape(-1, 3), axis=0))
             assert levels == values.shape[0] * values.shape[1], levels
-            record = write_image_data(folder / ("high-" + str(index) + ".tiff"),
-                                      corrected, dtype="float64")
+            record = write_image_data(
+                folder / ("high-" + str(index) + ".tiff"), corrected, dtype="float64"
+            )
             assert record.maximum_codec_error == 0
-        results.append({"precision_profile": pipe.models.metadata["fitting_policy"],
-                        "adjacent_uint16_levels": 64, "adjacent_float64_levels": 4})
+        results.append(
+            {
+                "precision_profile": pipe.models.metadata["fitting_policy"],
+                "adjacent_uint16_levels": 64,
+                "adjacent_float64_levels": 4,
+            }
+        )
     return results
 
 
@@ -674,22 +729,28 @@ def main():
     parser.add_argument("--forbid-source", type=Path)
     args = parser.parse_args()
     import ColorCorrectionPipeline
+
     package = Path(ColorCorrectionPipeline.__file__).resolve()
     if args.forbid_source:
         assert args.forbid_source.resolve() not in package.parents, package
-    result = {"version": version("ColorCorrectionPipeline"), "package": str(package),
-              "configurations": configurations(), "models": numerical_contracts(),
-              "fit_rendering": render_contracts(),
-              "batch_worker_budget": verify_batch_worker_budget(),
-              "historical_trainers": historical_trainers(),
-              "legacy_import_contracts": legacy_import_contracts(),
-              "precision_estimation": precision_estimation()}
+    result = {
+        "version": version("ColorCorrectionPipeline"),
+        "package": str(package),
+        "configurations": configurations(),
+        "models": numerical_contracts(),
+        "fit_rendering": render_contracts(),
+        "batch_worker_budget": verify_batch_worker_budget(),
+        "legacy_pickle_contracts": legacy_pickle_contracts(),
+        "precision_estimation": precision_estimation(),
+    }
     if args.photos:
         result["photos"] = photos(args.device)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, default=json_value) + "\n", encoding="utf8")
-    print("Passed v2 contracts, 36 model/basis/degree fits, historical trainers"
-          + (" and real-image roundtrip/precision checks." if args.photos else "."))
+    print(
+        "Passed v2 contracts, 36 model/basis/degree fits, legacy pickle loading"
+        + (" and real-image roundtrip/precision checks." if args.photos else ".")
+    )
 
 
 if __name__ == "__main__":

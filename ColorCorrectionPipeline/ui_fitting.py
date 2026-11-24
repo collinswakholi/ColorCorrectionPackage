@@ -11,7 +11,7 @@ import math
 
 import numpy as np
 
-from .colorimetry import srgb_to_linear, linear_to_srgb, xyz_to_rgb, lab_to_xyz, adapt_xyz, D65
+from .colorimetry import srgb_to_linear, linear_to_srgb
 from .portable_inference import owned_array
 
 VERSION = "ui-compatible-v1"
@@ -126,7 +126,9 @@ def options(parameters=None):
     if p.get("device", "cpu") != "cpu" or p.get("random_state", 42) != 42:
         raise ValueError("UI-compatible training uses CPU and fixed seed 42")
     combinations = p.get("include_combinations", True)
-    if type(combinations) is not bool or ((kind != "linear" or basis is not None) and combinations is not True):
+    if type(combinations) is not bool or (
+        (kind != "linear" or basis is not None) and combinations is not True
+    ):
         raise ValueError(
             "include_combinations=False is supported only by UI polynomial linear fitting"
         )
@@ -189,6 +191,10 @@ def options(parameters=None):
     return result
 
 
+# Row-wise CC preprocessing sub-block (see UIPredictor.predict_rgb).
+_POINTWISE_ROWS = 32768
+
+
 def features(linear_rgb, settings):
     """Native feature order, including the native 96-feature ceiling."""
     values = np.maximum(np.asarray(linear_rgb, dtype=np.float64), 0)
@@ -198,8 +204,10 @@ def features(linear_rgb, settings):
     if basis is not None:
         root = _root_features(values, settings["degree"])
         if basis == "hybrid":
-            polynomial = features(values, {"model": "linear", "degree": settings["degree"],
-                                           "include_combinations": True})
+            polynomial = features(
+                values,
+                {"model": "linear", "degree": settings["degree"], "include_combinations": True},
+            )
             expanded = np.concatenate((polynomial, root[..., 3:]), axis=-1)
         else:
             expanded = root
@@ -262,7 +270,7 @@ def _solve(matrix, rhs):
         return np.linalg.solve(matrix + np.eye(len(matrix)) * 1e-12, rhs)
 
 
-def fit_pls(x, y, ncomp, tol):
+def _fit_pls(x, y, ncomp, tol):
     """UI NIPALS: population scaling and convergence on the updated score vector."""
     xmean, ymean = x.mean(axis=0), y.mean(axis=0)
     xstd, ystd = x.std(axis=0), y.std(axis=0)
@@ -384,7 +392,7 @@ def _score(x, y, weights, biases, batch_norm):
     return float(score), loss
 
 
-def fit_nn(x, target, settings, *, linear_rgb=None):
+def _fit_nn(x, target, settings, *, linear_rgb=None):
     """Seed-42 residual MLP, with native full-chart/tiny-set selection semantics."""
     from .ui_nn import dense, dot, sum_rows, backend
 
@@ -565,7 +573,9 @@ class UIPredictor:
         values = np.asarray(design, dtype=np.float64)
         if self.settings["model"] == "nn":
             out = _forward(values, self.weights, self.biases)[0][-1]
-            residual = values[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+            residual = (
+                values[:, 1:4] if linear_rgb is None else np.asarray(linear_rgb, dtype=np.float64)
+            )
             if residual.shape != out.shape or not np.isfinite(residual).all():
                 raise ValueError("NN residual must contain the original linear RGB triples")
             return out + residual
@@ -581,11 +591,40 @@ class UIPredictor:
         ):
             raise ValueError("UI prediction requires finite encoded RGB in [0,1]")
         shape = values.shape
-        source = srgb_to_linear(values.reshape(-1, 3))
-        design = features(source, self.settings)
-        linear = np.clip(self.predict(design, linear_rgb=source) if "basis" in self.settings
-                         else self.predict(design), 0, 1)
-        return linear_to_srgb(linear).reshape(shape)
+        flat = values.reshape(-1, 3)
+        if len(flat) <= _POINTWISE_ROWS:
+            source = srgb_to_linear(flat)
+            design = features(source, self.settings)
+        else:
+            # Decoding and feature expansion are row-wise; filling owned buffers
+            # in sub-blocks avoids page-mapping many large temporaries. The
+            # estimator still receives the caller's complete block unchanged.
+            source = np.empty(flat.shape, dtype=np.float64)
+            design = None
+            for start in range(0, len(flat), _POINTWISE_ROWS):
+                end = start + _POINTWISE_ROWS
+                source[start:end] = srgb_to_linear(flat[start:end])
+                part = features(source[start:end], self.settings)
+                if design is None:
+                    design = np.empty((len(flat), part.shape[1]), dtype=part.dtype)
+                design[start:end] = part
+        linear = np.clip(
+            (
+                self.predict(design, linear_rgb=source)
+                if "basis" in self.settings
+                else self.predict(design)
+            ),
+            0,
+            1,
+        )
+        if len(linear) <= _POINTWISE_ROWS:
+            return linear_to_srgb(linear).reshape(shape)
+        result = np.empty(linear.shape, dtype=np.float64)
+        for start in range(0, len(linear), _POINTWISE_ROWS):
+            result[start : start + _POINTWISE_ROWS] = linear_to_srgb(
+                linear[start : start + _POINTWISE_ROWS]
+            )
+        return result.reshape(shape)
 
 
 def fit_ui(X, Y, parameters=None):
@@ -611,24 +650,22 @@ def fit_ui(X, Y, parameters=None):
     if kind == "nn":
         if "basis" in settings:
             source = srgb_to_linear(X)
-            weights, biases, detail = fit_nn(design, Y, settings, linear_rgb=source)
+            weights, biases, detail = _fit_nn(design, Y, settings, linear_rgb=source)
         else:
             from .ui_nn import design as training_design
 
             design = training_design(X, settings["degree"])
-            weights, biases, detail = fit_nn(design, Y, settings)
+            weights, biases, detail = _fit_nn(design, Y, settings)
         predictor = UIPredictor(settings, weights=weights, biases=biases)
     elif kind == "pls":
-        coefficients, intercept, detail = fit_pls(design, Y, settings["ncomp"], settings["tol"])
+        coefficients, intercept, detail = _fit_pls(design, Y, settings["ncomp"], settings["tol"])
         predictor = UIPredictor(settings, coefficients, intercept)
     else:
         affine = kind == "linear" and settings.get("basis") != "root"
         matrix = np.column_stack((design, np.ones(len(design)))) if affine else design
         coefficients = _solve(matrix.T @ matrix + np.eye(matrix.shape[1]) * _RIDGE, matrix.T @ Y)
         intercept = coefficients[-1] if affine else np.zeros(3)
-        predictor = UIPredictor(
-            settings, coefficients[:-1] if affine else coefficients, intercept
-        )
+        predictor = UIPredictor(settings, coefficients[:-1] if affine else coefficients, intercept)
     if "basis" in settings:
         condition = float(np.linalg.cond(design))
         detail.update(
@@ -676,7 +713,9 @@ def round_image(rgb):
 
 def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
     """Sample the UI's inner 70% on its native odd/even per-axis grid."""
-    count = _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
+    count = (
+        _integer(samples_per_axis, "samples_per_axis", 1, 63) if xy is None else samples_per_axis
+    )
     image = np.asarray(rgb)
     # Validate the full image, including unsampled pixels. Casting its extrema
     # preserves the original float32 range check without copying a float64 frame.
@@ -694,166 +733,19 @@ def sample_regions(rgb, quads, samples_per_axis=9, *, xy=None):
         raise ValueError("UI sampling requires normalized finite RGB")
     if xy is None:
         from .ui_native import points
+
         xy = points(q, count)
     h, w = image.shape[:2]
     x, y = np.clip(xy[..., 0], 0, w - 1), np.clip(xy[..., 1], 0, h - 1)
     x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
     x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
     dx, dy = (x - x0)[..., None], (y - y0)[..., None]
-    top = image[y0, x0].astype(np.float32, copy=False) * (1 - dx) + image[y0, x1].astype(np.float32, copy=False) * dx
-    bottom = image[y1, x0].astype(np.float32, copy=False) * (1 - dx) + image[y1, x1].astype(np.float32, copy=False) * dx
+    top = (
+        image[y0, x0].astype(np.float32, copy=False) * (1 - dx)
+        + image[y0, x1].astype(np.float32, copy=False) * dx
+    )
+    bottom = (
+        image[y1, x0].astype(np.float32, copy=False) * (1 - dx)
+        + image[y1, x1].astype(np.float32, copy=False) * dx
+    )
     return top * (1 - dy) + bottom * dy
-
-
-def fit_stage(owner, image, method, parameters):
-    from .modern import selected_face
-    from .core.correction import Regressor_Model, predict_
-    from .evaluation import grouped_cc_validation
-    from .colorimetry import D50
-
-    face = selected_face(owner, image, "CC_training")
-    x = np.asarray(face.measured_rgb)
-    truth = owner.reference_profile.canonical_lab_d50
-    y = xyz_to_rgb(
-        adapt_xyz(lab_to_xyz(truth, white=D50), D50, D65), encoding="linear-srgb", policy="preserve"
-    )
-    params = dict(parameters or {})
-    params["cc_method"] = method
-    from .ui_native import enabled as native_enabled, high_precision, reference as native_reference
-
-    if native_enabled(owner):
-        y = native_reference(owner.reference_profile)[0]
-    if high_precision(owner):
-        params.setdefault("use_lut", False)
-    predictor, report = fit_ui(x, y, params)
-    if native_enabled(owner):
-        report["details"]["ui_runtime"] = "precision-f64-v1" if high_precision(owner) else "native-v1"
-    settings = report["effective_parameters"]
-    model = Regressor_Model()
-    for name, value in settings.items():
-        if name not in ("model", "include_combinations", "lut_grid_size"):
-            setattr(model, name, deepcopy(value))
-    model._lut_grid_size = settings["lut_grid_size"]
-    model.fitting_version = VERSION
-    model.model = predictor
-    model.fit_report = report
-    model._lut_predict_fn = model._predict_for_lut if model.use_lut else None
-    owner.models.model_cc = (model, deepcopy(settings), "ours")
-    selection = {
-        "policy": "all measured cells",
-        "source": "fixed UI sampling",
-        "excluded_cell_ids": [],
-        "reference_assisted_values": False,
-        "independent_cells": len(x),
-    }
-    numerical = {
-        "fit": report,
-        "selection": selection,
-        "sampling": "native float32 bilinear; inner .70; per-axis grid",
-    }
-    if owner.validation_options.get("enabled", True):
-
-        def fit_predict(a, b, g, test):
-            fold_settings = dict(settings)
-            # The UI chooses batch size from each fold's actual training rows.
-            fold_settings.pop("batch_size", None)
-            fitted, _ = fit_ui(a, b, fold_settings)
-            return fitted.predict_rgb(test)
-
-        def metric(expected, predicted, indices=None):
-            if indices is None:
-                raise ValueError("UI validation requires original cell indices")
-            return owner.color_semantics.delta_e00(
-                predicted, truth[np.asarray(indices)], input_encoding="srgb"
-            )
-
-        numerical["validation"] = grouped_cc_validation(
-            x,
-            y,
-            np.asarray(face.cell_ids),
-            fit_predict,
-            n_splits=owner.validation_options.get("n_splits", 4),
-            random_state=owner.validation_options.get("random_state", 42),
-            metric=metric,
-            metric_name="CIEDE2000 at common evaluation white",
-        )
-    else:
-        numerical["validation"] = {
-            "status": "unavailable",
-            "reason": "disabled by caller",
-            "scope": "CC-only conditional on fitted upstream stages",
-        }
-    owner.numerical_report["CC"] = numerical
-    if high_precision(owner) or "basis" in settings:
-        from .prediction import chunked_cc
-
-        corrected = chunked_cc(image, owner.models.model_cc, 65536)
-    else:
-        corrected = predict_(image, model)
-    corrected = np.clip(corrected, 0, 1)
-    return (corrected if high_precision(owner) else round_image(corrected)), {}, False
-
-
-_UI_CLASSIC_LAB = (
-    (37.54, 14.37, 14.92),
-    (64.66, 19.27, 17.5),
-    (49.32, -3.82, -22.54),
-    (43.46, -12.74, 22.72),
-    (54.94, 9.61, -24.79),
-    (70.48, -32.26, -0.37),
-    (62.73, 35.83, 56.5),
-    (39.43, 10.75, -45.17),
-    (50.57, 48.64, 16.67),
-    (30.1, 22.54, -20.87),
-    (71.77, -24.13, 58.19),
-    (71.51, 18.24, 67.37),
-    (28.37, 15.42, -49.8),
-    (54.38, -39.72, 32.27),
-    (42.43, 51.05, 28.62),
-    (81.8, 2.67, 80.41),
-    (50.63, 51.28, -14.12),
-    (49.57, -29.71, -28.32),
-    (95.19, -1.03, 2.93),
-    (81.29, -0.57, 0.44),
-    (66.89, -0.75, -0.06),
-    (50.76, -0.13, 0.14),
-    (35.63, -0.46, -0.48),
-    (20.64, 0.07, -0.46),
-)
-
-
-def default_reference():
-    """UI Classic24 truth with its declared white; do not relabel D50 values."""
-    from .contracts import ReferenceProfile
-
-    base = ReferenceProfile.classic24()
-    lab = np.array(
-        _UI_CLASSIC_LAB,
-        dtype=np.float64,
-    )
-    white = (0.34567, 0.35850)
-    xyz = adapt_xyz(lab_to_xyz(lab, white=white), white, D65)
-    return ReferenceProfile.from_values(
-        xyz,
-        color_space="xyz",
-        white=D65,
-        scale=1,
-        profile_id="ui-classic24",
-        revision=1,
-        names=base.names,
-        cell_ids=base.cell_ids,
-        neutral_ids=base.neutral_ids,
-    )
-
-
-def homography(source, destination):
-    """Solve the UI geometry in float64 without OpenCV's float32 point cast."""
-    matrix = np.zeros((8, 8), dtype=np.float64)
-    rhs = np.asarray(destination, dtype=np.float64).reshape(-1)
-    for index, ((x, y), (u, v)) in enumerate(zip(source, destination)):
-        matrix[2 * index] = [x, y, 1, 0, 0, 0, -u * x, -u * y]
-        matrix[2 * index + 1] = [0, 0, 0, x, y, 1, -v * x, -v * y]
-    try:
-        return np.r_[np.linalg.solve(matrix, rhs), 1.0].reshape(3, 3)
-    except np.linalg.LinAlgError:
-        return np.full((3, 3), np.nan)

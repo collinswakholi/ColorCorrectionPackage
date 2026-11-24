@@ -26,11 +26,12 @@ python -I /absolute/source/scripts/verify_installed.py --expect-numba no --forbi
 
 Install that same wheel with its `performance` extra and repeat using
 `--expect-numba yes` and a separate output path. The script checks interpreter
-and import isolation, linear/PLS/sklearn-NN/custom-Torch fitting, safe-bundle
-reload, prediction parity, guarded FFC, mixed-success and file-mode batches,
+and import isolation, safe-bundle export, reload and application of saved
+linear/PLS/sklearn-NN/custom-Torch models (fitting them was removed in 3.0),
+prediction parity, guarded FFC, mixed-success and file-mode batches,
 uint16 PNG and floating TIFF round trips, prepared CPU backends, honest fallback
 and cube export. The photo option fits, saves, reloads and applies an actual
-chart image under both staged and native UI policies. Native checks cover
+chart image under the default and native UI policies. Native checks cover
 safe reload, byte-input validation, prepared-mode rejection and actual optional
 image-kernel execution. A short residual NN fit is compared with its ordered
 NumPy reference, with the actual arithmetic backend recorded. Small training
@@ -47,10 +48,10 @@ of a distribution. Timing measurements are described separately in
 
 The 2.0 qualification also runs `scripts/verify_v2.py --photos` against installed
 base and performance environments. It checks all 36 solver/basis/degree
-requests, independent root-feature values, retained historical trainers,
-real-image replay, and adjacent uint16/float signals. Grouped configuration
+requests, independent root-feature values, rejection of the removed historical
+policies, legacy pickle loading, real-image replay, and adjacent uint16/float signals. Grouped configuration
 checks cover flat/grouped equivalence, explicit JSON layouts, immutable snapshots,
-conflicting aliases and real-image persistence. All six installed tutorials
+conflicting aliases and real-image persistence. All five installed tutorials
 run with bundled samples. The source archive is independently built
 and installed, then checked from a neutral directory for sample-resource
 mapping and executable quickstart behavior.
@@ -67,7 +68,7 @@ acceleration require their respective hardware checks.
 
 Numba is optional. Base installations use NumPy fallbacks; strict unavailable
 backend requests fail. Prepared CPU selection controls CC/LUT execution, while
-legacy gamma retains its historical Torch CUDA behavior. GPU chart detection
+saved legacy gamma models retain their historical Torch CUDA behavior. GPU chart detection
 has a separate provider policy. Torch and plotting remain mandatory because
 existing public imports require them.
 

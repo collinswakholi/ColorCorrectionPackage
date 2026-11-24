@@ -17,7 +17,7 @@ Windows tests cover Python 3.8, 3.12, 3.13 and 3.14. Cross-platform results come
 from CI. Qualification uses standard CPython builds with the GIL.
 
 Checks include isolated wheel installation, dependency consistency, actual
-sample-image detection, 36 model/basis/degree requests, historical trainers,
+sample-image detection, 36 model/basis/degree requests, legacy model loading,
 safe bundle replay, strict exports and precision-sensitive samples. The
 performance extra is tested separately so NumPy reference execution remains
 available when Numba is absent. The source archive is independently built and
@@ -27,7 +27,7 @@ installed, and the examples run outside the repository.
 
 On November 6, 2026, a clean binary-only installation under CPython 3.15.2
 failed on required dependency availability. ONNX Runtime 1.31.1 and
-scikit-image 0.26.0 lacked CPython 3.15 wheels. All maintained package Python
+scikit-image 0.26.0 (then a dependency; removed in 3.0.0) lacked CPython 3.15 wheels. All maintained package Python
 modules parsed under 3.15, but that syntax check cannot qualify a working
 installation. Python 3.15 is therefore outside the qualified version set.
 
@@ -45,7 +45,7 @@ Build the wheel with a qualified interpreter, create an isolated environment
 using the target interpreter, and install the wheel with binary dependencies:
 
 ```shell
-python -m pip install --only-binary=:all: dist/colorcorrectionpipeline-2.2.0-py3-none-any.whl
+python -m pip install --only-binary=:all: dist/colorcorrectionpipeline-3.0.0-py3-none-any.whl
 python -m pip check
 python -I scripts/verify_installed.py --expect-numba no --photo Images/Image_1.JPG --output base.json
 python -I scripts/verify_v2.py --photos --output base-v2.json

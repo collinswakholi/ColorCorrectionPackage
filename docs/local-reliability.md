@@ -15,14 +15,11 @@ readable white image: explicitly disable it when that image is unavailable.
 Calibration names must be filename stems. Windows drive-relative and NTFS
 alternate-stream qualifiers are rejected before decoding or persistence;
 POSIX filenames containing a colon remain supported.
-GC, WB and CC require a real chart during `run`; standalone legacy helpers retain
-their historical identity fallback unless `require_chart=True` is requested.
+GC, WB and CC require a real chart during `run`.
 FFC can succeed without chart metrics, which are reported as unavailable.
 
 Configuration owns supplied dictionaries and illuminants. `to_dict` returns an
-independent snapshot and `from_dict` does not mutate its argument. The FFC cache
-identity covers all white-image pixels, relevant configuration and automatic
-plane detector bytes, preventing stale reuse when weights change at the same path.
+independent snapshot and `from_dict` does not mutate its argument.
 
 ## Durable output
 
@@ -56,6 +53,7 @@ in `[0,1]`. Legacy uint8 white arrays retain their BGR convention.
 
 The default Classic24 ONNX detector supplies geometry from original pixels,
 independently of optional metrics, and reuses it within a run. Transformed images
-resample those canonical cells. Its measurements differ from OpenCV MCC; existing
-saved coefficients still apply without chart detection. See [detector settings](chart-detection.md),
+resample those canonical cells. Saved coefficients, including those fitted from
+the OpenCV MCC detector removed in 3.0, still apply without chart detection.
+See [detector settings](chart-detection.md),
 [GPU selection and recovery](gpu-detection.md) and the packaged model provenance.

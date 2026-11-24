@@ -1,8 +1,14 @@
 # Prepared execution
 
 For the default UI-native calibration, use `predict_image()` or `predict_batch()`.
-Those APIs apply the recorded precision and LUT settings. The prepared execution
-example below requires a calibration outside the UI-native execution family:
+Those APIs apply the recorded precision and LUT settings. Prepared execution
+requires a calibration outside the UI-native execution family: one saved by an
+earlier release with the `reproducible-v1`, `legacy-v1` or staged-v1 policy.
+Those policies can no longer be fitted (removed in 3.0; see
+[Migrating to 3.0](migration-3.md)), but their saved calibrations still load. A
+UI-native calibration raises "native UI models use predict_image/predict_batch".
+
+Load such a calibration, then prepare and reuse execution:
 
 ```python
 from ColorCorrectionPipeline import ColorCorrection, LutCache

@@ -1,16 +1,14 @@
 # Explicit color semantics and legacy compatibility
 
-`ColorSemantics()` identifies `legacy-v1`. Existing helper defaults, reference
-generation and saved-coefficient application keep their historical numerical
-paths. Opt in with `ColorSemantics(version="explicit-v1")` for the declared
-conversion/reference/evaluation contract. This version defaults to Bradford
-adaptation; `legacy-v1` records the existing CAT02 convention.
+New fits use `ColorSemantics(version="explicit-v1")`, the declared
+conversion/reference/evaluation contract, with Bradford adaptation and
+`fitting_domain="linear-rgb"`; `Config` selects it. `ColorSemantics()` still
+identifies `legacy-v1`, the CAT02 encoded-sRGB interpretation recorded by saved
+historical models. Those models load and apply unchanged, but `legacy-v1` can
+no longer be fitted (removed in 3.0; see [Migrating to 3.0](migration-3.md)).
 
-The legacy and reproducible fitting policies fit **encoded sRGB**, including when a typed
-linear-sRGB image is converted at its input boundary. An encoding choice does
-not silently replace CC with a linear-light estimator. Input/output encoding
-support is separate from the fitting domain. The pipeline must reject an
-output policy its stages cannot honor; legacy stages clip their outputs.
+Input/output encoding support is separate from the fitting domain. The pipeline
+must reject an output policy its stages cannot honor.
 
 ## Declared quantities
 
@@ -55,8 +53,7 @@ Lightness targets use a direct canonical-Lab→XYZ→CAT→working-Lab path. The
 not be reconstructed by decoding unclipped reference RGB with a legacy transfer
 function: negative-channel extensions can differ. For canonical LabD50
 `[65,120,-110]`, direct working L* is66.13847, while the legacy RGB round trip
-produces68.82213. This bypass preserves canonical meaning without changing the
-legacy polynomial curve-selection algorithm.
+produces68.82213. This bypass preserves canonical meaning.
 
 Pure `rgb_to_xyz`, `xyz_to_rgb`, `xyz_to_lab`, `lab_to_xyz`, and `adapt_xyz`
 helpers name their units/whites. `xyz_to_rgb` expects XYZ already at D65; it does
@@ -71,13 +68,9 @@ It requires same-shape arrays representing the same cells. Interpretation
 cannot be inferred from channel magnitudes. Treating linear pixels as encoded
 sRGB produces a demonstrably different score.
 
-The legacy `convert_to_lab(..., c_space="srgb")` remains compatible: it converts
-to sRGB/D65 XYZ and uses the supplied Lab white without an implicit CAT. Existing
-adaptation helpers accept a new optional `adaptation_transform` keyword, but its
-default explicitly pins the validated CAT02 transform. Their earlier Bradford
-documentation was incorrect for that legacy behavior and now identifies CAT02.
-Use the new explicit module for unambiguous encoding/white conversion; it is not
-a claim that historical helper outputs are physically correct for every input.
+The legacy `core.color_spaces` helpers (`convert_to_lab`, `adapt_chart`,
+`do_color_adaptation` and related functions) were removed in 3.0. Use the
+`colorimetry` functions above for encoding/white conversion.
 
 ## Verification and sources
 
@@ -96,6 +89,6 @@ This validates the numerical formula and units, not a physical chart or camera.
 No independent physical color-accuracy improvement is claimed by these software
 checks. A later full-pipeline validation and capture protocol is still required.
 
-The opt-in [UI-compatible fitting policy](ui-compatible-fitting.md) explicitly
+The [UI-compatible fitting policy](ui-compatible-fitting.md) explicitly
 selects `fitting_domain="linear-rgb"`. An input encoding alone does not select
-that algorithm. Other fitting policies continue to reject that domain.
+that algorithm.

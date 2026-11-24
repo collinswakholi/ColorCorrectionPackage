@@ -44,6 +44,7 @@ def _freeze_json(value):
 def _metadata(value):
     if not isinstance(value, Mapping):
         raise TypeError("provenance must be a JSON-compatible mapping")
+
     def validate_keys(item):
         if isinstance(item, Mapping):
             if any(not isinstance(key, str) for key in item):
@@ -53,6 +54,7 @@ def _metadata(value):
         elif isinstance(item, (list, tuple)):
             for nested in item:
                 validate_keys(nested)
+
     validate_keys(value)
     try:
         serialized = json.dumps(_plain(value), sort_keys=True, allow_nan=False)
@@ -77,7 +79,9 @@ def _readonly_array(value, shape=None, label="array"):
         raise ValueError("%s must contain finite values" % label)
     # A non-owning ndarray backed by immutable bytes cannot be made writable by
     # setting its flag back to True, unlike an ordinary writeable=False array.
-    return np.frombuffer(np.ascontiguousarray(array).tobytes(), dtype=array.dtype).reshape(array.shape)
+    return np.frombuffer(np.ascontiguousarray(array).tobytes(), dtype=array.dtype).reshape(
+        array.shape
+    )
 
 
 def _immutable_image_snapshot(value):
@@ -135,7 +139,7 @@ def _normalized_image_snapshot(source, lo, hi):
         if not math.isfinite(low) or not math.isfinite(high) or low < lo or high > hi:
             raise ValueError("source pixels lie outside the declared finite value_range")
         values -= lo
-        values /= hi-lo
+        values /= hi - lo
         return values
     # Fill the private destination directly, release every writable export, then
     # expose immutable bytes. No full-frame cast/subtract/divide temporaries.
@@ -148,14 +152,17 @@ def _normalized_image_snapshot(source, lo, hi):
             values = np.ndarray(source.shape, dtype=np.dtype("<f8"), buffer=buffer)
             try:
                 from ._image_numeric import try_normalize_unsigned
+
                 if not try_normalize_unsigned(source, values, lo, hi):
                     # Also overwrites every value after a partial backend failure.
                     np.copyto(values, source, casting="unsafe")
                     low, high = _image_bounds(values)
                     if not math.isfinite(low) or not math.isfinite(high) or low < lo or high > hi:
-                        raise ValueError("source pixels lie outside the declared finite value_range")
+                        raise ValueError(
+                            "source pixels lie outside the declared finite value_range"
+                        )
                     values -= lo
-                    values /= hi-lo
+                    values /= hi - lo
             finally:
                 del values
         payload = stream.getvalue()
@@ -164,7 +171,9 @@ def _normalized_image_snapshot(source, lo, hi):
 
 def _image_dtype(dtype):
     dtype = np.dtype(dtype)
-    return (dtype.kind == "u" and dtype.itemsize in (1, 2)) or (dtype.kind == "f" and dtype.itemsize in (2, 4, 8))
+    return (dtype.kind == "u" and dtype.itemsize in (1, 2)) or (
+        dtype.kind == "f" and dtype.itemsize in (2, 4, 8)
+    )
 
 
 def _text(value, label):
@@ -225,13 +234,22 @@ def _white(value):
             raise ValueError("source_white must be D50, D65, or an explicit xy pair")
         return normalized
     array = np.asarray(value, dtype=np.float64)
-    if array.shape != (2,) or not np.isfinite(array).all() or (array <= 0).any() or array.sum() >= 1:
+    if (
+        array.shape != (2,)
+        or not np.isfinite(array).all()
+        or (array <= 0).any()
+        or array.sum() >= 1
+    ):
         raise ValueError("source_white must be a finite physical xy pair")
     return tuple(float(v) for v in array)
 
 
 def _hash_parts(metadata, arrays=()):
-    digest = hashlib.sha256(json.dumps(_plain(metadata), sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf8"))
+    digest = hashlib.sha256(
+        json.dumps(_plain(metadata), sort_keys=True, separators=(",", ":"), allow_nan=False).encode(
+            "utf8"
+        )
+    )
     for array in arrays:
         digest.update(str(array.shape).encode("ascii"))
         digest.update(array.dtype.str.encode("ascii"))
@@ -244,7 +262,9 @@ def _check_keys(payload, allowed, required):
         raise TypeError("contract payload must be a mapping")
     extra, missing = set(payload) - set(allowed), set(required) - set(payload)
     if extra or missing:
-        raise ValueError("contract fields invalid: unknown=%s, missing=%s" % (sorted(extra), sorted(missing)))
+        raise ValueError(
+            "contract fields invalid: unknown=%s, missing=%s" % (sorted(extra), sorted(missing))
+        )
     _version(payload.get("version"))
 
 
@@ -332,14 +352,20 @@ class ImageData(_ImmutableContract):
         if not _image_dtype(dtype):
             raise ValueError("source_dtype must be uint8, uint16, or floating RGB")
         ranges = tuple(float(value) for value in self.source_range)
-        if len(ranges) != 2 or not all(math.isfinite(value) for value in ranges) or ranges[1] <= ranges[0]:
+        if (
+            len(ranges) != 2
+            or not all(math.isfinite(value) for value in ranges)
+            or ranges[1] <= ranges[0]
+        ):
             raise ValueError("source_range must be an increasing finite pair")
         if self.source_channel_order not in ("RGB", "BGR"):
             raise ValueError("source_channel_order must be RGB or BGR")
         orientation = _integer(self.source_orientation, "source_orientation")
         if orientation > 8 or not isinstance(self.orientation_applied, bool):
             raise ValueError("orientation must be EXIF 1..8 and applied flag must be boolean")
-        source_shape = tuple(self.source_shape) if self.source_shape is not None else tuple(pixels.shape)
+        source_shape = (
+            tuple(self.source_shape) if self.source_shape is not None else tuple(pixels.shape)
+        )
         if len(source_shape) != 3 or source_shape[2] != 3:
             raise ValueError("source_shape must be HxWx3")
         source_shape = tuple(_integer(v, "source_shape dimension") for v in source_shape)
@@ -359,8 +385,17 @@ class ImageData(_ImmutableContract):
         object.__setattr__(self, "digest", image_digest)
 
     @classmethod
-    def from_array(cls, array, *, channel_order="RGB", color_space="srgb", value_range=None,
-                   orientation=1, apply_orientation=True, provenance=None):
+    def from_array(
+        cls,
+        array,
+        *,
+        channel_order="RGB",
+        color_space="srgb",
+        value_range=None,
+        orientation=1,
+        apply_orientation=True,
+        provenance=None,
+    ):
         source = np.asarray(array).view()
         if not _image_dtype(source.dtype):
             raise TypeError("array dtype must be uint8, uint16, or floating")
@@ -372,7 +407,9 @@ class ImageData(_ImmutableContract):
         if orientation > 8 or not isinstance(apply_orientation, bool):
             raise ValueError("orientation must be EXIF 1..8 and apply_orientation boolean")
         if value_range is None:
-            value_range = (0.0, float(np.iinfo(source.dtype).max)) if source.dtype.kind == "u" else (0.0, 1.0)
+            value_range = (
+                (0.0, float(np.iinfo(source.dtype).max)) if source.dtype.kind == "u" else (0.0, 1.0)
+            )
         if not isinstance(value_range, (tuple, list)) or len(value_range) != 2:
             raise ValueError("value_range must be an explicit (minimum, maximum) pair")
         lo, hi = (float(v) for v in value_range)
@@ -389,10 +426,17 @@ class ImageData(_ImmutableContract):
             # The constructor validates this exact immutable, already-normalized snapshot.
         else:
             normalized = _normalized_image_snapshot(layout, lo, hi)
-        return cls(normalized, color_space=color_space, source_dtype=source.dtype.name,
-                   source_range=(lo, hi), source_channel_order=channel_order,
-                   source_orientation=orientation, orientation_applied=apply_orientation,
-                   source_shape=tuple(source.shape), provenance=provenance if provenance is not None else {})
+        return cls(
+            normalized,
+            color_space=color_space,
+            source_dtype=source.dtype.name,
+            source_range=(lo, hi),
+            source_channel_order=channel_order,
+            source_orientation=orientation,
+            orientation_applied=apply_orientation,
+            source_shape=tuple(source.shape),
+            provenance=provenance if provenance is not None else {},
+        )
 
     @property
     def channel_order(self):
@@ -403,11 +447,19 @@ class ImageData(_ImmutableContract):
         return self.pixels.shape
 
     def _metadata_fields(self):
-        return {"version": self.version, "color_space": self.color_space, "channel_order": "RGB",
-                "shape": list(self.pixels.shape), "source_dtype": self.source_dtype,
-                "source_range": list(self.source_range), "source_channel_order": self.source_channel_order,
-                "source_orientation": self.source_orientation, "orientation_applied": self.orientation_applied,
-                "source_shape": list(self.source_shape), "provenance": _plain(self.provenance)}
+        return {
+            "version": self.version,
+            "color_space": self.color_space,
+            "channel_order": "RGB",
+            "shape": list(self.pixels.shape),
+            "source_dtype": self.source_dtype,
+            "source_range": list(self.source_range),
+            "source_channel_order": self.source_channel_order,
+            "source_orientation": self.source_orientation,
+            "orientation_applied": self.orientation_applied,
+            "source_shape": list(self.source_shape),
+            "provenance": _plain(self.provenance),
+        }
 
     def to_metadata(self):
         return dict(self._metadata_fields(), digest=self.digest, pixel_digest=self.pixel_digest)
@@ -417,13 +469,30 @@ class ImageData(_ImmutableContract):
 
     @classmethod
     def from_dict(cls, payload):
-        allowed = {"version", "color_space", "channel_order", "shape", "source_dtype", "source_range",
-                   "source_channel_order", "source_orientation", "orientation_applied", "source_shape",
-                   "provenance", "digest", "pixel_digest", "pixels"}
+        allowed = {
+            "version",
+            "color_space",
+            "channel_order",
+            "shape",
+            "source_dtype",
+            "source_range",
+            "source_channel_order",
+            "source_orientation",
+            "orientation_applied",
+            "source_shape",
+            "provenance",
+            "digest",
+            "pixel_digest",
+            "pixels",
+        }
         _check_keys(payload, allowed, {"version", "pixels", "color_space"})
         if payload.get("channel_order", "RGB") != "RGB":
             raise ValueError("serialized canonical image channel_order must be RGB")
-        constructor = {key: value for key, value in payload.items() if key not in ("digest", "pixel_digest", "shape", "channel_order")}
+        constructor = {
+            key: value
+            for key, value in payload.items()
+            if key not in ("digest", "pixel_digest", "shape", "channel_order")
+        }
         result = cls(**constructor)
         if "shape" in payload and tuple(payload["shape"]) != result.shape:
             raise ValueError("serialized image shape does not match pixels")
@@ -437,13 +506,16 @@ class ImageData(_ImmutableContract):
         if self.color_space == "srgb":
             return self.pixels.copy()
         from .colorimetry import linear_to_srgb
+
         return np.asarray(linear_to_srgb(self.pixels, policy="raise"), dtype=np.float64).copy()
 
     def with_orientation_applied(self):
         """Normalize a deliberately pending orientation once, preserving source facts."""
         if self.orientation_applied:
             return self
-        return replace(self, pixels=_orient(self.pixels, self.source_orientation), orientation_applied=True)
+        return replace(
+            self, pixels=_orient(self.pixels, self.source_orientation), orientation_applied=True
+        )
 
     def to_bgr8(self):
         """Explicit nearest-integer 8-bit detector view, never canonical storage."""
@@ -498,16 +570,32 @@ class ReferenceProfile(_ImmutableContract):
             raise ValueError("unsupported source_color_space")
         white = _white(self.source_white)
         scale = float(self.source_scale)
-        allowed = (1.0,) if self.source_color_space == "lab" else (1.0, 100.0) if self.source_color_space == "xyz" else (1.0, 255.0, 65535.0)
+        allowed = (
+            (1.0,)
+            if self.source_color_space == "lab"
+            else (1.0, 100.0) if self.source_color_space == "xyz" else (1.0, 255.0, 65535.0)
+        )
         if isinstance(self.source_scale, bool) or not math.isfinite(scale) or scale not in allowed:
             raise ValueError("source_scale contradicts source_color_space")
-        if self.source_color_space in _RGB_SPACES and white != "D65" and white != (0.31271, 0.32902):
+        if (
+            self.source_color_space in _RGB_SPACES
+            and white != "D65"
+            and white != (0.31271, 0.32902)
+        ):
             raise ValueError("sRGB reference encodings require their D65 source white")
         if self.adaptation not in ("Bradford", "CAT02"):
             raise ValueError("adaptation must be explicitly Bradford or CAT02")
-        for key, value in (("revision", revision), ("layout", layout), ("names", names), ("cell_ids", cell_ids),
-                           ("neutral_ids", neutrals), ("canonical_lab_d50", values), ("source_white", white),
-                           ("source_scale", scale), ("provenance", _metadata(self.provenance))):
+        for key, value in (
+            ("revision", revision),
+            ("layout", layout),
+            ("names", names),
+            ("cell_ids", cell_ids),
+            ("neutral_ids", neutrals),
+            ("canonical_lab_d50", values),
+            ("source_white", white),
+            ("source_scale", scale),
+            ("provenance", _metadata(self.provenance)),
+        ):
             object.__setattr__(self, key, value)
         object.__setattr__(self, "digest", _hash_parts(self._metadata_fields(), (values,)))
 
@@ -516,56 +604,133 @@ class ReferenceProfile(_ImmutableContract):
         return tuple(self.cell_ids.index(cell) for cell in self.neutral_ids)
 
     def _metadata_fields(self):
-        return {"version": self.version, "profile_id": self.profile_id, "revision": self.revision,
-                "name": self.name, "names": list(self.names), "cell_ids": list(self.cell_ids),
-                "neutral_ids": list(self.neutral_ids), "layout": list(self.layout), "template_id": self.template_id,
-                "canonical_color_space": "lab", "canonical_white": "D50", "canonical_scale": 1,
-                "source_color_space": self.source_color_space, "source_white": _plain(self.source_white),
-                "source_scale": self.source_scale, "adaptation": self.adaptation, "provenance": _plain(self.provenance)}
+        return {
+            "version": self.version,
+            "profile_id": self.profile_id,
+            "revision": self.revision,
+            "name": self.name,
+            "names": list(self.names),
+            "cell_ids": list(self.cell_ids),
+            "neutral_ids": list(self.neutral_ids),
+            "layout": list(self.layout),
+            "template_id": self.template_id,
+            "canonical_color_space": "lab",
+            "canonical_white": "D50",
+            "canonical_scale": 1,
+            "source_color_space": self.source_color_space,
+            "source_white": _plain(self.source_white),
+            "source_scale": self.source_scale,
+            "adaptation": self.adaptation,
+            "provenance": _plain(self.provenance),
+        }
 
     def to_dict(self):
-        return dict(self._metadata_fields(), canonical_lab_d50=self.canonical_lab_d50.tolist(), digest=self.digest)
+        return dict(
+            self._metadata_fields(),
+            canonical_lab_d50=self.canonical_lab_d50.tolist(),
+            digest=self.digest,
+        )
 
     @classmethod
     def from_dict(cls, payload):
-        allowed = {"version", "profile_id", "revision", "name", "names", "cell_ids", "neutral_ids", "layout",
-                   "template_id", "canonical_color_space", "canonical_white", "canonical_scale", "source_color_space",
-                   "source_white", "source_scale", "adaptation", "provenance", "canonical_lab_d50", "digest"}
-        _check_keys(payload, allowed, {"version", "profile_id", "revision", "names", "canonical_lab_d50", "neutral_ids"})
-        if payload.get("canonical_color_space", "lab") != "lab" or payload.get("canonical_white", "D50") != "D50" or payload.get("canonical_scale", 1) != 1:
+        allowed = {
+            "version",
+            "profile_id",
+            "revision",
+            "name",
+            "names",
+            "cell_ids",
+            "neutral_ids",
+            "layout",
+            "template_id",
+            "canonical_color_space",
+            "canonical_white",
+            "canonical_scale",
+            "source_color_space",
+            "source_white",
+            "source_scale",
+            "adaptation",
+            "provenance",
+            "canonical_lab_d50",
+            "digest",
+        }
+        _check_keys(
+            payload,
+            allowed,
+            {"version", "profile_id", "revision", "names", "canonical_lab_d50", "neutral_ids"},
+        )
+        if (
+            payload.get("canonical_color_space", "lab") != "lab"
+            or payload.get("canonical_white", "D50") != "D50"
+            or payload.get("canonical_scale", 1) != 1
+        ):
             raise ValueError("canonical reference representation must be Lab D50 scale 1")
-        constructor = {key: value for key, value in payload.items() if key not in ("digest", "canonical_color_space", "canonical_white", "canonical_scale")}
+        constructor = {
+            key: value
+            for key, value in payload.items()
+            if key not in ("digest", "canonical_color_space", "canonical_white", "canonical_scale")
+        }
         result = cls(**constructor)
         _check_claimed_digest(payload, result.digest)
         return result
 
     @classmethod
-    def from_values(cls, values, *, color_space, white, scale, profile_id, revision, names, neutral_ids,
-                    adaptation="Bradford", retain_source=False, **kwargs):
+    def from_values(
+        cls,
+        values,
+        *,
+        color_space,
+        white,
+        scale,
+        profile_id,
+        revision,
+        names,
+        neutral_ids,
+        adaptation="Bradford",
+        retain_source=False,
+        **kwargs,
+    ):
         """Build canonical Lab D50 truth, optionally retaining owned source values.
 
         Native conversion validates retained coordinates against that truth;
         retaining provenance does not replace the canonical reference.
         """
         from .colorimetry import reference_values_to_lab_d50
-        canonical = reference_values_to_lab_d50(values, color_space=color_space, white=white,
-                                               scale=scale, adaptation=adaptation)
+
+        canonical = reference_values_to_lab_d50(
+            values, color_space=color_space, white=white, scale=scale, adaptation=adaptation
+        )
         if type(retain_source) is not bool:
             raise TypeError("retain_source must be boolean")
         if retain_source:
             provenance = dict(kwargs.get("provenance", {}))
             if "source_values" in provenance:
                 raise ValueError("retained source_values are supplied by the reference factory")
-            provenance["source_values"] = {"values": np.asarray(values,dtype=np.float64).tolist(),
-                "color_space": color_space, "white": _white(white), "scale": float(scale), "adaptation": adaptation}
+            provenance["source_values"] = {
+                "values": np.asarray(values, dtype=np.float64).tolist(),
+                "color_space": color_space,
+                "white": _white(white),
+                "scale": float(scale),
+                "adaptation": adaptation,
+            }
             kwargs["provenance"] = provenance
-        return cls(profile_id, revision, names, canonical, neutral_ids,
-                   source_color_space=color_space, source_white=white, source_scale=scale,
-                   adaptation=adaptation, **kwargs)
+        return cls(
+            profile_id,
+            revision,
+            names,
+            canonical,
+            neutral_ids,
+            source_color_space=color_space,
+            source_white=white,
+            source_scale=scale,
+            adaptation=adaptation,
+            **kwargs,
+        )
 
     @classmethod
     def classic24(cls):
         import colour
+
         chart = colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
         names = tuple(str(name) for name in chart.data)
         cells = tuple("r%dc%d" % (r + 1, c + 1) for r in range(4) for c in range(6))
@@ -574,23 +739,37 @@ class ReferenceProfile(_ImmutableContract):
         xy_y = np.asarray(list(chart.data.values()), dtype=np.float64)
         x, y, luminance = xy_y.T
         xyz = np.column_stack((x * luminance / y, luminance, (1 - x - y) * luminance / y))
-        return cls.from_values(xyz, color_space="xyz",
-                               white=np.asarray(chart.illuminant), scale=1,
-                               profile_id="classic24-after-2014", revision=1, names=names,
-                               neutral_ids=cells[-6:], cell_ids=cells,
-                               name="ColorChecker24 - After November 2014",
-                               provenance={"source": "colour.CCS_COLOURCHECKERS", "edition": "after-november-2014"})
+        return cls.from_values(
+            xyz,
+            color_space="xyz",
+            white=np.asarray(chart.illuminant),
+            scale=1,
+            profile_id="classic24-after-2014",
+            revision=1,
+            names=names,
+            neutral_ids=cells[-6:],
+            cell_ids=cells,
+            name="ColorChecker24 - After November 2014",
+            provenance={"source": "colour.CCS_COLOURCHECKERS", "edition": "after-november-2014"},
+        )
 
     def display_rgb(self, *, clip=True, adaptation=None):
         from .colorimetry import display_reference_rgb
-        return display_reference_rgb(self.canonical_lab_d50,
-                                     adaptation=adaptation or self.adaptation, clip=clip)
+
+        return display_reference_rgb(
+            self.canonical_lab_d50, adaptation=adaptation or self.adaptation, clip=clip
+        )
 
 
 def _quads(value, count, image_shape):
     quads = _readonly_array(value, (count, 4, 2), "quadrilaterals")
     h, w = image_shape
-    if (quads[:, :, 0] < 0).any() or (quads[:, :, 0] > w - 1).any() or (quads[:, :, 1] < 0).any() or (quads[:, :, 1] > h - 1).any():
+    if (
+        (quads[:, :, 0] < 0).any()
+        or (quads[:, :, 0] > w - 1).any()
+        or (quads[:, :, 1] < 0).any()
+        or (quads[:, :, 1] > h - 1).any()
+    ):
         raise ValueError("quadrilaterals must stay inside the declared image")
     edges = np.roll(quads, -1, axis=1) - quads
     next_edges = np.roll(edges, -1, axis=1)
@@ -664,53 +843,137 @@ class ChartObservation(_ImmutableContract):
             raise ValueError("observation color_space must be srgb or linear-srgb")
         if self.clipping_basis != "sampled-pixels":
             raise ValueError("clipping_basis must explicitly be sampled-pixels")
-        statuses = tuple(self.cell_statuses) if self.cell_statuses else tuple("clipped" if fraction > 0 else "measured" for fraction in fractions)
-        if len(statuses) != count or any(v not in ("measured", "clipped", "excluded", "estimated") for v in statuses):
+        statuses = (
+            tuple(self.cell_statuses)
+            if self.cell_statuses
+            else tuple("clipped" if fraction > 0 else "measured" for fraction in fractions)
+        )
+        if len(statuses) != count or any(
+            v not in ("measured", "clipped", "excluded", "estimated") for v in statuses
+        ):
             raise ValueError("cell_statuses must describe every declared cell")
-        if any(status == "measured" and fraction > 0 for status, fraction in zip(statuses, fractions)):
+        if any(
+            status == "measured" and fraction > 0 for status, fraction in zip(statuses, fractions)
+        ):
             raise ValueError("clipped samples cannot be labeled unqualified measured")
-        values = {"layout": layout, "cell_ids": cells, "image_shape": shape, "quadrilaterals": quads,
-                  "measured_rgb": measured, "clipped_fractions": fractions, "cell_statuses": statuses,
-                  "confidence": _unit(self.confidence, "confidence"),
-                  "sample_count": _integer(self.sample_count, "sample_count"),
-                  "clipping_threshold": _unit(self.clipping_threshold, "clipping_threshold", positive=True),
-                  "provenance": _metadata(self.provenance)}
+        values = {
+            "layout": layout,
+            "cell_ids": cells,
+            "image_shape": shape,
+            "quadrilaterals": quads,
+            "measured_rgb": measured,
+            "clipped_fractions": fractions,
+            "cell_statuses": statuses,
+            "confidence": _unit(self.confidence, "confidence"),
+            "sample_count": _integer(self.sample_count, "sample_count"),
+            "clipping_threshold": _unit(
+                self.clipping_threshold, "clipping_threshold", positive=True
+            ),
+            "provenance": _metadata(self.provenance),
+        }
         for key, value in values.items():
             object.__setattr__(self, key, value)
-        object.__setattr__(self, "digest", _hash_parts(self._metadata_fields(), (quads, measured, fractions)))
+        object.__setattr__(
+            self, "digest", _hash_parts(self._metadata_fields(), (quads, measured, fractions))
+        )
 
     @property
     def area(self):
         quads = self.quadrilaterals
-        return float(np.abs(np.sum(quads[:, :, 0] * np.roll(quads[:, :, 1], -1, axis=1) - quads[:, :, 1] * np.roll(quads[:, :, 0], -1, axis=1), axis=1)).sum() * 0.5)
+        return float(
+            np.abs(
+                np.sum(
+                    quads[:, :, 0] * np.roll(quads[:, :, 1], -1, axis=1)
+                    - quads[:, :, 1] * np.roll(quads[:, :, 0], -1, axis=1),
+                    axis=1,
+                )
+            ).sum()
+            * 0.5
+        )
 
     def validate_reference(self, profile):
         if not isinstance(profile, ReferenceProfile):
             raise TypeError("reference assignment requires ReferenceProfile")
-        if self.reference_digest != profile.digest or self.template_id != profile.template_id or self.layout != profile.layout or self.cell_ids != profile.cell_ids:
-            raise ValueError("observation reference assignment, template, or ordered cell IDs do not match")
+        if (
+            self.reference_digest != profile.digest
+            or self.template_id != profile.template_id
+            or self.layout != profile.layout
+            or self.cell_ids != profile.cell_ids
+        ):
+            raise ValueError(
+                "observation reference assignment, template, or ordered cell IDs do not match"
+            )
         return self
 
     def _metadata_fields(self):
-        return {"version": self.version, "chart_id": self.chart_id, "face_id": self.face_id,
-                "reference_digest": self.reference_digest, "cell_ids": list(self.cell_ids), "layout": list(self.layout),
-                "template_id": self.template_id, "color_space": self.color_space, "stage": self.stage,
-                "confidence": self.confidence, "image_shape": list(self.image_shape),
-                "cell_statuses": list(self.cell_statuses), "sample_count": self.sample_count,
-                "clipping_threshold": self.clipping_threshold, "clipping_basis": self.clipping_basis,
-                "provenance": _plain(self.provenance)}
+        return {
+            "version": self.version,
+            "chart_id": self.chart_id,
+            "face_id": self.face_id,
+            "reference_digest": self.reference_digest,
+            "cell_ids": list(self.cell_ids),
+            "layout": list(self.layout),
+            "template_id": self.template_id,
+            "color_space": self.color_space,
+            "stage": self.stage,
+            "confidence": self.confidence,
+            "image_shape": list(self.image_shape),
+            "cell_statuses": list(self.cell_statuses),
+            "sample_count": self.sample_count,
+            "clipping_threshold": self.clipping_threshold,
+            "clipping_basis": self.clipping_basis,
+            "provenance": _plain(self.provenance),
+        }
 
     def to_dict(self):
-        return dict(self._metadata_fields(), quadrilaterals=self.quadrilaterals.tolist(),
-                    measured_rgb=self.measured_rgb.tolist(), clipped_fractions=self.clipped_fractions.tolist(), digest=self.digest)
+        return dict(
+            self._metadata_fields(),
+            quadrilaterals=self.quadrilaterals.tolist(),
+            measured_rgb=self.measured_rgb.tolist(),
+            clipped_fractions=self.clipped_fractions.tolist(),
+            digest=self.digest,
+        )
 
     @classmethod
     def from_dict(cls, payload):
-        allowed = {"version", "chart_id", "face_id", "reference_digest", "cell_ids", "layout", "template_id",
-                   "color_space", "stage", "confidence", "image_shape", "cell_statuses", "sample_count",
-                   "clipping_threshold", "clipping_basis", "provenance", "quadrilaterals", "measured_rgb",
-                   "clipped_fractions", "digest"}
-        _check_keys(payload, allowed, {"version", "chart_id", "face_id", "reference_digest", "cell_ids", "quadrilaterals", "measured_rgb", "clipped_fractions", "confidence", "image_shape"})
+        allowed = {
+            "version",
+            "chart_id",
+            "face_id",
+            "reference_digest",
+            "cell_ids",
+            "layout",
+            "template_id",
+            "color_space",
+            "stage",
+            "confidence",
+            "image_shape",
+            "cell_statuses",
+            "sample_count",
+            "clipping_threshold",
+            "clipping_basis",
+            "provenance",
+            "quadrilaterals",
+            "measured_rgb",
+            "clipped_fractions",
+            "digest",
+        }
+        _check_keys(
+            payload,
+            allowed,
+            {
+                "version",
+                "chart_id",
+                "face_id",
+                "reference_digest",
+                "cell_ids",
+                "quadrilaterals",
+                "measured_rgb",
+                "clipped_fractions",
+                "confidence",
+                "image_shape",
+            },
+        )
         result = cls(**{key: value for key, value in payload.items() if key != "digest"})
         _check_claimed_digest(payload, result.digest)
         return result
@@ -724,8 +987,13 @@ class ChartObservation(_ImmutableContract):
             raise ValueError("samples must be finite normalized RGB")
         threshold = _unit(clipping_threshold, "clipping_threshold", positive=True)
         fractions = np.mean(np.any(samples >= threshold, axis=2), axis=1)
-        return cls(measured_rgb=samples.mean(axis=1), clipped_fractions=fractions,
-                   sample_count=samples.shape[1], clipping_threshold=threshold, **kwargs)
+        return cls(
+            measured_rgb=samples.mean(axis=1),
+            clipped_fractions=fractions,
+            sample_count=samples.shape[1],
+            clipping_threshold=threshold,
+            **kwargs,
+        )
 
 
 @dataclass(frozen=True, eq=False)
@@ -747,26 +1015,47 @@ class ObservationSet(_ImmutableContract):
         keys = [(value.chart_id, value.face_id) for value in observations]
         if len(set(keys)) != len(keys):
             raise ValueError("chart/face identities must be unique within one observation set")
-        if len({value.stage for value in observations}) > 1 or len({value.image_shape for value in observations}) > 1:
+        if (
+            len({value.stage for value in observations}) > 1
+            or len({value.image_shape for value in observations}) > 1
+        ):
             raise ValueError("one observation set must describe one stage and image shape")
         if not observations:
             _text(self.unavailable_reason, "unavailable_reason for empty observations")
         elif self.unavailable_reason is not None:
             raise ValueError("a populated observation set cannot be marked unavailable")
         object.__setattr__(self, "observations", observations)
-        object.__setattr__(self, "digest", _hash_parts({"version": self.version, "source_digest": self.source_digest,
-                                                     "unavailable_reason": self.unavailable_reason,
-                                                     "observations": [value.digest for value in observations]}))
+        object.__setattr__(
+            self,
+            "digest",
+            _hash_parts(
+                {
+                    "version": self.version,
+                    "source_digest": self.source_digest,
+                    "unavailable_reason": self.unavailable_reason,
+                    "observations": [value.digest for value in observations],
+                }
+            ),
+        )
 
     def select_face(self, policy="highest-confidence", *, chart_id=None, face_id=None):
         if policy not in ("highest-confidence", "largest"):
             raise ValueError("face policy must be highest-confidence or largest")
-        selected = [value for value in self.observations if (chart_id is None or value.chart_id == chart_id) and (face_id is None or value.face_id == face_id)]
+        selected = [
+            value
+            for value in self.observations
+            if (chart_id is None or value.chart_id == chart_id)
+            and (face_id is None or value.face_id == face_id)
+        ]
         if not selected:
             raise ValueError("no matching chart face is available")
         if (chart_id is not None or face_id is not None) and len(selected) != 1:
             raise ValueError("chart/face selection is ambiguous; supply both identities")
-        key = (lambda value: (-value.confidence, -value.area, value.chart_id, value.face_id)) if policy == "highest-confidence" else (lambda value: (-value.area, -value.confidence, value.chart_id, value.face_id))
+        key = (
+            (lambda value: (-value.confidence, -value.area, value.chart_id, value.face_id))
+            if policy == "highest-confidence"
+            else (lambda value: (-value.area, -value.confidence, value.chart_id, value.face_id))
+        )
         return min(selected, key=key)
 
     def validate_reference(self, profile):
@@ -775,17 +1064,35 @@ class ObservationSet(_ImmutableContract):
         return self
 
     def to_dict(self):
-        return {"version": self.version, "source_digest": self.source_digest, "unavailable_reason": self.unavailable_reason,
-                "observations": [value.to_dict() for value in self.observations], "digest": self.digest}
+        return {
+            "version": self.version,
+            "source_digest": self.source_digest,
+            "unavailable_reason": self.unavailable_reason,
+            "observations": [value.to_dict() for value in self.observations],
+            "digest": self.digest,
+        }
 
     @classmethod
     def from_dict(cls, payload):
-        _check_keys(payload, {"version", "source_digest", "unavailable_reason", "observations", "digest"},
-                    {"version", "source_digest", "observations"})
-        result = cls(tuple(ChartObservation.from_dict(value) for value in payload["observations"]),
-                     payload["source_digest"], payload.get("unavailable_reason"), payload["version"])
+        _check_keys(
+            payload,
+            {"version", "source_digest", "unavailable_reason", "observations", "digest"},
+            {"version", "source_digest", "observations"},
+        )
+        result = cls(
+            tuple(ChartObservation.from_dict(value) for value in payload["observations"]),
+            payload["source_digest"],
+            payload.get("unavailable_reason"),
+            payload["version"],
+        )
         _check_claimed_digest(payload, result.digest)
         return result
 
 
-__all__ = ["CONTRACT_VERSION", "ImageData", "ReferenceProfile", "ChartObservation", "ObservationSet"]
+__all__ = [
+    "CONTRACT_VERSION",
+    "ImageData",
+    "ReferenceProfile",
+    "ChartObservation",
+    "ObservationSet",
+]

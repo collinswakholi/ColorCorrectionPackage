@@ -2,9 +2,12 @@
 
 New calibrations use the UI-native workflow with RPCC2 as the default. Select
 the solver, feature basis and degree directly. The historical ours/conv
-terminology is retired from the primary model menu. Existing ML and
-conventional training can still run with their original numerical policies,
-and supported calibration files retain their recorded predictions.
+terminology is retired from the primary model menu. Supported calibration
+files retain their recorded predictions.
+
+> The historical training policies that 2.x kept for refits (`legacy-v1`,
+> `reproducible-v1`, staged-v1, API-1 configurations) were removed in 3.0.
+> Models saved with them still load and apply. See [Migrating to 3.0](migration-3.md).
 
 Grouped configuration is an additive way to express that same recipe. It places
 step switches beside their controls without changing fitted numbers, existing
@@ -30,14 +33,17 @@ needed.
 
 To reproduce a released 1.x environment, pin the
 original package and dependencies, for example `pip install ColorCorrectionPipeline==1.5.0`.
+To refit with the `legacy-v1`, `reproducible-v1` or staged `ui-compatible-v1`
+recipes, which 3.0.0 removed, pin `ColorCorrectionPipeline==2.3.0`; models saved
+by those recipes still load and apply in 3.0.0 (see [migration-3.md](migration-3.md)).
 
 ## Migrating a conventional CCM trained on JPEGs
 
 Use 2.x for new calibrations. In the PyPI releases from 1.1.7 through 1.4.6,
 the conventional (`conv`) path fitted and applied its matrix in encoded sRGB.
 Version 1.5.0 added an opt-in linear-light CCM using
-`Config(fitting_policy="ui-compatible-v1", CC_kwargs={"model": "ccm"}, check_saturation=False)`.
-In 2.x, new fits use linear RGB by default. Choose `model="3x3"` for a matrix
+`Config(fitting_policy="ui-compatible-v1", CC_kwargs={"model": "ccm"}, check_saturation=False)`
+(the staged-v1 runtime, which 3.0 can no longer fit). In 2.x, new fits use linear RGB by default. Choose `model="3x3"` for a matrix
 or leave the model unspecified for RPCC2.
 
 For an ordinary sRGB JPEG, keep the default sRGB input encoding. The modern
@@ -59,12 +65,10 @@ you calibrated without a white field, set `do_ffc=False` and omit `"white.jpg"`.
 Carry over the applicable stage and reference settings for your captures.
 
 To reproduce a historical result, load the original bundle. Its coefficients
-belong to the domain in which they were fitted. For a new fit using the old
-recipe, keep its CC options and specify `fitting_policy="legacy-v1"`. An
-old-style `CC_kwargs={"cc_method": "conv"}` with an omitted fitting policy
-still selects encoded sRGB. The package logs a warning when that fit reaches
-the CC stage. A saved configuration with a recorded policy can be used for a quiet
-refit. Loading and applying a bundle uses its recorded calibration.
+belong to the domain in which they were fitted. Loading and applying a bundle
+uses its recorded calibration. Refitting the old encoded-sRGB recipe
+(`fitting_policy="legacy-v1"`, or `CC_kwargs={"cc_method": "conv"}` without a
+`model`) was removed in 3.0; see [Migrating to 3.0](migration-3.md).
 
 ## Group existing controls by step
 
@@ -113,14 +117,12 @@ must have the same type as well as value (`True` versus `1`, or `2` versus
 
 `to_dict()` retains its existing flat representation. `to_grouped_dict()` is the
 explicit nested JSON form with `layout="grouped-v1"` and `api_version=2`;
-`Config.from_dict` reads that marker. An unversioned flat dictionary still means
-API 1. To deliberately interpret a new unversioned mapping as API 2, supply
-`source_version=2`. Configuration interpretation, grouped layout version,
+`Config.from_dict` reads that marker. In 3.0 an unversioned flat dictionary
+raises instead of being read as API 1; supply `source_version=2` to interpret
+it as API 2. Configuration interpretation, grouped layout version,
 numerical runtime and bundle schema are separate version domains.
 
-Grouped controls target modern API-2 UI-family configurations. Historical
-training stays in its explicit flat form; its configuration cannot be silently
-converted to a native residual NN by grouping a similarly named method. The
+Grouped controls target modern API-2 UI-family configurations. The
 grouped API does not add export or prepared-execution wrappers to `Config`:
 use `write_image_data` and the existing runtime-qualified `ExecutionOptions`
 API for those operations.
@@ -167,40 +169,24 @@ provides 24 measured cells, while a degree-four hybrid model has 53 nonconstant
 features. Regularization can provide a numerical fit, but a low training-chart
 error does not establish performance on other colors or captures.
 
-## Preserve a historical training configuration
+## Historical training configurations
 
-Explicit historical policies retain their respective trainers, domains,
-sampling and effective defaults.
+Training with the historical policies (`legacy-v1`, `reproducible-v1`, the
+sklearn/Torch custom NN, API-1 configuration dictionaries) was removed in 3.0.
+Calibrations saved with them still load and apply. See
+[Migrating to 3.0](migration-3.md).
 
-```python
-historical = Config(
-    fitting_policy="legacy-v1",
-    CC_kwargs={
-        "mtd": "custom", "degree": 2, "hidden_layers": [64],
-        "optim_type": "Adam", "learning_rate": 0.001,
-        "max_iterations": 1000, "batch_size": 16,
-        "patience": 10, "dropout_rate": 0.2,
-    },
-)
-
-# Serialized v1 configurations are interpreted through their recorded policy.
-restored_config = Config.from_dict(previous_config_dictionary)
-```
-
-| Previous usage | 2.0 use |
+| Previous usage | Current use |
 | --- | --- |
 | A new `Config()` | UI-native RPCC2. Refitting intentionally uses the new workflow. |
-| Explicit `legacy-v1` or `reproducible-v1` | Refit the original sklearn/Torch or conventional recipe with its working settings. |
 | Explicit `ui-native-v1` with `CC_kwargs={"model": "rpcc3"}` | Keep that config for exact workflow reproduction, or select `model="rpcc3"` for a new v2 calibration with otherwise matched settings. |
 | A safe `.ccpb` calibration | Call `ColorCorrection().load_bundle(path)` and apply it without retraining. |
 | A legacy pickle | Use only the explicitly trusted-file loading API. |
-| Old settings above degree four | Retain the historical policy or apply the stored calibration. Never clamp a saved degree. |
+| Saved settings above degree four | Apply the stored calibration. A saved degree is never clamped. |
 
 Historical sklearn MLP and Torch custom NN are distinct from the UI residual
 network. Similar method names, hidden widths and seeds do not reconstruct their
-equations. Preserve the original policy with the settings when reproducing an
-old result. Historical higher-degree limits, aliases, stopping settings and
-effective controls are handled by their versioned training path.
+equations; apply the saved model to reproduce an old result.
 
 ## Precision and input contracts
 
@@ -247,7 +233,6 @@ omitting `--white` disables FFC. `--no-white` disables it for bundled samples.
 python -m ColorCorrectionPipeline.examples.quickstart --output run-default
 python -m ColorCorrectionPipeline.examples.quickstart --no-white --output run-no-white
 python -m ColorCorrectionPipeline.examples.compare_bases --output comparison --models linear,pls,nn --bases polynomial,root,hybrid --degrees 2,3,4 --pls-components 3
-python -m ColorCorrectionPipeline.examples.legacy_training --method custom --iterations 100 --output old-torch
 python -m ColorCorrectionPipeline.examples.high_precision --output precision-demo
 python -m ColorCorrectionPipeline.examples.apply_bundle --bundle run-default/calibration.ccpb --image scene.png --output replay
 python -m ColorCorrectionPipeline.examples.customizable --write-settings settings.json
@@ -295,8 +280,8 @@ capture with a measured reference is required for that accuracy claim.
 
 The standalone `scripts/verify_v2.py` checks the 36 solver/basis/degree requests,
 feature counts, independent Finlayson root values, exposure scaling of the
-root basis, zero-residual NN identity, legacy trainer operation, invalid
-configurations and serialization. Add `--photos` for real calibration,
+root basis, zero-residual NN identity, legacy pickle loading, rejection of the
+removed policies, invalid configurations and serialization. Add `--photos` for real calibration,
 safe-bundle replay, strict export and adjacent uint16/float64 checks.
 
 ```shell

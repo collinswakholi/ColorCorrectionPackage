@@ -1,13 +1,16 @@
-"""Bounded-memory CPU execution of recorded UI image equations.
+"""Apply recorded UI image equations to whole images.
 
-Staged calibrations retain each float32 boundary. Native calibrations retain
-their recorded joint FFC/GC conversion. Guarded optional execution falls back
-to the corresponding reference implementation when a kernel cannot run.
+``predict`` is the entry point for native and high-precision UI calibrations:
+it runs the fused Numba kernel (``try_execute``) when it can and otherwise the
+reference equations of :mod:`ColorCorrectionPipeline.ui_native`, in bounded
+blocks. Staged calibrations retain each float32 boundary. Native calibrations
+retain their recorded joint FFC/GC conversion.
 """
 
 import logging
 import numpy as np
 
+from . import ui_native
 from .core import accel
 
 _enabled = accel.HAS_NUMBA
@@ -108,7 +111,10 @@ if accel.HAS_NUMBA:
             c00 = table[r0, g0, b0, channel] * wr + table[r0 + 1, g0, b0, channel] * rd
             c01 = table[r0, g0, b0 + 1, channel] * wr + table[r0 + 1, g0, b0 + 1, channel] * rd
             c10 = table[r0, g0 + 1, b0, channel] * wr + table[r0 + 1, g0 + 1, b0, channel] * rd
-            c11 = table[r0, g0 + 1, b0 + 1, channel] * wr + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
+            c11 = (
+                table[r0, g0 + 1, b0 + 1, channel] * wr
+                + table[r0 + 1, g0 + 1, b0 + 1, channel] * rd
+            )
             c0, c1 = c00 * wg + c10 * gd, c01 * wg + c11 * gd
             rgb[channel] = np.float32(min(1.0, max(0.0, c0 * wb + c1 * bd)))
 
@@ -159,8 +165,18 @@ if accel.HAS_NUMBA:
                     if gamma and native:
                         r, g, b = source_r, source_g, source_b
                     rr, gg, bb = _color(
-                        r, g, b, stage_gain, knots, coefficients, gamma,
-                        forward, inverse, white, decodes, native,
+                        r,
+                        g,
+                        b,
+                        stage_gain,
+                        knots,
+                        coefficients,
+                        gamma,
+                        forward,
+                        inverse,
+                        white,
+                        decodes,
+                        native,
                     )
                     r, g, b = np.float64(rr), np.float64(gg), np.float64(bb)
                 elif stage == 2 and len(wb):
@@ -198,8 +214,20 @@ if accel.HAS_NUMBA:
 
         workers = worker_count(len(flat), 65536)
         output = np.empty((len(retained), len(flat), 3), dtype=np.float64)
-        parameters = (knots, coefficients, wb, table, stop, retained, forward,
-                      inverse, white, decodes, native, native_codes)
+        parameters = (
+            knots,
+            coefficients,
+            wb,
+            table,
+            stop,
+            retained,
+            forward,
+            inverse,
+            white,
+            decodes,
+            native,
+            native_codes,
+        )
         tile_size = chunk_pixels or len(flat)
 
         def fill(start, end):
@@ -218,28 +246,35 @@ if accel.HAS_NUMBA:
         return output
 
 
-def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=None, fit_policy=None):
+def try_execute(
+    image,
+    models,
+    selected,
+    *,
+    native_codes=False,
+    chunk_pixels=None,
+    fit_policy=None,
+    ffc_domain=None,
+):
     """Return owned stage arrays, or None to retain the ordinary reference path."""
     global _enabled, _decode_values
     policy = models.metadata.get("fitting_policy", {}) if fit_policy is None else fit_policy
+    if ffc_domain is None:
+        ffc_domain = ui_native.ffc_domain(models)
     if (
         not _enabled
         or policy.get("version") != "ui-compatible-v1"
         or policy.get("ui_runtime") == "precision-f64-v1"
+        # The fused kernel implements only the historical L* gain; the opt-in
+        # linear-light FFC domain always uses the reference equations.
+        or (ffc_domain != "lightness" and models.model_ffc is not None)
     ):
         return None
-    from . import modern, ui_stages
-    from .core.correction import Regressor_Model, _ensure_lut
+    from .core.correction import Regressor_Model
     from .core.execution import _tone_parameters
-    from .core.lut_cache import inference_identity
     from .ui_fitting import UIPredictor
     from .colorimetry import _RGB_TO_XYZ, _XYZ_TO_RGB, white_xyz, D65
 
-    if (
-        modern.apply_tone is not modern._REFERENCE_APPLY_TONE
-        or ui_stages.apply_ffc is not ui_stages._REFERENCE_APPLY_FFC
-    ):
-        return None
     order = ("FFC", "GC", "WB", "CC")
     indices = np.array([i for i, name in enumerate(order) if name in selected], dtype=np.int64)
     stop = int(indices[-1])
@@ -282,16 +317,14 @@ def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=Non
             or type(model.model) is not UIPredictor
             or not model.use_lut
             or image.shape[0] * image.shape[1] < model.lut_min_pixels
-            or inference_identity(model)[0] is None
-            or not _ensure_lut(model)
         ):
             return None
-        table = model._lut
-    from .ui_native import RUNTIME
-
-    native = policy.get("ui_runtime") == RUNTIME
+        table = model.lut_table(identified=True)
+        if table is None:
+            return None
+    native = policy.get("ui_runtime") == ui_native.RUNTIME
     if native:
-        from .ui_native import RGB_TO_XYZ as forward, XYZ_TO_RGB as inverse, WHITE as white
+        forward, inverse, white = ui_native.RGB_TO_XYZ, ui_native.XYZ_TO_RGB, ui_native.WHITE
     else:
         forward, inverse, white = _RGB_TO_XYZ, _XYZ_TO_RGB, white_xyz(D65)
     try:
@@ -322,3 +355,158 @@ def try_execute(image, models, selected, *, native_codes=False, chunk_pixels=Non
     if not np.isfinite(values).all():
         raise FloatingPointError("UI image stages produced nonfinite data")
     return {order[int(i)]: value.reshape(image.shape) for i, value in zip(indices, values)}
+
+
+def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
+    """Apply native or high-precision UI models: the fused kernel, else the reference.
+
+    ``native_codes`` marks byte-decoded input whose float64 values hold code/255.
+    """
+    domain = ui_native.ffc_domain(models)
+    if ui_native.high_precision(models):
+        return _predict_high(image, models, selected, chunk_pixels, domain)
+    result = try_execute(
+        image, models, selected, native_codes=native_codes, chunk_pixels=chunk_pixels
+    )
+    if result is not None:
+        return result
+    from .core.correction import chunked_cc, predict_
+
+    source = (
+        ui_native.normalize_codes(image)
+        if native_codes
+        else np.asarray(image, dtype=np.float32).astype(np.float64)
+    )
+    current = source
+    result = {}
+    order = ("FFC", "GC", "WB", "CC")
+    stop = max(order.index(k) for k in selected)
+    gain = models.model_ffc
+    curve = models.model_gc
+    if gain is not None and np.shape(gain) != source.shape[:2]:
+        raise ValueError("native UI FFC requires the calibrated image dimensions")
+    for name in order[: stop + 1]:
+        if name == "FFC" and gain is not None:
+            if "FFC" in selected or curve is None or stop == 0:
+                current = ui_native.apply_color(source, gain, domain=domain)
+        elif name == "GC" and curve is not None:
+            current = ui_native.apply_color(source, gain, curve, domain=domain)
+        elif name == "WB" and models.model_wb is not None:
+            current = np.clip(current @ models.model_wb, 0, 1)
+            current = current.astype(np.float32).astype(np.float64)
+        elif name == "CC" and models.model_cc is not None:
+            if chunk_pixels is not None or "basis" in models.model_cc[1]:
+                current = chunked_cc(current, models.model_cc, chunk_pixels or 65536)
+            else:
+                current = predict_(RGB=current, M=models.model_cc[0])
+            current = np.clip(current, 0, 1).astype(np.float32).astype(np.float64)
+        if (
+            current.shape != source.shape
+            or not np.isfinite(current).all()
+            or np.any(current < 0)
+            or np.any(current > 1)
+        ):
+            raise FloatingPointError("native UI %s produced invalid image data" % name)
+        if name in selected:
+            result[name] = current.copy()
+    return result
+
+
+# Pointwise sub-block for threaded high-precision prediction. Smaller
+# temporaries than the 65536-pixel CC chunk avoid most fresh page mapping; 32768
+# was the fastest and most stable size on 4K frames (see docs/performance.md).
+_SUB_BLOCK = 32768
+
+
+def _predict_high(image, models, selected, chunk_pixels, domain):
+    """Float64 stages in bounded pixel blocks, optionally on several threads.
+
+    Every stage is pointwise, so each block reproduces the full-frame equations
+    exactly. Blocks keep the historical CC chunk boundaries (``chunk_pixels`` or
+    65536 pixels) and the LUT/direct decision is still made once per image. Only
+    the selected stage outputs are allocated at full frame size; intermediate
+    stages and the validity checks stay within one block.
+    """
+    from ._cpu_workers import ranges, run_slices, worker_count
+    from .core.correction import cc_block, cc_uses_lut
+
+    source = np.asarray(image, dtype=np.float64)
+    order = ("FFC", "GC", "WB", "CC")
+    stop = max(order.index(k) for k in selected)
+    gain = models.model_ffc
+    curve = models.model_gc
+    if gain is not None and np.shape(gain) != source.shape[:2]:
+        raise ValueError("native UI FFC requires the calibrated image dimensions")
+    flat = source.reshape(-1, 3)
+    gains = None if gain is None else np.asarray(gain).reshape(-1)
+    pixels = len(flat)
+    chunk = chunk_pixels or 65536
+    cc = models.model_cc if stop >= 3 else None
+    use_lut = cc_uses_lut(cc, pixels) if cc is not None else False
+    wb = models.model_wb
+    fused_ffc = gain is not None and ("FFC" in selected or curve is None or stop == 0)
+    outputs = {name: np.empty(flat.shape, dtype=np.float64) for name in selected}
+
+    def valid(current, block):
+        return not (
+            current.shape != block.shape
+            or not np.isfinite(current).all()
+            or np.any(current < 0)
+            or np.any(current > 1)
+        )
+
+    def run(first_block, last_block):
+        # Return the earliest stage index that produced invalid data, if any.
+        failed = None
+        staged = np.empty((min(chunk, pixels), 3), dtype=np.float64) if stop == 3 else None
+        for start in range(first_block * chunk, min(last_block * chunk, pixels), chunk):
+            end = min(start + chunk, pixels)
+            # Pointwise colour stages use sub-blocks small enough to reuse heap
+            # memory; CC keeps the historical chunk so its matrix products see
+            # exactly the same operands.
+            for first in range(start, end, _SUB_BLOCK):
+                last = min(first + _SUB_BLOCK, end)
+                block = flat[first:last]
+                block_gain = None if gains is None else gains[first:last]
+                current = block
+                for index, name in enumerate(order[: min(stop, 2) + 1]):
+                    if name == "FFC" and fused_ffc:
+                        current = ui_native.apply_color(
+                            block, block_gain, rounded=False, domain=domain
+                        )
+                    elif name == "GC" and curve is not None:
+                        current = ui_native.apply_color(
+                            block, block_gain, curve, rounded=False, domain=domain
+                        )
+                    elif name == "WB" and wb is not None:
+                        current = np.clip(current @ wb, 0, 1)
+                    if not valid(current, block):
+                        failed = index if failed is None else min(failed, index)
+                        break
+                    if name in outputs:
+                        outputs[name][first:last] = current
+                else:
+                    if staged is not None:
+                        staged[first - start : last - start] = current
+                    continue
+                break
+            else:
+                if staged is not None:
+                    current = staged[: end - start]
+                    if cc is not None:
+                        current = np.clip(cc_block(current, cc, use_lut), 0, 1)
+                    if not valid(current, flat[start:end]):
+                        failed = 3 if failed is None else min(failed, 3)
+                        continue
+                    if "CC" in outputs:
+                        outputs["CC"][start:end] = current
+        return failed
+
+    blocks = (pixels + chunk - 1) // chunk
+    workers = min(blocks, worker_count(pixels, 65536))
+    failures = [
+        index for index in run_slices(run, ranges(blocks, workers), workers) if index is not None
+    ]
+    if failures:
+        raise FloatingPointError("native UI %s produced invalid image data" % order[min(failures)])
+    return {name: outputs[name].reshape(source.shape) for name in order if name in outputs}

@@ -50,7 +50,10 @@ metadata dictionary and explicitly marks capture/reference provenance unknown. I
 does not invent a measured reference, camera identity or chart capture. Inference
 parameters still identify their known numerical operation. The package's existing
 legacy input/output interpretation is restored when that older model is loaded.
-Fresh 2.0 calibrations select UI-native RPCC2.
+Fresh calibrations select UI-native RPCC2. Version 3.0 removed the historical
+fitters, not their loaders: schema-1 and schema-2 bundles and pickles, including
+`legacy-v1`, `reproducible-v1` and staged-v1 calibrations, still load and apply
+unchanged (see [Migrating to 3.0](migration-3.md)).
 
 Schema 2 records new configuration profiles, root/hybrid feature layouts and
 the high-precision image runtime. Its descriptor and array dimensions are

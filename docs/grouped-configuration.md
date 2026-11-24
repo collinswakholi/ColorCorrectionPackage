@@ -91,6 +91,7 @@ runtime decisions resolved during calibration.
 | `steps.ffc.fit` | `method`, `degree`, `bins`, `smooth_window` | White-field surface estimator and sampling. Native UI fitting supports linear and polynomial surfaces; linear has effective degree one. FFC degree is unrelated to CC feature degree. |
 | `steps.ffc.white_plane` | `model_path`, `manual_crop`, `crop_rect` | White-plane detection/cropping, separate from chart detection. A crop is `[x1, y1, x2, y2]` in white-image pixels. |
 | `steps.ffc.quality` | `safe_mode`, `missing_plane`, `min_signal`, `max_saturated_fraction`, `min_crop_fraction`, `min_gain`, `max_gain` | Existing white-plane and gain safeguards. Modern fitting requires safe mode. |
+| `steps.ffc.apply` | `domain`: `"lightness"` (default) or `"linear"` | Where the spatial gain is applied. `"lightness"` scales Lab L\* (historical). `"linear"` multiplies decoded linear-light RGB by the gain and re-encodes, removing the chroma error that an L\*-only gain leaves under vignetting. Recorded in the calibration and replayed by bundles; see [UI-compatible fitting](ui-compatible-fitting.md#opt-in-linear-light-ffc-domain). |
 | `steps.ffc.reporting` | `show`, `get_deltaE` | Existing plotting/reporting controls, subject to the active backend's restrictions. |
 | `steps.gc.enabled` | Boolean | Fit/apply the neutral-lightness correction. |
 | `steps.gc.quality` | `min_neutrals`, `min_span`, `duplicate_tolerance`, `target_tolerance` | Neutral-count/span, duplicate grouping and contradiction guards. These are not a gamma exponent or a polynomial-degree control. |
@@ -247,24 +248,12 @@ Recorded policy identities and supported flat compatibility fields without a
 grouped alias remain explicit in that document; presentation does not discard
 them merely to make the JSON tree look simpler.
 
-An old unversioned flat dictionary still takes the API-1 compatibility route.
-Do not add a new marker merely to relabel an old experiment. Historical ML and
-conventional trainers remain available through their original flat settings and
-explicit policies:
-
-```python
-historical = Config(
-    fitting_policy="legacy-v1",
-    CC_kwargs={"mtd": "nn", "hidden_layers": [64], "max_iterations": 1000},
-)
-historical_document = historical.to_dict()
-```
-
-The grouped API is for modern API-2 UI-family configurations. API-1/historical
-configurations must retain their flat form; `to_grouped_dict()` rejects them
-rather than silently translating a historical sklearn MLP into the native
-residual NN. Loading an existing calibration remains the way to reproduce its
-stored predictions without retraining.
+In 3.0 an unversioned flat dictionary raises instead of taking the removed
+API-1 route; pass `source_version=2` to read it as API 2. The historical ML and
+conventional trainers (`fitting_policy="legacy-v1"`, `CC_kwargs={"mtd": ...}`
+without a `model`) were also removed (see [Migrating to 3.0](migration-3.md)).
+Loading an existing calibration remains the way to reproduce its stored
+predictions without retraining.
 
 ## Run the complete example
 

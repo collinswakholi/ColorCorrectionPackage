@@ -6,7 +6,6 @@ Equations are ported from the MIT-licensed CCP UI color, sample and FFC modules.
 """
 
 import math
-from dataclasses import replace
 
 import numpy as np
 
@@ -16,26 +15,65 @@ D65 = (0.31271, 0.32902)
 # Native D50 coordinates differ from the canonical-reference shorthand.
 D50 = (0.34567, 0.35850)
 EPSILON, KAPPA = 216.0 / 24389.0, 24389.0 / 27.0
+# ColorChecker Classic 24 Lab D50 values of the ColorCorrect Studio catalog.
+_CLASSIC24_LAB = (
+    (37.54, 14.37, 14.92),
+    (64.66, 19.27, 17.5),
+    (49.32, -3.82, -22.54),
+    (43.46, -12.74, 22.72),
+    (54.94, 9.61, -24.79),
+    (70.48, -32.26, -0.37),
+    (62.73, 35.83, 56.5),
+    (39.43, 10.75, -45.17),
+    (50.57, 48.64, 16.67),
+    (30.1, 22.54, -20.87),
+    (71.77, -24.13, 58.19),
+    (71.51, 18.24, 67.37),
+    (28.37, 15.42, -49.8),
+    (54.38, -39.72, 32.27),
+    (42.43, 51.05, 28.62),
+    (81.8, 2.67, 80.41),
+    (50.63, 51.28, -14.12),
+    (49.57, -29.71, -28.32),
+    (95.19, -1.03, 2.93),
+    (81.29, -0.57, 0.44),
+    (66.89, -0.75, -0.06),
+    (50.76, -0.13, 0.14),
+    (35.63, -0.46, -0.48),
+    (20.64, 0.07, -0.46),
+)
 
 
-def runtime(value):
-    """Return the persisted runtime without resolving defaults during prediction."""
-    metadata = getattr(value, "metadata", None)
-    if metadata is not None:
-        policy = metadata.get("fitting_policy", {})
-    else:
-        policy = getattr(value, "fitting_policy", {})
+def runtime(source):
+    """Return the image runtime recorded by fitted models or named by a fitting policy.
+
+    ``source`` is a model container (its saved ``metadata``), a ``FittingPolicy``
+    or a policy dictionary. Prediction never resolves defaults here.
+    """
+    metadata = getattr(source, "metadata", None)
+    policy = metadata.get("fitting_policy", {}) if metadata is not None else source
     if not isinstance(policy, dict):
         return policy.ui_runtime if policy.version == "ui-compatible-v1" else None
     return policy.get("ui_runtime") if policy.get("version") == "ui-compatible-v1" else None
 
 
-def enabled(value):
-    return runtime(value) in (RUNTIME, HIGH_RUNTIME)
+FFC_DOMAINS = ("lightness", "linear")
 
 
-def high_precision(value):
-    return runtime(value) == HIGH_RUNTIME
+def ffc_domain(models):
+    """Return the saved FFC gain domain; records without one replay as ``"lightness"``."""
+    domain = (getattr(models, "metadata", None) or {}).get("ffc_domain", "lightness")
+    if domain not in FFC_DOMAINS:
+        raise ValueError("FFC domain must be 'lightness' or 'linear'")
+    return domain
+
+
+def enabled(source):
+    return runtime(source) in (RUNTIME, HIGH_RUNTIME)
+
+
+def high_precision(source):
+    return runtime(source) == HIGH_RUNTIME
 
 
 def _white(xy):
@@ -55,13 +93,14 @@ def _inverse(matrix):
 
 def _multiply(matrix, values):
     # Keep the native left-to-right scalar additions, avoiding a BLAS tree.
-    return np.stack(
-        [
-            values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
-            for row in matrix
-        ],
-        axis=-1,
-    )
+    # Each row is written into one owned result instead of stacking temporaries.
+    result = None
+    for index, row in enumerate(matrix):
+        channel = values[..., 0] * row[0] + values[..., 1] * row[1] + values[..., 2] * row[2]
+        if result is None:
+            result = np.empty(np.shape(channel) + (len(matrix),), dtype=np.result_type(channel))
+        result[..., index] = channel
+    return result
 
 
 _PRIMARY = np.array(
@@ -100,10 +139,11 @@ def _decode(values, scalar=False):
                 for v in values.ravel()
             ]
         ).reshape(values.shape)
-    result = values / 12.92
-    mask = values > 0.04045
-    result[mask] = ((values[mask] + 0.055) / 1.055) ** 2.4
-    return result
+    # Both branches are evaluated per element; np.where selects exactly the
+    # values the former masked assignment wrote, without gather/scatter copies.
+    # Unselected bases below -0.055 would only warn; their values are discarded.
+    with np.errstate(invalid="ignore"):
+        return np.where(values > 0.04045, ((values + 0.055) / 1.055) ** 2.4, values / 12.92)
 
 
 def _encode(values, scalar=False):
@@ -120,28 +160,31 @@ def _encode(values, scalar=False):
             ]
         ).reshape(values.shape)
     else:
-        result = values * 12.92
-        mask = np.abs(values) > 0.0031308
-        result[mask] = np.sign(values[mask]) * (1.055 * np.abs(values[mask]) ** (1.0 / 2.4) - 0.055)
+        magnitude = np.abs(values)
+        result = np.where(
+            magnitude > 0.0031308,
+            np.sign(values) * (1.055 * magnitude ** (1.0 / 2.4) - 0.055),
+            values * 12.92,
+        )
     return result
 
 
 def _xyz_to_lab(values, white):
     scaled = values / _white(white)
     f = np.where(scaled > EPSILON, np.cbrt(scaled), (KAPPA * scaled + 16.0) / 116.0)
-    return np.stack(
-        [
-            116.0 * f[..., 1] - 16.0,
-            500.0 * (f[..., 0] - f[..., 1]),
-            200.0 * (f[..., 1] - f[..., 2]),
-        ],
-        axis=-1,
-    )
+    result = np.empty(f.shape, dtype=f.dtype)
+    result[..., 0] = 116.0 * f[..., 1] - 16.0
+    result[..., 1] = 500.0 * (f[..., 0] - f[..., 1])
+    result[..., 2] = 200.0 * (f[..., 1] - f[..., 2])
+    return result
 
 
 def _lab_to_xyz(values, white):
     fy = (values[..., 0] + 16.0) / 116.0
-    f = np.stack([values[..., 1] / 500.0 + fy, fy, fy - values[..., 2] / 200.0], axis=-1)
+    f = np.empty(np.shape(fy) + (3,), dtype=np.result_type(fy, values[..., 1] / 500.0))
+    f[..., 0] = values[..., 1] / 500.0 + fy
+    f[..., 1] = fy
+    f[..., 2] = fy - values[..., 2] / 200.0
     return np.where(f > 6.0 / 29.0, f * f * f, (116.0 * f - 16.0) / KAPPA) * _white(white)
 
 
@@ -151,16 +194,23 @@ def lab(values, scalar=False):
     )
 
 
-def lightness(rgb, dtype):
-    """Compute only the native Lab L* needed by the white-field fit, in row blocks."""
+def lightness(rgb, dtype, *, domain="lightness"):
+    """Compute only the native Lab L* needed by the white-field fit, in row blocks.
+
+    ``domain="linear"`` returns relative luminance ``100*Y`` instead, so the
+    white-field ratios describe a linear-light gain.
+    """
     light = np.empty(rgb.shape[:2], dtype=dtype)
     ry, gy, by = RGB_TO_XYZ[1]
     rows = max(1, 65536 // rgb.shape[1])
     for start in range(0, len(rgb), rows):
-        block = _decode(rgb[start:start + rows])
+        block = _decode(rgb[start : start + rows])
         y = block[..., 0] * ry + block[..., 1] * gy + block[..., 2] * by
+        if domain == "linear":
+            light[start : start + rows] = 100.0 * y
+            continue
         f = np.where(y > EPSILON, np.cbrt(y), (KAPPA * y + 16.0) / 116.0)
-        light[start:start + rows] = 116.0 * f - 16.0
+        light[start : start + rows] = 116.0 * f - 16.0
     return light
 
 
@@ -212,24 +262,22 @@ def reference(profile):
 
 
 def default_reference():
-    from .ui_fitting import default_reference as staged_reference
+    """Classic24 reference in the UI catalog's own Lab D50 coordinates."""
     from .contracts import ReferenceProfile
 
-    profile = staged_reference()
+    base = ReferenceProfile.classic24()
     # Preserve the original UI catalog coordinates rather than an inverse
     # round trip through the package's independently rounded D50 white.
-    from .ui_fitting import _UI_CLASSIC_LAB
-
     return ReferenceProfile.from_values(
-        _UI_CLASSIC_LAB,
+        _CLASSIC24_LAB,
         color_space="lab",
         white=D50,
         scale=1,
         profile_id="ui-native-classic24",
         revision=1,
-        names=profile.names,
-        cell_ids=profile.cell_ids,
-        neutral_ids=profile.neutral_ids,
+        names=base.names,
+        cell_ids=base.cell_ids,
+        neutral_ids=base.neutral_ids,
         retain_source=True,
     )
 
@@ -255,93 +303,6 @@ def working_input(data, values, *, high=False):
     return normalize_codes(values)
 
 
-def letterbox(image, size):
-    h, w = image.shape[:2]
-    gain = min(size / h, size / w)
-    nw, nh = int(math.floor(w * gain + 0.5)), int(math.floor(h * gain + 0.5))
-    left, top = (size - nw) // 2, (size - nh) // 2
-    source = image[:, :, ::-1].astype(np.float32) * np.float32(1.0 / 255.0)
-    canvas = np.full((size, size, 3), 114, dtype=np.uint8)
-    sx = (np.arange(nw, dtype=np.float64) + 0.5) * w / nw - 0.5
-    ix = np.clip(np.floor(sx).astype(np.int64), 0, w - 1)
-    jx = np.minimum(ix + 1, w - 1)
-    fx = (sx - ix)[None, :, None]
-    # Bound interpolation workspaces independently of source dimensions.
-    for start in range(0, nh, 16):
-        sy = (np.arange(start, min(start + 16, nh), dtype=np.float64) + 0.5) * h / nh - 0.5
-        iy = np.clip(np.floor(sy).astype(np.int64), 0, h - 1)
-        jy = np.minimum(iy + 1, h - 1)
-        fy = (sy - iy)[:, None, None]
-        upper = (1.0 - fx) * source[iy[:, None], ix] + fx * source[iy[:, None], jx]
-        lower = (1.0 - fx) * source[jy[:, None], ix] + fx * source[jy[:, None], jx]
-        values = (1.0 - fy) * upper + fy * lower
-        canvas[top + start : top + start + len(iy), left : left + nw] = np.clip(
-            np.floor(values * 255.0 + 0.5), 0, 255
-        ).astype(np.uint8)
-    return (
-        np.ascontiguousarray(canvas.transpose(2, 0, 1)[None], dtype=np.float32) / np.float32(255.0),
-        gain,
-        left,
-        top,
-    )
-
-
-def homography(source, destination):
-    matrix = np.zeros((8, 9))
-    for i, ((x, y), (u, v)) in enumerate(zip(source, destination)):
-        matrix[i * 2] = [x, y, 1, 0, 0, 0, -u * x, -u * y, u]
-        matrix[i * 2 + 1] = [0, 0, 0, x, y, 1, -v * x, -v * y, v]
-    for col in range(8):
-        pivot = col + int(np.argmax(np.abs(matrix[col:, col])))
-        if abs(matrix[pivot, col]) < 1e-12:
-            return np.full((3, 3), np.nan)
-        if pivot != col:
-            matrix[[pivot, col], col:] = matrix[[col, pivot], col:]
-        matrix[col, col:] /= matrix[col, col]
-        for row in range(8):
-            if row != col:
-                matrix[row, col:] -= matrix[row, col] * matrix[col, col:]
-    return np.r_[matrix[:, 8], 1.0].reshape(3, 3)
-
-
-def warp(points, matrix):
-    points = np.asarray(points, dtype=np.float64)
-    x, y = points[:, 0], points[:, 1]
-    z = matrix[2, 0] * x + matrix[2, 1] * y + matrix[2, 2]
-    return np.stack(
-        [(matrix[i, 0] * x + matrix[i, 1] * y + matrix[i, 2]) / z for i in (0, 1)], axis=1
-    )
-
-
-def order_quad(points):
-    points = [(float(x), float(y)) for x, y in points]
-    cx, cy = (sum(p[k] for p in points) * 0.25 for k in (0, 1))
-    points.sort(key=lambda p: math.atan2(p[1] - cy, p[0] - cx))
-    area = sum(
-        points[i][0] * points[(i + 1) % 4][1] - points[i][1] * points[(i + 1) % 4][0]
-        for i in range(4)
-    )
-    if area < 0:
-        points.reverse()
-    start = min(range(4), key=lambda i: points[i][0] + points[i][1])
-    return np.asarray(points[start:] + points[:start])
-
-
-def anchor_center(box):
-    x, y, w, h, angle = map(float, box)
-    vx, vy = (w / 2.0) * math.cos(angle), (w / 2.0) * math.sin(angle)
-    ux, uy = (-h / 2.0) * math.sin(angle), (h / 2.0) * math.cos(angle)
-    q = order_quad(
-        [
-            (x + vx + ux, y + vy + uy),
-            (x + vx - ux, y + vy - uy),
-            (x - vx - ux, y - vy - uy),
-            (x - vx + ux, y - vy + uy),
-        ]
-    )
-    return 0.25 * (q[0] + q[1] + q[2] + q[3])
-
-
 def ordered_mean(samples):
     value = np.zeros((len(samples), 3))
     for i in range(samples.shape[1]):
@@ -362,7 +323,7 @@ def points(quads, count, random_seed=None):
         state = np.arange(len(quads), dtype=np.uint64) * 2654435761 + random_seed
         uv = np.empty((len(quads), count * 2))
         for i in range(count * 2):
-            state = (1664525 * state + 1013904223) & np.uint64(0xffffffff)
+            state = (1664525 * state + 1013904223) & np.uint64(0xFFFFFFFF)
             uv[:, i] = 0.15 + 0.70 * (state.astype(np.float64) / 4294967296.0)
         u, v = uv[:, ::2, None], uv[:, 1::2, None]
     q = np.asarray(quads)[:, None]
@@ -399,123 +360,27 @@ def face_sample_points(face):
     return count, points(face.quadrilaterals, count, seed)
 
 
-def sample_ffc(owner, face):
-    from .ui_fitting import sample_regions
+def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain="lightness"):
+    """Apply the joint FFC/GC equations.
 
-    count, xy = face_sample_points(face)
-    high = high_precision(owner)
-    samples = (sample_regions_float64 if high else sample_regions)(owner.Image, face.quadrilaterals, count, xy=xy)
-    h, w = owner.Image.shape[:2]
-    dtype = np.float64 if high else np.float32
-    x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(dtype)
-    y = (np.clip(xy[..., 1], 0, h - 1) * (h - 1) / max(h - 1, 1)).astype(dtype)
-    x0 = np.floor(x).astype(int)
-    y0 = np.floor(y).astype(int)
-    x1 = np.minimum(x0 + 1, w - 1)
-    y1 = np.minimum(y0 + 1, h - 1)
-    fx = x - x0.astype(dtype)
-    fy = y - y0.astype(dtype)
-    g = owner.models.model_ffc.astype(dtype)
-    gains = (
-        g[y0, x0] * (1 - fy) * (1 - fx)
-        + g[y1, x0] * fy * (1 - fx)
-        + g[y0, x1] * (1 - fy) * fx
-        + g[y1, x1] * fy * fx
-    )
-    corrected = apply_color(samples, gains, scalar=True, rounded=False)
-    clipped = np.mean(np.any(corrected >= face.clipping_threshold, axis=2), axis=1)
-    return replace(
-        face,
-        measured_rgb=ordered_mean(corrected),
-        clipped_fractions=clipped,
-        provenance={
-            **dict(face.provenance),
-            "measurement_policy": runtime(owner) + "/FFC-after-bilinear",
-            "sample_reduction": "row-order-f64",
-        },
-    )
-
-
-def render_fit_stage(owner, image, stage):
-    # Fit metadata is committed only after all stages succeed. Use the resolved
-    # policy and the same guarded byte-runtime renderer as bundle prediction.
-    if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
-        from .ui_execution import try_execute
-        result = try_execute(image, owner.models, (stage,), fit_policy=owner.fitting_policy.to_dict())
-        if result is not None:
-            return result[stage]
-    return apply_color(image, owner.models.model_ffc, owner.models.model_gc if stage == "GC" else None,
-                       rounded=not high_precision(owner))
-
-
-def apply_color(image, gain=None, curve=None, scalar=False, rounded=True):
-    value = lab(image, scalar=scalar)
-    if gain is not None:
-        value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
+    ``domain="lightness"`` (the default and the only historical rule) scales
+    Lab L* by the gain. ``domain="linear"`` decodes sRGB, multiplies all three
+    linear-light channels by the same spatial gain and re-encodes; GC, when
+    present, then maps L* of that linear-light result.
+    """
+    if gain is not None and domain == "linear":
+        linear = _decode(np.asarray(image, dtype=np.float64), scalar)
+        linear *= np.asarray(gain)[..., None]
+        if curve is None:
+            result = np.clip(_encode(linear, scalar=scalar), 0, 1)
+            return result.astype(np.float32).astype(np.float64) if rounded else result
+        value = _xyz_to_lab(_multiply(RGB_TO_XYZ, linear), D65)
+        value[..., 0] = np.clip(value[..., 0], 0, 100)
+    else:
+        value = lab(image, scalar=scalar)
+        if gain is not None:
+            value[..., 0] = np.clip(value[..., 0] * gain, 0, 100)
     if curve is not None:
         value[..., 0] = np.clip(curve.predict(value[..., 0]), 0, 100)
     result = np.clip(_encode(_multiply(XYZ_TO_RGB, _lab_to_xyz(value, D65)), scalar=scalar), 0, 1)
     return result.astype(np.float32).astype(np.float64) if rounded else result
-
-
-def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
-    from . import modern, ui_stages
-
-    if (
-        modern.apply_tone is not modern._REFERENCE_APPLY_TONE
-        or ui_stages.apply_ffc is not ui_stages._REFERENCE_APPLY_FFC
-    ):
-        raise ValueError("native UI fusion does not support overridden tone/FFC hooks")
-    from .ui_execution import try_execute
-
-    high = high_precision(models)
-    if not high:
-        result = try_execute(image, models, selected, native_codes=native_codes,
-                             chunk_pixels=chunk_pixels)
-        if result is not None:
-            return result
-    from .core.correction import predict_
-    from .prediction import chunked_cc
-
-    source = np.asarray(image, dtype=np.float64) if high else (
-        normalize_codes(image)
-        if native_codes
-        else np.asarray(image, dtype=np.float32).astype(np.float64)
-    )
-    current = source
-    result = {}
-    order = ("FFC", "GC", "WB", "CC")
-    stop = max(order.index(k) for k in selected)
-    gain = models.model_ffc
-    curve = models.model_gc
-    if gain is not None and np.shape(gain) != source.shape[:2]:
-        raise ValueError("native UI FFC requires the calibrated image dimensions")
-    for index, name in enumerate(order[: stop + 1]):
-        if name == "FFC" and gain is not None:
-            if "FFC" in selected or curve is None or stop == 0:
-                current = apply_color(source, gain, rounded=not high)
-        elif name == "GC" and curve is not None:
-            current = apply_color(source, gain, curve, rounded=not high)
-        elif name == "WB" and models.model_wb is not None:
-            current = np.clip(current @ models.model_wb, 0, 1)
-            if not high:
-                current = current.astype(np.float32).astype(np.float64)
-        elif name == "CC" and models.model_cc is not None:
-            extended = "basis" in models.model_cc[1]
-            if chunk_pixels is not None or high or extended:
-                current = chunked_cc(current, models.model_cc, chunk_pixels or 65536)
-            else:
-                current = predict_(RGB=current, M=models.model_cc[0])
-            current = np.clip(current, 0, 1)
-            if not high:
-                current = current.astype(np.float32).astype(np.float64)
-        if (
-            current.shape != source.shape
-            or not np.isfinite(current).all()
-            or np.any(current < 0)
-            or np.any(current > 1)
-        ):
-            raise FloatingPointError("native UI %s produced invalid image data" % name)
-        if name in selected:
-            result[name] = current.copy()
-    return result
