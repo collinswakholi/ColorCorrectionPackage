@@ -622,66 +622,6 @@ def trilinear_lut_apply(
 
 
 # ============================================================================
-# Vectorised saturation extrapolation
-# ============================================================================
-
-if HAS_NUMBA:
-
-    @njit(parallel=True, cache=True)
-    def extrapolate_saturated_pixels(flat_img, scale_factor):
-        """Replace saturated pixels (any channel >= 0.99) with scaled values."""
-        N = flat_img.shape[0]
-        out = flat_img.copy()
-        for i in prange(N):
-            if flat_img[i, 0] >= 0.99 or flat_img[i, 1] >= 0.99 or flat_img[i, 2] >= 0.99:
-                out[i, 0] = min(1.0, flat_img[i, 0] * scale_factor)
-                out[i, 1] = min(1.0, flat_img[i, 1] * scale_factor)
-                out[i, 2] = min(1.0, flat_img[i, 2] * scale_factor)
-        return out
-
-else:
-
-    def extrapolate_saturated_pixels(flat_img, scale_factor):
-        """Vectorised NumPy fallback."""
-        out = flat_img.copy()
-        mask = np.any(flat_img >= 0.99, axis=-1)
-        out[mask] = np.clip(flat_img[mask] * scale_factor, 0, 1)
-        return out
-
-
-# ============================================================================
-# FFC binned sampling (vectorised)
-# ============================================================================
-
-
-def ffc_sample_bins(multiplier: np.ndarray, bins: int, smooth_window: int) -> np.ndarray:
-    """
-    Sample a multiplier surface at uniform grid using cv2.blur instead of
-    Python double loop.
-
-    Parameters
-    ----------
-    multiplier : (H, W) float array
-    bins : int — grid resolution
-    smooth_window : int — smoothing kernel size
-
-    Returns
-    -------
-    Z_m : (bins, bins) float array — sampled multiplier
-    """
-    import cv2
-
-    h_win = max(1, smooth_window)
-    # Box-blur the entire multiplier once
-    blurred = cv2.blur(multiplier.astype(np.float64), (h_win, h_win))
-    # Subsample at uniform grid
-    rows = np.linspace(0, multiplier.shape[0] - 1, bins).astype(int)
-    cols = np.linspace(0, multiplier.shape[1] - 1, bins).astype(int)
-    Z_m = blurred[np.ix_(rows, cols)]
-    return Z_m
-
-
-# ============================================================================
 # FFC float-path (skip uint8 round-trip)
 # ============================================================================
 

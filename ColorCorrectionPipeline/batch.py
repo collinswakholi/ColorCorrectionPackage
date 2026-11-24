@@ -14,7 +14,7 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from copy import deepcopy
 from dataclasses import replace
 
-from .results import BatchItemResult, BatchResult
+from .results import BatchItemResult
 
 
 def _integer(value, label, minimum=1):
@@ -404,13 +404,3 @@ class BatchStream:
 
 def execute_batch(inputs, worker, **options):
     return BatchStream(inputs, worker, **options)
-
-
-def collect_batch(stream):
-    if not isinstance(stream, BatchStream):
-        raise TypeError("collect_batch requires BatchStream")
-    try:
-        items = list(stream)
-    finally:
-        stream.close()
-    return BatchResult(items, stream.summary)
