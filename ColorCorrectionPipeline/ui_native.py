@@ -16,7 +16,7 @@ D65 = (0.31271, 0.32902)
 D50 = (0.34567, 0.35850)
 EPSILON, KAPPA = 216.0 / 24389.0, 24389.0 / 27.0
 # ColorChecker Classic 24 Lab D50 values of the ColorCorrect Studio catalog.
-CLASSIC24_LAB = (
+_CLASSIC24_LAB = (
     (37.54, 14.37, 14.92),
     (64.66, 19.27, 17.5),
     (49.32, -3.82, -22.54),
@@ -269,7 +269,7 @@ def default_reference():
     # Preserve the original UI catalog coordinates rather than an inverse
     # round trip through the package's independently rounded D50 white.
     return ReferenceProfile.from_values(
-        CLASSIC24_LAB,
+        _CLASSIC24_LAB,
         color_space="lab",
         white=D50,
         scale=1,

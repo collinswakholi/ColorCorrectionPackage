@@ -270,7 +270,7 @@ def _solve(matrix, rhs):
         return np.linalg.solve(matrix + np.eye(len(matrix)) * 1e-12, rhs)
 
 
-def fit_pls(x, y, ncomp, tol):
+def _fit_pls(x, y, ncomp, tol):
     """UI NIPALS: population scaling and convergence on the updated score vector."""
     xmean, ymean = x.mean(axis=0), y.mean(axis=0)
     xstd, ystd = x.std(axis=0), y.std(axis=0)
@@ -392,7 +392,7 @@ def _score(x, y, weights, biases, batch_norm):
     return float(score), loss
 
 
-def fit_nn(x, target, settings, *, linear_rgb=None):
+def _fit_nn(x, target, settings, *, linear_rgb=None):
     """Seed-42 residual MLP, with native full-chart/tiny-set selection semantics."""
     from .ui_nn import dense, dot, sum_rows, backend
 
@@ -650,15 +650,15 @@ def fit_ui(X, Y, parameters=None):
     if kind == "nn":
         if "basis" in settings:
             source = srgb_to_linear(X)
-            weights, biases, detail = fit_nn(design, Y, settings, linear_rgb=source)
+            weights, biases, detail = _fit_nn(design, Y, settings, linear_rgb=source)
         else:
             from .ui_nn import design as training_design
 
             design = training_design(X, settings["degree"])
-            weights, biases, detail = fit_nn(design, Y, settings)
+            weights, biases, detail = _fit_nn(design, Y, settings)
         predictor = UIPredictor(settings, weights=weights, biases=biases)
     elif kind == "pls":
-        coefficients, intercept, detail = fit_pls(design, Y, settings["ncomp"], settings["tol"])
+        coefficients, intercept, detail = _fit_pls(design, Y, settings["ncomp"], settings["tol"])
         predictor = UIPredictor(settings, coefficients, intercept)
     else:
         affine = kind == "linear" and settings.get("basis") != "root"

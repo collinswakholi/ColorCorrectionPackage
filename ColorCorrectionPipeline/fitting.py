@@ -120,10 +120,10 @@ def _paired_data(X, Y, groups, synthetic_mask=None):
     return X, Y, np.array(group_list), mask.copy()
 
 
-FIT_SUPPORTED_RUNTIMES = ("auto-v2", "native-v1", "precision-f64-v1")
+_FIT_SUPPORTED_RUNTIMES = ("auto-v2", "native-v1", "precision-f64-v1")
 
 
-def removed_policy_error(policy):
+def _removed_policy_error(policy):
     """Return the 3.0 error for a fitting policy that can only be loaded, not fitted."""
     policy = FittingPolicy.from_value(policy)
     name = policy.version if policy.version != "ui-compatible-v1" else "ui-compatible-v1/staged-v1"
@@ -138,8 +138,8 @@ def removed_policy_error(policy):
 def require_fit_supported(policy):
     """Raise unless ``policy`` names a recipe that 3.0 can fit."""
     policy = FittingPolicy.from_value(policy)
-    if policy.version != "ui-compatible-v1" or policy.ui_runtime not in FIT_SUPPORTED_RUNTIMES:
-        raise removed_policy_error(policy)
+    if policy.version != "ui-compatible-v1" or policy.ui_runtime not in _FIT_SUPPORTED_RUNTIMES:
+        raise _removed_policy_error(policy)
     return policy
 
 
