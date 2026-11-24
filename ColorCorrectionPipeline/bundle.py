@@ -479,9 +479,7 @@ def _encode(models, limits):
             )
             if isinstance(fitted.model, UIPredictor) and "basis" in fitted.model.settings:
                 order = feature_order(fitted.model.settings)
-            from .core.lut_cache import persistence_lut
-
-            table = persistence_lut(fitted)
+            table = fitted.saved_lut()
             stages["CC"] = {
                 "kind": "regressor-v1",
                 "options": _plain(cc[1]),
@@ -818,12 +816,13 @@ def _decode(manifest, arrays, limits):
             )
             if cc["estimator"].get("kind") != expected_kind:
                 raise BundleError("estimator contradicts recorded method")
-            model._lut = None
-            if cc["lut"] is not None:
-                model._lut = _array(
+            model.hold_lut(
+                None
+                if cc["lut"] is None
+                else _array(
                     _reference(cc["lut"], arrays), (model._lut_grid_size,) * 3 + (3,), "LUT"
                 )
-            model._lut_predict_fn = None
+            )
             with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
                 probe = (
                     model.model.predict_rgb(
@@ -841,12 +840,7 @@ def _decode(manifest, arrays, limits):
             raise BundleError("unsupported CC kind")
     MyModels._validated_state(result)
     if result.model_cc is not None and result.model_cc[2] == "ours":
-        model = result.model_cc[0]
-        model._lut_predict_fn = model._predict_for_lut if model.use_lut else None
-        if model._lut is not None:
-            from .core.lut_cache import prime_lut_identity
-
-            prime_lut_identity(model)
+        result.model_cc[0].attach_lut_builder()
     result.bundle_digest = manifest["content_sha256"]
     result.bundle_interpretation = manifest["interpretation"]
     return result
@@ -924,7 +918,7 @@ def _drop_transient_callbacks(models):
     # self callback so large LUT/NN buffers do not await cyclic-GC reclamation.
     cc = models.model_cc
     if cc is not None and cc[2] == "ours":
-        cc[0]._lut_predict_fn = None
+        cc[0].detach_lut_builder()
 
 
 def loads_models(data, *, limits=None):

@@ -282,11 +282,11 @@ class PreparedExecution:
             original, params, method = pointwise.model_cc
             isolated = copy(original)
             isolated.clear_lut_cache()
-            isolated._lut_predict_fn = None
+            isolated.detach_lut_builder()
             isolated.use_lut = False
             pointwise.model_cc = isolated, deepcopy(params), method
             original.clear_lut_cache()
-            original._lut_predict_fn = None
+            original.detach_lut_builder()
         # UI predictors require their complete versioned metadata. Retain the
         # validated calibration identity instead of inventing a metadata-free
         # model for this cache key; this conservatively scopes reuse to one fit.

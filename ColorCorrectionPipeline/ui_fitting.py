@@ -779,7 +779,7 @@ def fit_stage(owner, image, method, parameters):
     model.fitting_version = VERSION
     model.model = predictor
     model.fit_report = report
-    model._lut_predict_fn = model._predict_for_lut if model.use_lut else None
+    model.attach_lut_builder()
     owner.models.model_cc = (model, deepcopy(settings), "ours")
     selection = {
         "policy": "all measured cells",

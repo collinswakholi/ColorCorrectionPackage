@@ -270,9 +270,8 @@ def try_execute(
     ):
         return None
     from . import modern, ui_stages
-    from .core.correction import Regressor_Model, _ensure_lut
+    from .core.correction import Regressor_Model
     from .core.execution import _tone_parameters
-    from .core.lut_cache import inference_identity
     from .ui_fitting import UIPredictor
     from .colorimetry import _RGB_TO_XYZ, _XYZ_TO_RGB, white_xyz, D65
 
@@ -323,11 +322,11 @@ def try_execute(
             or type(model.model) is not UIPredictor
             or not model.use_lut
             or image.shape[0] * image.shape[1] < model.lut_min_pixels
-            or inference_identity(model)[0] is None
-            or not _ensure_lut(model)
         ):
             return None
-        table = model._lut  # type: ignore[assignment]
+        table = model.lut_table(identified=True)
+        if table is None:
+            return None
     from .ui_native import RUNTIME
 
     native = policy.get("ui_runtime") == RUNTIME

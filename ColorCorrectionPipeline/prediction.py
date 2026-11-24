@@ -50,16 +50,13 @@ def _identity(item, index):
 
 def cc_uses_lut(cc, pixels):
     """Select LUT or direct CC once for an image of ``pixels`` pixels."""
-    from .core.correction import _ensure_lut
-
     model, _, method = cc
-    return method == "ours" and pixels >= model.lut_min_pixels and _ensure_lut(model)
+    return method == "ours" and pixels >= model.lut_min_pixels and model.ensure_lut()
 
 
 def cc_block(block, cc, use_lut):
     """Predict one flat ``(N, 3)`` block with an image-level LUT decision."""
     from .core.correction import _predict_direct
-    from .core.accel import trilinear_lut_apply
 
     model, options, method = cc
     if method == "conv":
@@ -67,11 +64,7 @@ def cc_block(block, cc, use_lut):
 
         return apply_conventional(block, model, **options)
     if method == "ours":
-        return (
-            trilinear_lut_apply(block, model._lut, model._lut_grid_size)
-            if use_lut
-            else _predict_direct(block, model)
-        )
+        return model.apply_lut(block) if use_lut else _predict_direct(block, model)
     raise ValueError("unsupported saved CC method")
 
 
@@ -241,16 +234,14 @@ def iter_predict(
     if snapshot.models.model_cc is not None and snapshot.models.model_cc[2] == "ours":
         model = snapshot.models.model_cc[0]
         if model.use_lut and not event.is_set():
-            from .core.correction import _ensure_lut
-
             lut_report = {
                 "requested": True,
-                "ready": bool(_ensure_lut(model)),
+                "ready": bool(model.ensure_lut()),
                 "policy": "prepare once on the owned snapshot before parallel workers",
             }
             if not lut_report["ready"]:
                 model.use_lut = False
-                model._lut_predict_fn = None
+                model.detach_lut_builder()
                 lut_report["fallback"] = "direct estimator; LUT preparation failed"
     calibration_id = digest_models(snapshot.models, limits=bundle_limits)
     semantics = snapshot._active_semantics()
@@ -420,7 +411,7 @@ def iter_predict(
 
     def release():
         if snapshot.models.model_cc is not None and snapshot.models.model_cc[2] == "ours":
-            snapshot.models.model_cc[0]._lut_predict_fn = None
+            snapshot.models.model_cc[0].detach_lut_builder()
 
     return PredictionStream(
         stream,
