@@ -87,17 +87,14 @@ jobs:
               run('-I', root / 'scripts/verify_grouped_config.py', '--forbid-source', root,
                   '--photos', '--output', evidence / (label + '-grouped.json'))
               prefix = 'ColorCorrectionPipeline.examples.'
-              for module in ('quickstart', 'compare_bases', 'legacy_training',
-                              'high_precision', 'apply_bundle', 'customizable'):
+              for module in ('quickstart', 'compare_bases', 'high_precision',
+                              'apply_bundle', 'customizable'):
                   run('-I', '-m', prefix + module, '--help')
               quick = evidence / (label + '-quickstart')
               run('-I', '-m', prefix + 'quickstart', '--device', 'cpu', '--output', quick)
               run('-I', '-m', prefix + 'compare_bases', '--device', 'cpu',
                   '--models', 'pls,nn', '--bases', 'root', '--degrees', '2',
                   '--nn-epochs', '30', '--output', evidence / (label + '-compare'))
-              run('-I', '-m', prefix + 'legacy_training', '--device', 'cpu',
-                  '--method', 'custom', '--iterations', '5',
-                  '--output', evidence / (label + '-legacy'))
               run('-I', '-m', prefix + 'high_precision', '--device', 'cpu',
                   '--output', evidence / (label + '-precision'))
               run('-I', '-m', prefix + 'apply_bundle', '--bundle', quick / 'calibration.ccpb',

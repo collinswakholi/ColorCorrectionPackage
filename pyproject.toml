@@ -77,9 +77,6 @@ docs = [
     "sphinx>=5.0",
     "sphinx-rtd-theme>=1.0",
 ]
-segmentation = [
-    "colour-checker-detection>=0.1.0",
-]
 # Compressed TIFF codecs for tifffile (e.g. 16-bit LZW/Deflate TIFF reading).
 tiff = [
     "imagecodecs>=2021.11.20",
@@ -140,7 +137,6 @@ ignore = [
 "ColorCorrectionPipeline/portable_inference.py" = ["N803"]
 "ColorCorrectionPipeline/stage_policies.py" = ["N803"]
 "ColorCorrectionPipeline/ui_fitting.py" = ["N803", "N806", "I001"]
-"tests/test_custom_nn_determinism.py" = ["N806"]
 # Import sorting is not applied where it would reorder third-party or package
 # imports (import side effects: torch/cv2/onnxruntime DLL load order, lazy
 # colour-science loading, circular package imports). Files under concurrent

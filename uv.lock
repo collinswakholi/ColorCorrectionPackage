@@ -671,12 +671,6 @@ performance = [
     { name = "numba", version = "0.60.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "numba", version = "0.65.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
-segmentation = [
-    { name = "colour-checker-detection", version = "0.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "colour-checker-detection", version = "0.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "colour-checker-detection", version = "0.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "colour-checker-detection", version = "0.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
 tiff = [
     { name = "imagecodecs", version = "2023.3.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "imagecodecs", version = "2024.12.30", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
@@ -688,7 +682,6 @@ tiff = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0" },
-    { name = "colour-checker-detection", marker = "extra == 'segmentation'", specifier = ">=0.1.0" },
     { name = "colour-science", specifier = ">=0.4.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "imagecodecs", marker = "extra == 'tiff'", specifier = ">=2021.11.20" },
@@ -715,7 +708,7 @@ requires-dist = [
     { name = "tifffile", specifier = ">=2021.11.2" },
     { name = "torch", specifier = ">=1.10.0" },
 ]
-provides-extras = ["performance", "dev", "docs", "segmentation", "tiff"]
+provides-extras = ["performance", "dev", "docs", "tiff"]
 
 [[package]]
 name = "coloredlogs"
@@ -727,122 +720,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cc/c7/eed8f27100517e8c0e6b923d5f0845d0cb99763da6fdee00478f91db7325/coloredlogs-15.0.1.tar.gz", hash = "sha256:7c991aa71a4577af2f82600d8f8f3a89f936baeaf9b50a9c197da014e5bf16b0", size = 278520, upload-time = "2021-06-11T10:22:45.202Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/06/3d6badcf13db419e25b07041d9c7b4a2c331d3f4e7134445ec5df57714cd/coloredlogs-15.0.1-py2.py3-none-any.whl", hash = "sha256:612ee75c546f53e92e70049c9dbfcc18c935a2b9a53b66085ce9ef6a6e5c0934", size = 46018, upload-time = "2021-06-11T10:22:42.561Z" },
-]
-
-[[package]]
-name = "colour-checker-detection"
-version = "0.1.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.9' and sys_platform == 'win32'",
-    "python_full_version < '3.9' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "colour-science", version = "0.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "imageio", version = "2.35.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "numpy", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "opencv-python", version = "4.13.0.92", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "scipy", version = "1.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/07/0a64aebae9e1d96961746d2c181bfb23783da0d0b96053e057eb0d6138d1/colour-checker-detection-0.1.3.tar.gz", hash = "sha256:24e17cbf9d21294d78634240aaaf4d39d8f945bcbf568c39f5474215849c2101", size = 9445969, upload-time = "2022-02-27T01:47:28.409Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/92/226a43a93a4bdd4673ca29ad67c6fd41b2000fc8ea1871535c0d556624e2/colour_checker_detection-0.1.3-py3-none-any.whl", hash = "sha256:4f5ae552c44bae7a0f929306f80a3c05c71d6dce78270f30f9f4a3bc13d9c313", size = 9445588, upload-time = "2022-02-27T01:47:50.711Z" },
-]
-
-[[package]]
-name = "colour-checker-detection"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.9.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.9.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.9.*' and sys_platform == 'win32'",
-    "(python_full_version == '3.9.*' and platform_machine != 'arm64' and sys_platform == 'darwin') or (python_full_version == '3.9.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.9.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')",
-]
-dependencies = [
-    { name = "colour-science", version = "0.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "imageio", version = "2.37.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "opencv-python", version = "4.11.0.86", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/64/32/52a46da27fdd136d1ea033e0e9eff15c04524fe25b1f4822e09f211132ab/colour_checker_detection-0.2.0.tar.gz", hash = "sha256:dc9f5a32b906c3e060645d4c79403f059df1f4d2831d7dfbba89a125a11f0eee", size = 32448332, upload-time = "2024-01-11T03:44:29.342Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/b2/bf2f842ede134916dfccbc4cd82bb0892a745579822dc65ebee1049a862f/colour_checker_detection-0.2.0-py3-none-any.whl", hash = "sha256:042a94ab596f66e846bcbe6dbc63c9aa99c4d71a4d95bdd6583a18c340b9c994", size = 32455304, upload-time = "2024-01-11T03:45:24.019Z" },
-]
-
-[[package]]
-name = "colour-checker-detection"
-version = "0.2.1"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.10.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.10.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.10.*' and platform_machine != 's390x' and sys_platform != 'win32'",
-    "python_full_version == '3.10.*' and platform_machine == 's390x' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "colour-science", version = "0.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "imageio", version = "2.37.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "opencv-python", version = "4.13.0.92", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b4/58/907891c6d8f26ed54a297297d63268485aa611e57a3ca06777680355dec7/colour_checker_detection-0.2.1.tar.gz", hash = "sha256:68dd0d48aa0f4355ecd0640eee52d3b53c90b24a7d966f422f5513de1bc39e83", size = 40392753, upload-time = "2024-10-12T23:18:08.007Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/a9/fe544b28661a5168afac46120e81182395b49b186b83f58529549a0d62ee/colour_checker_detection-0.2.1-py3-none-any.whl", hash = "sha256:bc1b5397de6d683337c2cbe5677bed99f24f29093cc9cfbb699a51f01cb86ab7", size = 32455939, upload-time = "2024-10-12T23:18:35.149Z" },
-]
-
-[[package]]
-name = "colour-checker-detection"
-version = "0.2.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "colour-science", version = "0.4.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "opencv-python", version = "4.13.0.92", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "openimageio", marker = "python_full_version >= '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/7d/1224ab36c7f767a991b0aee4df1e90205e19f14faf2b764c72fc4260eb0b/colour_checker_detection-0.2.3.tar.gz", hash = "sha256:3bca3ee6c27d0f4ff3817705716fdb7023e08a2da84233de4378253cff7f053e", size = 58273688, upload-time = "2025-12-11T06:25:20.161Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/43/9e91eaedaa32bc145999dabfdd3b9a19e2f41f7c54eb3756e859b2c036e5/colour_checker_detection-0.2.3-py3-none-any.whl", hash = "sha256:a5427490c33bbf40798b8dd164cc0a2a7080256b6fb1a696fd0f131a83740f05", size = 50342552, upload-time = "2025-12-11T06:26:15.923Z" },
 ]
 
 [[package]]
@@ -5394,128 +5271,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/f6/3c645c21358079097201090de7c30d110f5ec3fa01008e3ee81b0a77a354/opencv_contrib_python-4.13.0.92-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:fc5ee50e2be9d40e913536f7f20cc6f87f25d8e413ebb32a3335ab6edf245d3e", size = 79150872, upload-time = "2026-02-05T10:16:03.465Z" },
     { url = "https://files.pythonhosted.org/packages/90/d7/bf4622e0ed8a93f5a685c76933e287477cf185a160c66478cf144fece489/opencv_contrib_python-4.13.0.92-cp37-abi3-win32.whl", hash = "sha256:f5d02357f4d5575c300eab3ec1c7ecfed3a9a53e55a76927bab7cfc9e0a67b68", size = 36829959, upload-time = "2026-02-05T07:02:22.25Z" },
     { url = "https://files.pythonhosted.org/packages/d9/98/a03f69ff6fb86a67d584ecc990d85a95e6930b96e3f39ad1f8e019cb8ada/opencv_contrib_python-4.13.0.92-cp37-abi3-win_amd64.whl", hash = "sha256:cb694dcf76bb2c8d7fa573fc1a99339e8b6640194d7778381e74cc3445369e45", size = 46486178, upload-time = "2026-02-05T07:02:19.551Z" },
-]
-
-[[package]]
-name = "opencv-python"
-version = "4.11.0.86"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.9.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.9.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.9.*' and sys_platform == 'win32'",
-    "(python_full_version == '3.9.*' and platform_machine != 'arm64' and sys_platform == 'darwin') or (python_full_version == '3.9.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.9.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')",
-]
-dependencies = [
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/17/06/68c27a523103dad5837dc5b87e71285280c4f098c60e4fe8a8db6486ab09/opencv-python-4.11.0.86.tar.gz", hash = "sha256:03d60ccae62304860d232272e4a4fda93c39d595780cb40b161b310244b736a4", size = 95171956, upload-time = "2025-01-16T13:52:24.737Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/4d/53b30a2a3ac1f75f65a59eb29cf2ee7207ce64867db47036ad61743d5a23/opencv_python-4.11.0.86-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:432f67c223f1dc2824f5e73cdfcd9db0efc8710647d4e813012195dc9122a52a", size = 37326322, upload-time = "2025-01-16T13:52:25.887Z" },
-    { url = "https://files.pythonhosted.org/packages/3b/84/0a67490741867eacdfa37bc18df96e08a9d579583b419010d7f3da8ff503/opencv_python-4.11.0.86-cp37-abi3-macosx_13_0_x86_64.whl", hash = "sha256:9d05ef13d23fe97f575153558653e2d6e87103995d54e6a35db3f282fe1f9c66", size = 56723197, upload-time = "2025-01-16T13:55:21.222Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/bd/29c126788da65c1fb2b5fb621b7fed0ed5f9122aa22a0868c5e2c15c6d23/opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b92ae2c8852208817e6776ba1ea0d6b1e0a1b5431e971a2a0ddd2a8cc398202", size = 42230439, upload-time = "2025-01-16T13:51:35.822Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/8b/90eb44a40476fa0e71e05a0283947cfd74a5d36121a11d926ad6f3193cc4/opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b02611523803495003bd87362db3e1d2a0454a6a63025dc6658a9830570aa0d", size = 62986597, upload-time = "2025-01-16T13:52:08.836Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/d7/1d5941a9dde095468b288d989ff6539dd69cd429dbf1b9e839013d21b6f0/opencv_python-4.11.0.86-cp37-abi3-win32.whl", hash = "sha256:810549cb2a4aedaa84ad9a1c92fbfdfc14090e2749cedf2c1589ad8359aa169b", size = 29384337, upload-time = "2025-01-16T13:52:13.549Z" },
-    { url = "https://files.pythonhosted.org/packages/a4/7d/f1c30a92854540bf789e9cd5dde7ef49bbe63f855b85a2e6b3db8135c591/opencv_python-4.11.0.86-cp37-abi3-win_amd64.whl", hash = "sha256:085ad9b77c18853ea66283e98affefe2de8cc4c1f43eda4c100cf9b2721142ec", size = 39488044, upload-time = "2025-01-16T13:52:21.928Z" },
-]
-
-[[package]]
-name = "opencv-python"
-version = "4.13.0.92"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.15' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.10.*' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.10.*' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version == '3.10.*' and platform_machine != 's390x' and sys_platform != 'win32'",
-    "python_full_version == '3.10.*' and platform_machine == 's390x' and sys_platform != 'win32'",
-    "python_full_version < '3.9' and sys_platform == 'win32'",
-    "python_full_version < '3.9' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "numpy", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/6f/5a28fef4c4a382be06afe3938c64cc168223016fa520c5abaf37e8862aa5/opencv_python-4.13.0.92-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:caf60c071ec391ba51ed00a4a920f996d0b64e3e46068aac1f646b5de0326a19", size = 46247052, upload-time = "2026-02-05T07:01:25.046Z" },
-    { url = "https://files.pythonhosted.org/packages/08/ac/6c98c44c650b8114a0fb901691351cfb3956d502e8e9b5cd27f4ee7fbf2f/opencv_python-4.13.0.92-cp37-abi3-macosx_14_0_x86_64.whl", hash = "sha256:5868a8c028a0b37561579bfb8ac1875babdc69546d236249fff296a8c010ccf9", size = 32568781, upload-time = "2026-02-05T07:01:41.379Z" },
-    { url = "https://files.pythonhosted.org/packages/3e/51/82fed528b45173bf629fa44effb76dff8bc9f4eeaee759038362dfa60237/opencv_python-4.13.0.92-cp37-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:0bc2596e68f972ca452d80f444bc404e08807d021fbba40df26b61b18e01838a", size = 47685527, upload-time = "2026-02-05T06:59:11.24Z" },
-    { url = "https://files.pythonhosted.org/packages/db/07/90b34a8e2cf9c50fe8ed25cac9011cde0676b4d9d9c973751ac7616223a2/opencv_python-4.13.0.92-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:402033cddf9d294693094de5ef532339f14ce821da3ad7df7c9f6e8316da32cf", size = 70460872, upload-time = "2026-02-05T06:59:19.162Z" },
-    { url = "https://files.pythonhosted.org/packages/02/6d/7a9cc719b3eaf4377b9c2e3edeb7ed3a81de41f96421510c0a169ca3cfd4/opencv_python-4.13.0.92-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:bccaabf9eb7f897ca61880ce2869dcd9b25b72129c28478e7f2a5e8dee945616", size = 46708208, upload-time = "2026-02-05T06:59:15.419Z" },
-    { url = "https://files.pythonhosted.org/packages/fd/55/b3b49a1b97aabcfbbd6c7326df9cb0b6fa0c0aefa8e89d500939e04aa229/opencv_python-4.13.0.92-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:620d602b8f7d8b8dab5f4b99c6eb353e78d3fb8b0f53db1bd258bb1aa001c1d5", size = 72927042, upload-time = "2026-02-05T06:59:23.389Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/17/de5458312bcb07ddf434d7bfcb24bb52c59635ad58c6e7c751b48949b009/opencv_python-4.13.0.92-cp37-abi3-win32.whl", hash = "sha256:372fe164a3148ac1ca51e5f3ad0541a4a276452273f503441d718fab9c5e5f59", size = 30932638, upload-time = "2026-02-05T07:02:14.98Z" },
-    { url = "https://files.pythonhosted.org/packages/e9/a5/1be1516390333ff9be3a9cb648c9f33df79d5096e5884b5df71a588af463/opencv_python-4.13.0.92-cp37-abi3-win_amd64.whl", hash = "sha256:423d934c9fafb91aad38edf26efb46da91ffbc05f3f59c4b0c72e699720706f5", size = 40212062, upload-time = "2026-02-05T07:02:12.724Z" },
-]
-
-[[package]]
-name = "openimageio"
-version = "3.1.13.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/53/31/3ac940330a8e71387f407ccfdac4369835b9196a8cb36d864b33152f07e5/openimageio-3.1.13.1.tar.gz", hash = "sha256:a794a2a8d4244e458452499ed2145f3f035c36a316bc1d00a2b88fe4cd5f1477", size = 6598222, upload-time = "2026-05-04T06:44:51.577Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/c1/2cbd67974c201af53d9aad42e5f854c30b0b141b249224bd195ed8594ef0/openimageio-3.1.13.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:d2fb344cc93490026a5bdfc0343e5469aeb9c9812977b5031099812a4de5e984", size = 6939227, upload-time = "2026-05-04T06:43:56.474Z" },
-    { url = "https://files.pythonhosted.org/packages/5e/58/d1e38c0fdc4e4abccbd6b810d608afceecdac27f366cffcd3c4bbad6930f/openimageio-3.1.13.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:60de709ab4b1cfc7ad9aa4c7f353c15256785b5c6239262fb2ccc25a83f5ae12", size = 6550733, upload-time = "2026-05-04T06:43:59.116Z" },
-    { url = "https://files.pythonhosted.org/packages/7d/1f/34dcf49438376c6cb45c84a283b8302668fae79accdf6133eb92c46f19ec/openimageio-3.1.13.1-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:aa5043e420c56f6a33bf68a2a52d602d73e879fe71c9a948ccf6457bb52bd3d8", size = 6583127, upload-time = "2026-05-04T06:44:00.882Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/3e/45f9c75d3a66034a288a2ee57de0795a65631abf4a891b3e8e0838c7b644/openimageio-3.1.13.1-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f120d1d56f0ef5ca3f15b7a690936059e1067c21f3da1ca133bad2e18f624e27", size = 6872574, upload-time = "2026-05-04T06:44:02.634Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/4b/1d4efc5f2869b2836ba550f9d931cf01d6f0263bad7553a4a2511a6912c8/openimageio-3.1.13.1-cp310-cp310-win_amd64.whl", hash = "sha256:f05ab9c93c6026398eaa4a8d72262faac3ac359b0ea82b6b45f6724c8a67206a", size = 7647168, upload-time = "2026-05-04T06:44:04.104Z" },
-    { url = "https://files.pythonhosted.org/packages/19/9c/be6396f8fdebde5fde0679d74f9d65404d0873b19b7eae727828874786d0/openimageio-3.1.13.1-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:b2fdccbb7dc5dfc9c5ab8a818e328f8d5b2e8423202b8d896fc992c5788515da", size = 6940368, upload-time = "2026-05-04T06:44:05.63Z" },
-    { url = "https://files.pythonhosted.org/packages/8c/86/1b6163ef856711664310d9b3688610ba9e351f70a1a8b35d542a09290caa/openimageio-3.1.13.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:be1f9cf1fd4260193ecf2c0ab3f1549fe10a44faa1f717512bafb41060e03886", size = 6551686, upload-time = "2026-05-04T06:44:07.44Z" },
-    { url = "https://files.pythonhosted.org/packages/e4/c1/b84c76a85cb7ec22f29854a5b1dc1806010e15bdfc8965a69de30fee11af/openimageio-3.1.13.1-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:670c9ccd99e133886ca95c6c035c4e9642605f31a46eb32046200d87ca6d8fd3", size = 6583668, upload-time = "2026-05-04T06:44:09.044Z" },
-    { url = "https://files.pythonhosted.org/packages/4f/87/5fa4f165ce5c21fc1fdc81164033cdcd00bf6d11a91c45645c3ed01b9b15/openimageio-3.1.13.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e0d36e9039f52bdd5b2350b5d4340eddb00759c12225017b80e55f61192ef993", size = 6873165, upload-time = "2026-05-04T06:44:11.349Z" },
-    { url = "https://files.pythonhosted.org/packages/df/24/ac1142b486a71bd1a6cdd11c5907dbc0cd43ad69941395cf780795cfe457/openimageio-3.1.13.1-cp311-cp311-win_amd64.whl", hash = "sha256:8e0f5b5c417f2e0d57e1443a6ef2b2b7b329131ddd21b1dcaf0a07189cf5b9eb", size = 7648020, upload-time = "2026-05-04T06:44:13.876Z" },
-    { url = "https://files.pythonhosted.org/packages/cc/28/cca12a002fa690674dd9a514c1fe801adbc2c7e39d45eb7c05de6f8541b7/openimageio-3.1.13.1-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:51be3e32347193defcd75f17d09fa3ea8b3a37d99474a3812d7a65e5ea86011a", size = 7032744, upload-time = "2026-05-04T06:44:15.394Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/56/3357e2546315d1f8736d4ca3313e483c794e2aab7c231510b96b12361702/openimageio-3.1.13.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:01e863e9a8be09611e3664f206cacd677f2c1a8720a17577dacef92869e93260", size = 6626973, upload-time = "2026-05-04T06:44:17.204Z" },
-    { url = "https://files.pythonhosted.org/packages/60/ac/b5f8c55c2ce416c146242d4b27c830c1913e8d6c253ae132e60efc615423/openimageio-3.1.13.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6c9adab39bfecd2973352fa0bba90f41b838be4da0b3fd2943a1d4a1a64ffcba", size = 6584698, upload-time = "2026-05-04T06:44:18.841Z" },
-    { url = "https://files.pythonhosted.org/packages/27/be/013e373f7c8046375bc9cfa677a9ae1e37f85bb107c5e0c9fb50e22daf9d/openimageio-3.1.13.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:55b7d453c651bf61681b7e310a3abdd97449ab9d14247648263285f43e48f8cf", size = 6874407, upload-time = "2026-05-04T06:44:20.699Z" },
-    { url = "https://files.pythonhosted.org/packages/27/00/d1444f57d59155c7f66096cda964df6301cca5384af2c865e48c83d37584/openimageio-3.1.13.1-cp312-cp312-win_amd64.whl", hash = "sha256:969fc403e2377be1379072cd8e1debff5e4b9e29058a03658afa3686a9853b92", size = 7654180, upload-time = "2026-05-04T06:44:22.937Z" },
-    { url = "https://files.pythonhosted.org/packages/22/80/0e6e8e62fd8b43105d61fad56942275c25af880d5657a3a528d0991b8406/openimageio-3.1.13.1-cp313-cp313-macosx_10_15_x86_64.whl", hash = "sha256:01de2bcc5d5e2f7dfce37663f5edc972d3d2a3c5025a6c3cb783f81e9ce1a085", size = 7032743, upload-time = "2026-05-04T06:44:24.54Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/41/42265ab84ecd8a5536403471c7ac095f89f72c1b03060bf5c75a60d1cc57/openimageio-3.1.13.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:70de1e8ad2a2273f29a0cce584334cea07099b7e341eabaddb9cbd73df24868f", size = 6626965, upload-time = "2026-05-04T06:44:26.472Z" },
-    { url = "https://files.pythonhosted.org/packages/22/7d/4f3bf1b2b8eea602452c7de535f12fa2c7f8e08df6189cd621b3c6e471c1/openimageio-3.1.13.1-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c2573705430df8f7d7bcf98947b3b13359c397105675e1a50c1adfe1393868a9", size = 6584748, upload-time = "2026-05-04T06:44:27.932Z" },
-    { url = "https://files.pythonhosted.org/packages/25/c6/90dfb62b3e78190af01b9c32fbbd10ded5c7b6fc98e2a47dff257280ec3c/openimageio-3.1.13.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2b9b20608922989cc13b88e1af6a6e5eece1d0cb38ebdbaf4b67febce58629f7", size = 6874471, upload-time = "2026-05-04T06:44:29.724Z" },
-    { url = "https://files.pythonhosted.org/packages/0c/ad/6c68e28435eab8f8df97df1cee6a32ea298111ba39ab12e87ebcc0adb1b5/openimageio-3.1.13.1-cp313-cp313-win_amd64.whl", hash = "sha256:a7491cb9494451e7c7ccc7c21f35d6e151aa077310aa237973400f1ba474b1cb", size = 7653374, upload-time = "2026-05-04T06:44:31.387Z" },
-    { url = "https://files.pythonhosted.org/packages/42/39/d9e6378515f024d13b0d8834e7ff01f69a56b76c8e0acf765a1f115fec24/openimageio-3.1.13.1-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:f77729749c3c738067f8c1d1edfd3e01509132b15e53430a480ada360522fe4e", size = 7029379, upload-time = "2026-05-04T06:44:33.166Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/79/746867e1ef1d1b697a462b806b2436bd571d5a47fd25933e64cf2aba9056/openimageio-3.1.13.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:49ec13913af71ee4ddb5331745ec809a82b915ac90f4de29e2950854f94e81d5", size = 6622132, upload-time = "2026-05-04T06:44:35.168Z" },
-    { url = "https://files.pythonhosted.org/packages/d0/96/3de09a38d30e7eef56e4296af0359e0c7d7b178c1c60212aee150912c47e/openimageio-3.1.13.1-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ff693b2e22c43f4f159b5c029bac857f0c3ca5561fe25a3393da884511b8c7d0", size = 6584713, upload-time = "2026-05-04T06:44:37.027Z" },
-    { url = "https://files.pythonhosted.org/packages/f7/d1/1a8f365e042740c583a0f19e5985ad42ff0ca8f4f499da0f70e999dd1c90/openimageio-3.1.13.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:42d40a2a3f53fe4072ed8b8fbb6855038ed5b6fa31d46d54ba674975f75ed724", size = 6874532, upload-time = "2026-05-04T06:44:38.538Z" },
-    { url = "https://files.pythonhosted.org/packages/48/2c/1c7137cbd0879b6ed2746f4584b351f598cc86bfa357e93a74051bbd3519/openimageio-3.1.13.1-cp314-cp314-win_amd64.whl", hash = "sha256:9a5c9042af5e551287f313f9f2a0895608e48cd3f4f64c429eda5a3cd0c87cb7", size = 7959064, upload-time = "2026-05-04T06:44:40.243Z" },
-    { url = "https://files.pythonhosted.org/packages/d1/0e/a296f81a6a6d37f3435dd51081e3ab77471b4dbfbd667111f85c8949cced/openimageio-3.1.13.1-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:6f279c2f7795071f9472ca11099beabef8507ff878c55eb7a91d7013039b643d", size = 6939301, upload-time = "2026-05-04T06:44:42.286Z" },
-    { url = "https://files.pythonhosted.org/packages/38/5c/7874947cae5b487c7f8d2a0d3c675fbebba1776f96cd7b1bde5876332add/openimageio-3.1.13.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:6793e31899629831ca2e8a320f6c7cafb05314da513c0d741f6abf7810756591", size = 6550925, upload-time = "2026-05-04T06:44:44.298Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/bd/2ed83a16bcfdc04728bf902fd6bd5de95740adee0410b9846aa0c19295a8/openimageio-3.1.13.1-cp39-cp39-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:cac529cd2a1531961ce4eccf583b385c2d51ec450fcf3e25ae370cf261db7127", size = 6583279, upload-time = "2026-05-04T06:44:46.06Z" },
-    { url = "https://files.pythonhosted.org/packages/1d/63/3ba309f1eba0b7ad5cb66d3b2f4da52fe8752269c4df341e0772e6785d17/openimageio-3.1.13.1-cp39-cp39-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9c35a52d49392d7796765f2f7a1997a4e6eaa66320a6dba05d3ca6f5c8d908bf", size = 6872918, upload-time = "2026-05-04T06:44:47.62Z" },
-    { url = "https://files.pythonhosted.org/packages/bb/80/594960035de31e45fe55ee476821bc858089a8a56c1a6de3f6772bc9ed49/openimageio-3.1.13.1-cp39-cp39-win_amd64.whl", hash = "sha256:a551b45ca20483982be125e5751af63a6c8d884dab07f782876bb8b7972374e0", size = 7647296, upload-time = "2026-05-04T06:44:49.812Z" },
 ]
 
 [[package]]
