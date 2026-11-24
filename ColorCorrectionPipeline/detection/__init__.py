@@ -1,7 +1,8 @@
-"""Classic24 chart detection with the bundled ONNX model.
+"""Chart detection with the bundled ONNX model.
 
 The supplied Opt2 ONNX contract uses 24 *anchor classes*, not 24 color cells.
-Only Classic 4x6 reference charts are supported by the Python pipeline today.
+Classic 24, SpyderCHECKR 24 and ColorChecker Digital SG charts are recognised; the
+reference in use decides which one a calibration samples.
 """
 
 from .charts import (

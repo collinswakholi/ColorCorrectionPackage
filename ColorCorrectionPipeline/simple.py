@@ -59,6 +59,7 @@ def calibrate(
     white: Union[PathLike, np.ndarray, None] = None,
     *,
     model: str = "rpcc2",
+    chart_type: str = "auto",
     frame_index: Optional[int] = 0,
     device: str = "auto",
     save_to: Optional[PathLike] = None,
@@ -66,18 +67,20 @@ def calibrate(
     name: str = "chart",
     **options: Any,
 ) -> Calibration:
-    """Fit a calibration on a ColorChecker Classic 24 capture.
+    """Fit a calibration on a photo of a ColorChecker Classic 24, SpyderCHECKR 24 or Digital SG.
 
     Args:
         chart: Chart photograph (path or RGB array).
         white: Matching flat-field (white) capture. Omit to skip flat-field correction.
         model: Preset name: ``rpcc2`` (default), ``rpcc3``, ``ccm``/``3x3``, ``pls`` or
             ``high-precision``.
+        chart_type: ``auto`` (default: use the chart found in the photo, preferring
+            Classic), ``classic``, ``spyder`` or ``digital-sg``.
         frame_index: Frame to read from multi-frame files; ``None`` requires single-frame input.
         device: Chart detection device, ``auto`` or ``cpu``.
         save_to: Optional ``.ccpb`` path; the bundle is written after a successful fit.
-        config: A ready :class:`Config`; when given, ``model``, ``frame_index``, ``device`` and
-            ``options`` are not used.
+        config: A ready :class:`Config`; when given, ``model``, ``chart_type``, ``frame_index``,
+            ``device`` and ``options`` are not used.
         name: Label used in metric keys and saved artifacts.
         **options: Further :class:`Config` keyword arguments (e.g. ``numerics={...}``).
 
@@ -90,6 +93,8 @@ def calibrate(
     from .pipeline import ColorCorrection
 
     if config is None:
+        if chart_type != "auto":
+            options["chart"] = {**(options.get("chart") or {}), "type": chart_type}
         config = Config.from_preset(
             model, white=white is not None, frame_index=frame_index, device=device, **options
         )

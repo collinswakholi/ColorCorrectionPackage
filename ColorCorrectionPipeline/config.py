@@ -662,11 +662,22 @@ class Config:
                 raise TypeError(
                     "reference_profile must be ReferenceProfile or its validated dictionary"
                 )
+            from .chart_references import TEMPLATES, is_builtin_reference, template_for
+
+            if self.reference_profile.template_id not in TEMPLATES:
+                raise ValueError(
+                    "references must use a classic_4x6, spyder_4x6 or digital_sg_10x14 template"
+                )
+            requested = self.chart_detection.get("type", "auto")
             if (
-                self.reference_profile.layout != (4, 6)
-                or self.reference_profile.template_id != "classic_4x6"
+                requested != "auto"
+                and not is_builtin_reference(self.reference_profile)
+                and template_for(requested) != self.reference_profile.template_id
             ):
-                raise ValueError("this calibration engine supports Classic24 reference layouts")
+                raise ValueError(
+                    "chart type %r contradicts the custom reference's %s template"
+                    % (requested, self.reference_profile.template_id)
+                )
         if semantics.output_policy != "clip":
             raise ValueError(
                 "this stage engine clips outputs; explicit-v1 pipeline requires output_policy='clip'"

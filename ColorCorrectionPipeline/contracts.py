@@ -728,6 +728,37 @@ class ReferenceProfile(_ImmutableContract):
         )
 
     @classmethod
+    def builtin(cls, chart="classic"):
+        """The built-in reference for ``classic``, ``spyder`` or ``digital-sg``."""
+        from .chart_references import builtin_reference
+
+        return builtin_reference(chart)
+
+    @classmethod
+    def for_chart(cls, chart, values, **options):
+        """Your own measured values for a chart; see ``chart_references.custom_reference``.
+
+        >>> ref = ReferenceProfile.for_chart("spyder", my_lab_values)  # doctest: +SKIP
+        """
+        from .chart_references import custom_reference
+
+        return custom_reference(values, chart=chart, **options)
+
+    @classmethod
+    def from_text(cls, text, *, chart="classic", **options):
+        """Parse a pasted table: triplets, ``cell,v1,v2,v3`` or ``row,column,v1,v2,v3``."""
+        from .chart_references import reference_from_text
+
+        return reference_from_text(text, chart=chart, **options)
+
+    @classmethod
+    def from_csv(cls, path, *, chart="classic", **options):
+        """Read a reference table from a CSV file; see :meth:`from_text`."""
+        from .chart_references import reference_from_csv
+
+        return reference_from_csv(path, chart=chart, **options)
+
+    @classmethod
     def classic24(cls):
         import colour
 

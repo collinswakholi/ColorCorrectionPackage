@@ -23,11 +23,15 @@ modes. A broken installation cannot silently change detector algorithms.
 Missing runtime, malformed model output, no valid lattice, and unsupported
 chart layouts have distinct errors. Model loading is for trusted ONNX assets.
 
-Only Classic 4x6 references are supported by the Python calibration pipeline.
-The model recognizes anchor classes for Classic, Spyder and Digital SG. The
-latter two are never relabeled as Classic; an image with only unsupported
-layouts fails clearly. Passport Classic faces share the Classic model layout.
-Multi-face extraction returns Classic faces by confidence.
+The model recognizes anchor classes for Classic 24, SpyderCHECKR 24 and Digital
+SG, and the pipeline calibrates from all three. The reference in use selects the
+chart type: a custom reference pins its own template, and with the built-in
+references `chart={"type": "auto"}` (the default) uses the detected chart,
+preferring Classic when a photo holds several. Types are never relabeled; asking
+for a chart the photo doesn't contain fails clearly. Passport Classic faces share
+the Classic layout. Faces of the selected type are returned by confidence, and
+`chart_index` counts within that type. See
+[chart reference values](configuration.md#chart-reference-values).
 
 The model has 24 **anchor classes** (three layouts times eight named anchors).
 Those classes are not the chart's 24 color cells. The decoder accepts the

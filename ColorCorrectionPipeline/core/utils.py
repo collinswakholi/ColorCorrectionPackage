@@ -128,10 +128,10 @@ def extract_neutral_patches(
         else list(neutral_indices)
     )
     if len(set(neutral_indices)) != len(neutral_indices) or any(
-        isinstance(i, bool) or not isinstance(i, (int, np.integer)) or not 0 <= i < 24
+        isinstance(i, bool) or not isinstance(i, (int, np.integer)) or not 0 <= i < len(patch_names)
         for i in neutral_indices
     ):
-        raise ValueError("neutral_indices must be unique Classic24 cell positions")
+        raise ValueError("neutral_indices must be unique cell positions of the chart reference")
     names_rows = [patch_names[index] for index in neutral_indices]
     names_columns = ["R", "G", "B"]
 

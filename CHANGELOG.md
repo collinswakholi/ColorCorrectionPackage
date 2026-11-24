@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **SpyderCHECKR 24 and ColorChecker Digital SG charts.** The detector already recognised them; calibration now uses them with all four stages. Their reference values and named grey patches come from ColorCorrect Studio's audited catalog. GC and WB use Spyder's grey row and Digital SG's central grey ramps, never its border patches. `chart={"type": "auto"}` (the default) uses the chart found in the photo and prefers a Classic, so Classic calibrations are byte-identical. `"classic"`, `"spyder"` and `"digital-sg"` select one explicitly, and `calibrate(..., chart_type=...)` does the same. On synthetic charts photographed through a simulated cast, tone curve and vignette, the full pipeline reduced mean ΔE00 from about 7 to 1.1 (Spyder) and 1.2 (Digital SG), against 2.7 and 3.2 with CC alone. Real-photograph validation is still to come: each fit records `last_run["chart"]` and logs a notice.
+- **Your own reference values, as in the Studio SDK.** `ReferenceProfile.for_chart(chart, values, ...)`, `ReferenceProfile.from_csv(path, chart=...)` and `ReferenceProfile.from_text(text, chart=...)` accept Lab, XYZ, sRGB or linear sRGB under any standard white (D50, D55, D60, D65, D75, A, C, E or xy). Values can be plain triplets in row- or column-major order, `cell,v1,v2,v3` (for example `A1`), or `row,column,v1,v2,v3`, and a different set of grey patches can be chosen. `ReferenceProfile.builtin(chart)` returns a built-in reference.
+
+### Documentation
+
+- The configuration guide has a new chart reference values section, and the README names all three charts.
+
 ## [3.0.1] - 2026-11-24
 
 ### Changed

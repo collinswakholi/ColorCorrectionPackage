@@ -72,8 +72,14 @@ class DetectionOptions:
     samples_per_axis: int = 9
     samples_per_patch: Optional[int] = None
     sampling_seed: Optional[int] = None
+    #: Which chart to calibrate from: auto, classic, spyder or digital-sg.
+    type: str = "auto"
 
     def __post_init__(self):
+        if self.type != "auto":
+            from ..chart_references import template_for
+
+            template_for(self.type)  # raises for an unknown chart type
         if self.sampling_policy not in ("default", "ui-compatible-v1", "ui-native-v1"):
             raise ValueError("unsupported chart sampling policy")
         if type(self.samples_per_axis) is not int or not 1 <= self.samples_per_axis <= 63:
@@ -153,6 +159,8 @@ class _Scope:
     geometry: Any = None
     shape: Any = None
     source_image: Any = None
+    # One inference per source image: (charts, details) or the raised error.
+    candidates: Any = None
 
 
 _scope = ContextVar("ccp_chart_detection_scope", default=None)
@@ -554,6 +562,53 @@ def _forward(image, path, options):
     return _assemble(detections, options, w, h), details
 
 
+def _candidates(state, source, path, options):
+    """Run inference (and the optional recall model) once per detection context."""
+    if state.candidates is None:
+        try:
+            charts, details = _forward(source, path, options)
+            if not charts and options.recall_model_path:
+                charts, details = _forward(
+                    source, Path(options.recall_model_path).expanduser().resolve(), options
+                )
+                details["recall"] = True
+            state.candidates = (charts, details)
+        except ChartDetectionError as exc:
+            state.candidates = exc
+    if isinstance(state.candidates, BaseException):
+        raise state.candidates
+    charts, details = state.candidates
+    return charts, copy.deepcopy(details)
+
+
+def _wanted_type(state):
+    """Detector type index for the reference in scope (Classic when none is bound)."""
+    profile = getattr(state, "reference_profile", None)
+    template = getattr(profile, "template_id", None)
+    if template is None and state.options.type != "auto":
+        from ..chart_references import template_for
+
+        template = template_for(state.options.type)
+    return _TYPE_NAMES.index(template) if template in _TYPE_NAMES else 0
+
+
+def detected_chart_templates():
+    """Templates found on the bound source image, most preferred first.
+
+    Used to choose a built-in reference for ``chart={"type": "auto"}``. Inference runs
+    once per context and is reused for sampling. Raises the detector's error when no
+    chart can be found.
+    """
+    state = _scope.get()
+    if state is None or state.source_image is None:
+        raise RuntimeError("detected_chart_templates requires a bound detection source")
+    options, path = _options_and_path(state)
+    charts, _ = _candidates(state, state.source_image, path, options)
+    return [
+        name for index, name in enumerate(_TYPE_NAMES) if any(c["type"] == index for c in charts)
+    ]
+
+
 def _model_charts(image):
     if (
         not isinstance(image, np.ndarray)
@@ -577,43 +632,39 @@ def _model_charts(image):
         source = state.source_image if state.source_image is not None else image
         if source.shape[:2] != image.shape[:2]:
             raise ChartDetectionError("stage image dimensions differ from the bound source image")
-        charts, details = _forward(source, path, options)
+        charts, details = _candidates(state, source, path, options)
         inference_details = copy.deepcopy(details)
         forward_completed = True
-        if not charts and options.recall_model_path:
-            charts, details = _forward(
-                source, Path(options.recall_model_path).expanduser().resolve(), options
-            )
-            details["recall"] = True
-            inference_details = copy.deepcopy(details)
-            forward_completed = True
         if not charts:
             raise NoChartDetectedError("model inference found no valid chart lattice")
-        classic = [chart for chart in charts if chart["type"] == 0]
-        if not classic:
+        wanted = _wanted_type(state)
+        selected = [chart for chart in charts if chart["type"] == wanted]
+        if not selected:
             raise UnsupportedChartError(
-                "detected %s; this pipeline currently requires Classic 4x6 references"
-                % ", ".join(sorted({_TYPE_NAMES[c["type"]] for c in charts}))
+                "detected %s, but the reference is for %s; set chart={'type': ...} or pass "
+                "a matching reference"
+                % (", ".join(sorted({_TYPE_NAMES[c["type"]] for c in charts})), _TYPE_NAMES[wanted])
             )
-        if options.chart_index >= len(classic):
+        if options.chart_index >= len(selected):
             raise ChartSelectionError(
-                "requested chart_index %d but only %d Classic faces were detected"
-                % (options.chart_index, len(classic))
+                "requested chart_index %d but only %d %s faces were detected"
+                % (options.chart_index, len(selected), _TYPE_NAMES[wanted])
             )
         _record(
             state,
             backend="model",
             status="detected",
-            charts=len(classic),
+            charts=len(selected),
             selected_chart_index=options.chart_index,
             geometry_source=(
                 "source_image" if state.source_image is not None else "first_sampled_image"
             ),
-            ignored_layouts=[_TYPE_NAMES[c["type"]] for c in charts if c["type"] != 0],
+            ignored_layouts=[_TYPE_NAMES[c["type"]] for c in charts if c["type"] != wanted],
+            chart_type=_TYPE_NAMES[wanted],
             **details,
         )
-        state.geometry, state.shape = classic, image.shape[:2]
-        return classic
+        state.geometry, state.shape = selected, image.shape[:2]
+        return selected
     except ChartDetectionError as exc:
         failure_details = copy.deepcopy(
             getattr(exc, "inference_details", None) or inference_details
