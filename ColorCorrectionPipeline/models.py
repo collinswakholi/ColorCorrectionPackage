@@ -130,24 +130,22 @@ class MyModels:
                 raise ValueError("saved image_options must be a dictionary")
             # Loading is another entry into the current engine. Pure conversion
             # semantics can describe policies that this stage engine cannot honor;
-            # enforce the same capability gates used before fitting.
-            from .config import Config
-
-            validation = Config(
-                **switches,
-                color_semantics=semantics,
-                reference_profile=profile if semantics.version == "explicit-v1" else None,
-                image_options=image_options,
-                stage_policy=metadata.get("stage_policy"),
-                fitting_policy=metadata.get("fitting_policy", "legacy-v1"),
-                validation_options=metadata.get("validation_options"),
-            )
-            validation.validate()
+            # enforce the capability gates the recording fitter applied. Removed
+            # 2.x recipes stay loadable: their rules live in the load-only _compat.
+            from ._compat import validate_saved_policies
             from .stage_policies import StagePolicy, MonotonicToneModel
             from .fitting import FittingPolicy
 
             stages = StagePolicy.from_value(metadata.get("stage_policy"))
             fitting = FittingPolicy.from_value(metadata.get("fitting_policy"))
+            validate_saved_policies(
+                semantics,
+                stages,
+                fitting,
+                switches=switches,
+                image_options=image_options,
+                validation_options=metadata.get("validation_options"),
+            )
             if fitting.ui_runtime == "auto-v2":
                 raise ValueError("saved calibration requires a resolved precision runtime")
             if "config_version" in metadata and (

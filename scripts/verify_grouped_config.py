@@ -307,7 +307,7 @@ def configuration_contracts():
         defaults.to_dict()
     )
     assert "use_lut" not in Config.from_dict(defaults.to_grouped_dict()).CC_kwargs
-    assert Config.from_dict({}).api_version == 1
+    reject(lambda: Config.from_dict({}))  # unversioned (API-1) mappings were removed in 3.0
     assert Config.from_dict({}, source_version=2).api_version == 2
     raw_grouped = deepcopy(grouped)
     assert Config.from_dict(raw_grouped, source_version=2).api_version == 2
@@ -315,21 +315,10 @@ def configuration_contracts():
     for bad in (dict(document, api_version=1), dict(document, layout="grouped-v99")):
         reject(lambda bad=bad: Config.from_dict(bad))
 
-    historical = Config(
-        fitting_policy="legacy-v1",
-        CC_kwargs={
-            "mtd": "nn",
-            "degree": 3,
-            "hidden_layers": [16],
-            "max_iterations": 17,
-            "random_state": 13,
-        },
-    )
-    historical.validate()
-    assert Config.from_dict(historical.to_dict()).to_dict() == historical.to_dict()
-    reject(historical.to_grouped_dict)
+    # The historical fitters were removed in 3.0; requests for them fail clearly.
+    reject(lambda: Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "nn", "degree": 3}))
     reject(lambda: Config(fitting_policy="legacy-v1", steps={"wb": {"enabled": False}}))
-    assert Config(CC_kwargs={"mtd": "nn"}).api_version == 1
+    reject(lambda: Config(CC_kwargs={"mtd": "nn"}))
 
     # Frozen snapshots must not become a second mutable source of truth.
     snapshot = nested.steps
@@ -439,7 +428,7 @@ def configuration_contracts():
         "typed_and_mapping_equivalent": True,
         "flat_serialization_preserved": True,
         "grouped_json_roundtrip": True,
-        "legacy_mapping_and_training_preserved": True,
+        "removed_legacy_requests_rejected": True,
         "single_group_defaults_equivalent": len(single_groups),
         "shared_input_chart_reference_color_numerics_persistence_equivalent": True,
         "fresh_immutable_views": True,

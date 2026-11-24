@@ -1,7 +1,7 @@
 """UI-compatible FFC fitting with the package's existing quality gates.
 
 Numerical equations ported from the MIT-licensed ccp_core/ffc.rs by
-Collins Wakholi (2026). Legacy FFC never selects these equations implicitly.
+Collins Wakholi (2026). ``apply_ffc`` also replays staged-v1 gains saved by 2.x.
 """
 
 from copy import deepcopy
@@ -127,21 +127,11 @@ def fit_ffc(owner, image, parameters):
     h, w = source.shape[:2]
     if source.shape != image.shape:
         raise ValueError("FFC white and source images must have identical dimensions")
-    from .ui_native import enabled as native_enabled
+    from .ui_native import lightness as native_lightness
     from .ui_native import working_input
 
-    if native_enabled(owner):
-        crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
-        from .ui_native import lightness as native_lightness
-
-        lightness = native_lightness(crop, dtype, domain=domain)
-    else:
-        crop = source[y1:y2, x1:x2]
-        xyz = rgb_to_xyz(round_image(crop), encoding="srgb")
-        if domain == "linear":
-            lightness = (100.0 * xyz[..., 1]).astype(dtype)
-        else:
-            lightness = xyz_to_lab(xyz, white=D65)[..., 0].astype(dtype)
+    crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
+    lightness = native_lightness(crop, dtype, domain=domain)
     # In the linear domain "lightness" holds 100*Y; ratios are luminance gains.
     # The signal guard keeps its historical L* meaning in both domains.
     signal = float(lightness.min()) / 100
@@ -224,8 +214,6 @@ def fit_ffc(owner, image, parameters):
     )
     owner.models.model_ffc = gain
     owner.numerical_report["FFC"] = quality
-    if native_enabled(owner):
-        from .ui_native import render_fit_stage
+    from .ui_native import render_fit_stage
 
-        return render_fit_stage(owner, image, "FFC"), {}, False
-    return apply_ffc(image, gain, domain), {}, False
+    return render_fit_stage(owner, image, "FFC"), {}, False

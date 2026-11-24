@@ -28,8 +28,6 @@ import gc
 import copy
 import logging
 import threading
-import hashlib
-import json
 import os
 import time
 from contextlib import nullcontext
@@ -37,7 +35,6 @@ from dataclasses import dataclass, field, fields
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from ._lazy import colour  # loads colour-science on first use
 import cv2
 import numpy as np
 from ._lazy import pandas as pd  # deferred: only used inside functions
@@ -60,25 +57,9 @@ from .detection import (
     detection_context,
     get_detection_diagnostics,
 )
-from .constants import MODEL_PATH, WP_DEFAULT
-from .core import (
-    adapt_chart,
-    arrange_metrics,
-    color_correction,
-    color_correction_1,
-    estimate_gamma_profile,
-    extract_neutral_patches,
-    extrapolate_if_sat_image,
-    get_metrics,
-    predict_,
-    predict_image,
-    to_float64,
-    to_uint8,
-    wb_correction,
-)
+from .core import predict_, to_float64, to_uint8
 from .core.utils import clear_chart_cache
 from .core.accel import apply_ffc_float
-from .flat_field import FlatFieldCorrection
 from .models import MyModels
 
 __all__ = ["ColorCorrection", "FitResult", "CalibrationError"]
@@ -111,13 +92,6 @@ class CalibrationError(RuntimeError):
         return "Calibration failed" + (": " + "; ".join(details) if details else "")
 
 
-def get_attr(obj: Any, attr: str, default: Any = None) -> Any:
-    """Safely get attribute from object or dict with default value."""
-    if isinstance(obj, dict):
-        return obj.get(attr, default)
-    return getattr(obj, attr, default)
-
-
 @dataclass(eq=False)
 class _FittedState:
     """State published together to prediction readers after a successful fit or load."""
@@ -146,8 +120,6 @@ class _FittedState:
     REFERENCE_RGB_PD: Optional["pd.DataFrame"] = None
     REFERENCE_NEUTRAL_PATCHES_PD: Optional["pd.DataFrame"] = None
     REFERENCE_DISPLAY_RGB_PD: Optional["pd.DataFrame"] = None
-    _ffc_multiplier_cache: dict = field(default_factory=dict)
-    _ffc_quality_cache: dict = field(default_factory=dict)
 
     @classmethod
     def from_fit(cls, candidate):
@@ -225,120 +197,56 @@ class ColorCorrection:
             >>> ref_rgb = cc.get_reference_values()
             >>> print(ref_rgb.shape)  # (24, 3)
         """
-        if self.color_semantics.version == "explicit-v1":
-            profile = self.reference_profile or ReferenceProfile.classic24()
-            self.reference_profile = profile
-            self.REF_ILLUMINANT = np.asarray(D65, dtype=np.float64)
-            from .ui_native import enabled as native_enabled, reference as native_reference
-
-            fitting_rgb = (
-                native_reference(profile)[1]
-                if native_enabled(self)
-                else self.color_semantics.reference_to_working_rgb(
-                    profile.canonical_lab_d50, clip=False
-                )
+        if self.color_semantics.version != "explicit-v1":
+            raise ValueError(
+                "legacy-v1 reference values served the fitters removed in 3.0; "
+                "use explicit-v1 color semantics (the default for new fits)"
             )
-            display_rgb = self.color_semantics.reference_to_working_rgb(
-                profile.canonical_lab_d50, clip=True
+        profile = self.reference_profile or ReferenceProfile.classic24()
+        self.reference_profile = profile
+        self.REF_ILLUMINANT = np.asarray(D65, dtype=np.float64)
+        from .ui_native import enabled as native_enabled, reference as native_reference
+
+        fitting_rgb = (
+            native_reference(profile)[1]
+            if native_enabled(self)
+            else self.color_semantics.reference_to_working_rgb(
+                profile.canonical_lab_d50, clip=False
             )
-            self.REFERENCE_RGB_PD = pd.DataFrame(
-                fitting_rgb, columns=["R", "G", "B"], index=profile.names
-            )
-            self.REFERENCE_DISPLAY_RGB_PD = pd.DataFrame(
-                display_rgb, columns=["R", "G", "B"], index=profile.names
-            )
-            self.REFERENCE_NEUTRAL_PATCHES_PD = self.REFERENCE_RGB_PD.iloc[
-                list(profile.neutral_indices)
-            ].copy()
-            xyz = adapt_xyz(
-                lab_to_xyz(profile.canonical_lab_d50, white="D50"),
-                "D50",
-                "D65",
-                transform=self.color_semantics.adaptation,
-            )
-            total = xyz.sum(axis=1)
-            xy = np.divide(
-                xyz[:, :2], total[:, None], out=np.zeros_like(xyz[:, :2]), where=total[:, None] != 0
-            )
-            xyY = np.column_stack((xy, xyz[:, 1]))
-            from .checker_compat import make_colour_checker
-
-            self.REFERENCE_CHART = make_colour_checker(
-                name=profile.name,
-                data=dict(zip(profile.cell_ids, xyY)),
-                illuminant=self.REF_ILLUMINANT,
-                rows=4,
-                columns=6,
-            )
-            return self.REFERENCE_RGB_PD
-
-        if REF_ILLUMINANT is None:
-            # Default to D65
-            REF_ILLUMINANT = WP_DEFAULT
-
-        self.REF_ILLUMINANT = np.array(REF_ILLUMINANT, dtype=np.float64, copy=True)
-
-        # Load standard ColorChecker 24 chart
-        REFERENCE_CHART = colour.CCS_COLOURCHECKERS["ColorChecker24 - After November 2014"]
-
-        # Chromatic adaptation if needed
-        REFERENCE_CHART = adapt_chart(REFERENCE_CHART, REF_ILLUMINANT)
-
-        data_xyY = list(REFERENCE_CHART.data.values())
-        names = [str(k) for k in REFERENCE_CHART.data.keys()]  # Convert to strings
-
-        xyz = colour.xyY_to_XYZ(data_xyY)
-        rgb = colour.XYZ_to_sRGB(xyz, illuminant=REF_ILLUMINANT, apply_cctf_encoding=True)
-        rgb_clipped = np.clip(rgb, 0.0, 1.0)
-
-        REFERENCE_RGB_PD = pd.DataFrame(rgb_clipped, columns=["R", "G", "B"], index=names)
-
-        # Last six are neutrals
-        REFERENCE_NEUTRAL_PATCHES_PD = pd.DataFrame(
-            rgb_clipped[-6:], columns=["R", "G", "B"], index=names[-6:]
         )
+        display_rgb = self.color_semantics.reference_to_working_rgb(
+            profile.canonical_lab_d50, clip=True
+        )
+        self.REFERENCE_RGB_PD = pd.DataFrame(
+            fitting_rgb, columns=["R", "G", "B"], index=profile.names
+        )
+        self.REFERENCE_DISPLAY_RGB_PD = pd.DataFrame(
+            display_rgb, columns=["R", "G", "B"], index=profile.names
+        )
+        self.REFERENCE_NEUTRAL_PATCHES_PD = self.REFERENCE_RGB_PD.iloc[
+            list(profile.neutral_indices)
+        ].copy()
+        xyz = adapt_xyz(
+            lab_to_xyz(profile.canonical_lab_d50, white="D50"),
+            "D50",
+            "D65",
+            transform=self.color_semantics.adaptation,
+        )
+        total = xyz.sum(axis=1)
+        xy = np.divide(
+            xyz[:, :2], total[:, None], out=np.zeros_like(xyz[:, :2]), where=total[:, None] != 0
+        )
+        xyY = np.column_stack((xy, xyz[:, 1]))
+        from .checker_compat import make_colour_checker
 
-        self.reference_profile = ReferenceProfile.classic24()
-        self.REFERENCE_DISPLAY_RGB_PD = REFERENCE_RGB_PD.copy()
-        self.REFERENCE_CHART = REFERENCE_CHART
-        self.REFERENCE_RGB_PD = REFERENCE_RGB_PD
-        self.REFERENCE_NEUTRAL_PATCHES_PD = REFERENCE_NEUTRAL_PATCHES_PD
-
-        return REFERENCE_RGB_PD
-
-    def clear_ffc_cache(self) -> None:
-        """Clear cached flat-field multipliers."""
-        self._ffc_multiplier_cache.clear()
-        self._ffc_quality_cache.clear()
-
-    @staticmethod
-    def _hash_image_for_cache(img: np.ndarray) -> str:
-        """Hash image content and shape for per-process caches."""
-        digest = hashlib.sha256(memoryview(np.ascontiguousarray(img))).hexdigest()
-        return f"{img.shape}|{img.dtype}|{digest}"
-
-    def _ffc_cache_key(
-        self,
-        ffc_params: Dict[str, Any],
-        fit_params: Dict[str, Any],
-    ) -> str:
-        """Create a stable cache key for white image and FFC settings."""
-        payload = {
-            "white": self._hash_image_for_cache(self.White_Image),
-            "ffc_params": {k: v for k, v in ffc_params.items() if k != "show"},
-            "fit_params": fit_params,
-        }
-        # Automatic plane selection depends on detector bytes as well as its
-        # path. Replacing a model at the same path must not reuse an old gain.
-        if not ffc_params.get("manual_crop") and ffc_params.get("crop_rect") is None:
-            model_path = ffc_params.get("model_path")
-            if model_path and os.path.isfile(model_path):
-                digest = hashlib.sha256()
-                with open(model_path, "rb") as model_file:
-                    for chunk in iter(lambda: model_file.read(1024 * 1024), b""):
-                        digest.update(chunk)
-                payload["detector_sha256"] = digest.hexdigest()
-        return json.dumps(payload, sort_keys=True, default=str)
+        self.REFERENCE_CHART = make_colour_checker(
+            name=profile.name,
+            data=dict(zip(profile.cell_ids, xyY)),
+            illuminant=self.REF_ILLUMINANT,
+            rows=4,
+            columns=6,
+        )
+        return self.REFERENCE_RGB_PD
 
     def do_flat_field_correction(
         self, Image: np.ndarray, do_ffc: bool = True, ffc_kwargs: Optional[Any] = None
@@ -358,7 +266,7 @@ class ColorCorrection:
                 - error_flag: True if exception raised
 
         Example:
-            >>> ffc_kwargs = {"bins": 50, "degree": 5, "fit_method": "nn"}
+            >>> ffc_kwargs = {"bins": 50, "degree": 5, "fit_method": "poly"}
             >>> img_ffc, metrics, err = cc.do_flat_field_correction(img, True, ffc_kwargs)
         """
         if not do_ffc:
@@ -370,119 +278,9 @@ class ColorCorrection:
             return Image, None, True
 
         try:
-            if self.fitting_policy.version == "ui-compatible-v1":
-                from .ui_stages import fit_ffc
+            from .ui_stages import fit_ffc
 
-                return fit_ffc(self, Image, ffc_kwargs)
-            # Convert to uint8 BGR for FFC
-            img_bgr8 = to_uint8(Image[:, :, ::-1])
-            if self.White_Image.shape != img_bgr8.shape:
-                # Explicit check: an assert would vanish under ``python -O``.
-                raise ValueError("Image and white image must have same shape.")
-
-            # Extract parameters
-            get_deltaE = (
-                get_attr(ffc_kwargs, "get_deltaE", True)
-                and self.color_semantics.version == "legacy-v1"
-            )
-            ffc_params = {
-                "model_path": get_attr(ffc_kwargs, "model_path", MODEL_PATH),
-                "manual_crop": get_attr(ffc_kwargs, "manual_crop", False),
-                "show": get_attr(ffc_kwargs, "show", False),
-                "bins": get_attr(ffc_kwargs, "bins", 50),
-                "smooth_window": get_attr(ffc_kwargs, "smooth_window", 5),
-                "crop_rect": get_attr(ffc_kwargs, "crop_rect", None),
-            }
-            fit_params = {
-                "degree": get_attr(ffc_kwargs, "degree", 3),
-                "interactions": get_attr(ffc_kwargs, "interactions", False),
-                "fit_method": get_attr(ffc_kwargs, "fit_method", "linear"),
-                "max_iter": get_attr(ffc_kwargs, "max_iter", 1000),
-                "tol": get_attr(ffc_kwargs, "tol", 1e-8),
-                "verbose": get_attr(ffc_kwargs, "verbose", False),
-                "random_seed": get_attr(ffc_kwargs, "random_seed", 0),
-            }
-            if self.stage_policy.version == "modern-v1":
-                ffc_params.update(safe_mode=True)
-                for key in (
-                    "missing_plane",
-                    "min_signal",
-                    "max_saturated_fraction",
-                    "min_crop_fraction",
-                    "min_gain",
-                    "max_gain",
-                ):
-                    if get_attr(ffc_kwargs, key, None) is not None:
-                        ffc_params[key] = get_attr(ffc_kwargs, key)
-                for key in ("learning_rate", "n_components"):
-                    if get_attr(ffc_kwargs, key, None) is not None:
-                        fit_params[key] = get_attr(ffc_kwargs, key)
-
-            use_cache = get_attr(ffc_kwargs, "cache_multiplier", True)
-            cache_key = self._ffc_cache_key(ffc_params, fit_params) if use_cache else None
-            multiplier = (
-                self._ffc_multiplier_cache.get(cache_key) if cache_key is not None else None
-            )
-            cache_reused = multiplier is not None
-
-            if multiplier is None:
-                ffc = FlatFieldCorrection(self.White_Image, **ffc_params)
-                multiplier = ffc.compute_multiplier(**fit_params)
-                if self.stage_policy.version == "modern-v1":
-                    quality = copy.deepcopy(ffc.quality_report)
-                    self.numerical_report["FFC"] = quality
-                    if cache_key is not None:
-                        self._ffc_quality_cache[cache_key] = quality
-                if cache_key is not None:
-                    self._ffc_multiplier_cache[cache_key] = multiplier
-            elif get_attr(ffc_kwargs, "verbose", False):
-                logger.info("Reusing cached flat-field multiplier")
-            if self.stage_policy.version == "modern-v1" and cache_key in self._ffc_quality_cache:
-                self.numerical_report["FFC"] = copy.deepcopy(self._ffc_quality_cache[cache_key])
-                self.numerical_report["FFC"]["multiplier_cache_reused"] = cache_reused
-
-            # Apply multiplier using the same float path used by predict_image.
-            c_rgb_f64 = apply_ffc_float(Image, multiplier)
-            c_bgr = to_uint8(c_rgb_f64[:, :, ::-1])
-
-            if get_attr(ffc_kwargs, "show", False):
-                FlatFieldCorrection(
-                    self.White_Image, **{**ffc_params, "manual_crop": True}
-                ).show_results(
-                    c_bgr,
-                    img_bgr8,
-                )
-
-            metrics: Dict[str, Any] = {}
-            if get_deltaE:
-                # A chart is optional for FFC diagnostics, not a prerequisite for
-                # applying a valid white-field gain. Report unavailable metrics.
-                try:
-                    ref_vals = self.REFERENCE_RGB_PD.values
-                    illum = self.REF_ILLUMINANT
-                    _, cps_before = extract_neutral_patches(img_bgr8, return_one=True)
-                    _, cps_after = extract_neutral_patches(c_bgr, return_one=True)
-                    if cps_before is None or cps_after is None:
-                        raise ValueError("FFC chart metrics unavailable: no chart was detected")
-                    metrics_before = get_metrics(ref_vals, cps_before.values, illum, "srgb")
-                    metrics_after = get_metrics(ref_vals, cps_after.values, illum, "srgb")
-                    metrics = arrange_metrics(metrics_before, metrics_after, name="FFC")
-                except Exception as exc:
-                    detail = {
-                        "stage": "FFC",
-                        "metrics": "unavailable",
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    }
-                    self.last_run.setdefault("warnings", []).append(detail)
-                    logging.getLogger(__name__).warning("FFC metrics unavailable: %s", exc)
-
-            if self.stage_policy.version == "modern-v1":
-                values = np.ascontiguousarray(multiplier, dtype=np.float64)
-                multiplier = np.frombuffer(values.tobytes(), dtype=np.float64).reshape(values.shape)
-            self.models.model_ffc = multiplier
-            return c_rgb_f64, metrics, False
-
+            return fit_ffc(self, Image, ffc_kwargs or {})
         except Exception as e:
             self._record_stage_error("FFC", e)
             return Image, None, True
@@ -511,12 +309,9 @@ class ColorCorrection:
             return Image, None, None
 
         try:
-            if self.stage_policy.version == "modern-v1":
-                from .modern import report_saturation
+            from .modern import report_saturation
 
-                return report_saturation(self, Image)
-            img_out, values, ids = extrapolate_if_sat_image(Image, self.REFERENCE_RGB_PD.values)
-            return img_out, values, ids
+            return report_saturation(self, Image)
         except Exception as e:
             self._record_stage_error("saturation", e)
             raise
@@ -539,40 +334,16 @@ class ColorCorrection:
                 - error_flag: True if exception raised
 
         Example:
-            >>> gc_kwargs = {"max_degree": 5, "get_deltaE": True}
-            >>> img_gc, metrics, err = cc.do_gamma_correction(img, True, gc_kwargs)
+            >>> img_gc, metrics, err = cc.do_gamma_correction(img, True, {})
         """
         if not do_gc:
             logger.info("Skipping gamma correction")
             return Image, None, False
 
         try:
-            if self.stage_policy.version == "modern-v1":
-                from .modern import fit_gamma
+            from .modern import fit_gamma
 
-                return fit_gamma(self, Image)
-            params = {
-                "max_degree": get_attr(gc_kwargs, "max_degree", 5),
-                "show": get_attr(gc_kwargs, "show", False),
-                "get_deltaE": get_attr(gc_kwargs, "get_deltaE", True)
-                and self.color_semantics.version == "legacy-v1",
-            }
-            if self.color_semantics.version == "explicit-v1":
-                params["explicit_color"] = True
-                params["reference_lightness"] = self.color_semantics.reference_to_working_lab(
-                    self.reference_profile.canonical_lab_d50
-                )[:, 0]
-            coeffs_gc, img_gc, metrics_gc = estimate_gamma_profile(
-                img_rgb=Image,
-                ref_cp=self.REFERENCE_RGB_PD.values,
-                ref_illuminant=self.REF_ILLUMINANT,
-                require_chart=True,
-                **params,
-            )
-            self.models.model_gc = coeffs_gc
-            # Bound stage output before downstream polynomial evaluation.
-            return np.clip(img_gc, 0.0, 1.0), metrics_gc, False
-
+            return fit_gamma(self, Image)
         except Exception as e:
             self._record_stage_error("GC", e)
             return Image, None, True
@@ -603,28 +374,9 @@ class ColorCorrection:
             return Image, None, False
 
         try:
-            if self.stage_policy.version == "modern-v1":
-                from .modern import fit_wb
+            from .modern import fit_wb
 
-                return fit_wb(self, Image)
-            params = {
-                "show": get_attr(wb_kwargs, "show", False),
-                "get_deltaE": get_attr(wb_kwargs, "get_deltaE", True)
-                and self.color_semantics.version == "legacy-v1",
-            }
-            if self.color_semantics.version == "explicit-v1":
-                params["neutral_indices"] = self.reference_profile.neutral_indices
-            diag_wb, img_wb, metrics_wb = wb_correction(
-                img_rgb=Image,
-                ref_cp=self.REFERENCE_RGB_PD.values,
-                ref_illuminant=self.REF_ILLUMINANT,
-                require_chart=True,
-                **params,
-            )
-            self.models.model_wb = diag_wb
-            # Bound white-balanced output before color-model evaluation.
-            return np.clip(img_wb, 0.0, 1.0), metrics_wb, False
-
+            return fit_wb(self, Image)
         except Exception as e:
             self._record_stage_error("WB", e)
             return Image, None, True
@@ -642,7 +394,7 @@ class ColorCorrection:
         Args:
             Image: RGB image (float64, 0-1)
             do_cc: Whether to perform color correction
-            cc_method: Method ("conv" for conventional, "ours" for custom ML)
+            cc_method: "conv" (Finlayson-style matrix vocabulary) or "ours" (default)
             cc_kwargs: Color correction parameters dict
 
         Returns:
@@ -652,109 +404,16 @@ class ColorCorrection:
                 - error_flag: True if exception raised
 
         Example:
-            >>> cc_kwargs = {"mtd": "nn", "degree": 2, "get_deltaE": True}
-            >>> img_cc, metrics, err = cc.do_color_correction(img, True, "ours", cc_kwargs)
+            >>> img_cc, metrics, err = cc.do_color_correction(img, True, "ours", {"model": "rpcc2"})
         """
         if not do_cc:
             logger.info("Skipping color correction")
             return Image, None, False
 
         try:
-            if self.fitting_policy.version in ("reproducible-v1", "ui-compatible-v1"):
-                from .modern import fit_cc
+            from .ui_fitting import fit_stage
 
-                return fit_cc(self, Image, cc_method, cc_kwargs)
-            if cc_method.lower() == "conv":
-                # Conventional method (Finlayson 2015)
-                params = {
-                    "method": get_attr(cc_kwargs, "method", "Finlayson 2015"),
-                    "degree": get_attr(cc_kwargs, "degree", 3),
-                    "root_polynomial_expansion": None,
-                    "terms": get_attr(cc_kwargs, "terms", None),
-                }
-                logger.info("Using conventional CC method: %s", params["method"])
-                ccm, img_cc, corrected_card, metrics_cc = color_correction_1(
-                    img_rgb=Image,
-                    ref_rgb=self.REFERENCE_RGB_PD.values,
-                    ref_illuminant=self.REF_ILLUMINANT,
-                    show=get_attr(cc_kwargs, "show", False),
-                    get_deltaE=get_attr(cc_kwargs, "get_deltaE", True)
-                    and self.color_semantics.version == "legacy-v1",
-                    cc_kwargs=params,
-                    require_chart=True,
-                )
-                if get_attr(cc_kwargs, "show", False):
-                    colour.plotting.plot_multi_colour_checkers(
-                        [self.REFERENCE_CHART, corrected_card]
-                    )
-                self.models.model_cc = (ccm, params, "conv")
-                return np.clip(img_cc, 0.0, 1.0), metrics_cc, False
-
-            elif cc_method.lower() == "ours":
-                # Custom ML-based method
-                params = {
-                    "mtd": get_attr(cc_kwargs, "mtd", "linear"),
-                    "degree": get_attr(cc_kwargs, "degree", 3),
-                    "max_iterations": get_attr(cc_kwargs, "max_iterations", 1000),
-                    "hidden_layers": get_attr(cc_kwargs, "hidden_layers", [64]),
-                    "ncomp": get_attr(cc_kwargs, "ncomp", -1),
-                    "random_state": get_attr(cc_kwargs, "random_state", 0),
-                    "tol": get_attr(cc_kwargs, "tol", 1e-8),
-                    "verbose": get_attr(cc_kwargs, "verbose", False),
-                    "param_search": get_attr(cc_kwargs, "param_search", False),
-                    "learning_rate": get_attr(cc_kwargs, "learning_rate", 0.001),
-                    "batch_size": get_attr(cc_kwargs, "batch_size", 16),
-                    "patience": get_attr(cc_kwargs, "patience", 10),
-                    "dropout_rate": get_attr(cc_kwargs, "dropout_rate", 0.2),
-                    "use_batch_norm": get_attr(cc_kwargs, "use_batch_norm", False),
-                    "optim_type": get_attr(cc_kwargs, "optim_type", "Adam"),
-                    "augment_extremes": get_attr(cc_kwargs, "augment_extremes", True),
-                    "extreme_anchor_repeat": get_attr(cc_kwargs, "extreme_anchor_repeat", 50),
-                    "shuffle_fit_data": get_attr(cc_kwargs, "shuffle_fit_data", True),
-                    "use_lut": get_attr(cc_kwargs, "use_lut", True),
-                    "lazy_lut": get_attr(cc_kwargs, "lazy_lut", True),
-                    "lut_grid_size": get_attr(cc_kwargs, "lut_grid_size", 33),
-                    "lut_min_pixels": get_attr(cc_kwargs, "lut_min_pixels", 4096),
-                }
-                if str(params["mtd"]).lower() not in ("linear", "pls", "nn", "custom"):
-                    hint = (
-                        " For the conventional CCM use cc_method='conv'."
-                        if str(params["mtd"]).lower() == "conv"
-                        else ""
-                    )
-                    raise ValueError(
-                        "Unknown regression method: %s. Choose linear, pls, nn or custom.%s"
-                        % (params["mtd"], hint)
-                    )
-                logger.info("Using custom CC method: %s", params["mtd"])
-                model, img_cc, corrected_card, metrics_cc = color_correction(
-                    img_rgb=Image,
-                    ref_rgb=self.REFERENCE_RGB_PD.values,
-                    ref_illuminant=self.REF_ILLUMINANT,
-                    show=get_attr(cc_kwargs, "show", False),
-                    get_deltaE=get_attr(cc_kwargs, "get_deltaE", True)
-                    and self.color_semantics.version == "legacy-v1",
-                    cc_kwargs=params,
-                    n_samples=get_attr(cc_kwargs, "n_samples", 50),
-                )
-                if model is None:
-                    self._record_stage_error(
-                        "CC",
-                        ValueError("CC requires a detected Classic24 chart; no model was fitted"),
-                    )
-                    return Image, metrics_cc, True
-                if get_attr(cc_kwargs, "show", False):
-                    colour.plotting.plot_multi_colour_checkers(
-                        [self.REFERENCE_CHART, corrected_card]
-                    )
-                self.models.model_cc = (model, params, "ours")
-                return np.clip(img_cc, 0.0, 1.0), metrics_cc, False
-
-            else:
-                msg = f"Invalid color-correction method: {cc_method}. Use 'conv' or 'ours'."
-                self._record_stage_error("CC", ValueError(msg))
-                return Image, None, True
-
+            return fit_stage(self, Image, cc_method, cc_kwargs)
         except Exception as e:
             self._record_stage_error("CC", e)
             return Image, None, True
@@ -933,8 +592,6 @@ class ColorCorrection:
             if getattr(value, "__self__", None) is self and hasattr(value, "__func__"):
                 setattr(candidate, attr, value.__func__.__get__(candidate, type(candidate)))
         candidate._stage_errors = {}
-        candidate._ffc_multiplier_cache = dict(self._ffc_multiplier_cache)
-        candidate._ffc_quality_cache = copy.deepcopy(self._ffc_quality_cache)
         candidate.last_run = {"success": False, "stages": {}, "errors": [], "artifacts": []}
         try:
             selected = copy.deepcopy(config) if config is not None else Config()
@@ -1037,186 +694,125 @@ class ColorCorrection:
                 if isinstance(White_Image, ImageData):
                     self.white_image_data = self._normalized_image(White_Image)
                 elif isinstance(White_Image, (str, os.PathLike)):
-                    if self.color_semantics.version == "explicit-v1":
-                        self.white_image_data = read_image_data(
-                            White_Image,
-                            color_space=self.color_semantics.input_encoding,
-                            **config.image_options,
-                        )
-                    else:
-                        if not os.path.isfile(White_Image):
-                            raise FileNotFoundError(f"Cannot read White_Image from '{White_Image}'")
-                        bgr = cv2.imread(os.fspath(White_Image))
-                        if bgr is None:
-                            raise FileNotFoundError(f"Cannot read White_Image from '{White_Image}'")
-                        self.white_image_data = ImageData.from_array(
-                            bgr,
-                            channel_order="BGR",
-                            provenance={
-                                "source_kind": "legacy-white-file",
-                                "orientation_policy": "legacy decoder behavior",
-                            },
-                        )
+                    self.white_image_data = read_image_data(
+                        White_Image,
+                        color_space=self.color_semantics.input_encoding,
+                        **config.image_options,
+                    )
                 elif isinstance(White_Image, np.ndarray):
                     if White_Image.dtype == np.uint8:
                         self.white_image_data = ImageData.from_array(
                             White_Image,
                             channel_order="BGR",
-                            color_space=(
-                                self.color_semantics.input_encoding
-                                if self.color_semantics.version == "explicit-v1"
-                                else "srgb"
-                            ),
+                            color_space=self.color_semantics.input_encoding,
                         )
-                    elif self.color_semantics.version == "explicit-v1":
+                    else:
                         self.white_image_data = ImageData.from_array(
                             White_Image, color_space=self.color_semantics.input_encoding
                         )
-                    else:
-                        self._validate_rgb(White_Image, "White_Image")
-                        self.white_image_data = ImageData.from_array(White_Image)
                 elif White_Image is not None:
                     raise TypeError("White_Image must be a path, ImageData, or numpy array")
                 if self.white_image_data is None:
                     raise ValueError("FFC is enabled but White_Image was not provided")
                 self.white_image_data = self._normalized_image(self.white_image_data)
                 self.White_Image = to_uint8(self.white_image_data.to_srgb()[:, :, ::-1])
-                if (
-                    self.white_image_data.source_dtype != "uint8"
-                    and self.fitting_policy.version != "ui-compatible-v1"
-                ):
-                    self.last_run.setdefault("warnings", []).append(
-                        {
-                            "stage": "FFC",
-                            "kind": "legacy-estimation-precision",
-                            "source_dtype": self.white_image_data.source_dtype,
-                            "used_dtype": "uint8 BGR white-field estimation",
-                        }
-                    )
             except (FileNotFoundError, ValueError, TypeError) as exc:
                 self._record_stage_error("FFC", exc)
                 self.last_run["stages"]["FFC"] = {"status": "failed", **self._stage_errors["FFC"]}
                 self.last_run["errors"].append({"stage": "FFC", **self._stage_errors["FFC"]})
                 return {}, {}, True
 
-        if self.fitting_policy.version == "ui-compatible-v1":
-            from dataclasses import replace
-            from .ui_fitting import round_image
-            from .ui_native import enabled as native_enabled, high_precision, working_input
+        # Config.validate admits only ui-compatible-v1 with modern-v1 stages and
+        # explicit-v1 color semantics; auto-v2 resolves its image runtime here.
+        from dataclasses import replace
+        from .ui_native import high_precision, working_input
 
-            if self.fitting_policy.ui_runtime == "auto-v2":
-                sources = [self.image_data]
-                if self.white_image_data is not None:
-                    sources.append(self.white_image_data)
-                byte_sources = all(
-                    data.source_dtype == "uint8"
-                    and tuple(data.source_range) == (0.0, 255.0)
-                    and data.color_space == "srgb"
-                    for data in sources
+        if self.fitting_policy.ui_runtime == "auto-v2":
+            sources = [self.image_data]
+            if self.white_image_data is not None:
+                sources.append(self.white_image_data)
+            byte_sources = all(
+                data.source_dtype == "uint8"
+                and tuple(data.source_range) == (0.0, 255.0)
+                and data.color_space == "srgb"
+                for data in sources
+            )
+            requested_precision = getattr(config, "precision", None) or "auto"
+            if requested_precision == "native-byte" and not byte_sources:
+                raise ValueError(
+                    "native-byte precision requires full-range uint8 sRGB chart and white inputs"
                 )
-                requested_precision = getattr(config, "precision", None) or "auto"
-                if requested_precision == "native-byte" and not byte_sources:
-                    raise ValueError(
-                        "native-byte precision requires full-range uint8 sRGB chart and white inputs"
-                    )
-                selected_runtime = (
-                    "precision-f64-v1"
-                    if requested_precision == "high"
-                    else (
-                        "native-v1"
-                        if requested_precision == "native-byte" or byte_sources
-                        else "precision-f64-v1"
-                    )
+            selected_runtime = (
+                "precision-f64-v1"
+                if requested_precision == "high"
+                else (
+                    "native-v1"
+                    if requested_precision == "native-byte" or byte_sources
+                    else "precision-f64-v1"
                 )
-                self.fitting_policy = replace(self.fitting_policy, ui_runtime=selected_runtime)
-                config.fitting_policy = self.fitting_policy.to_dict()
-            high = high_precision(self)
-            if high:
-                # The first high-precision evaluator uses direct CC; a stored
-                # float32 LUT would discard distinctions the source retains.
-                if config.CC_kwargs.get("use_lut", False):
-                    raise ValueError(
-                        "high precision requires use_lut=False; its approximate LUT has not been qualified"
-                    )
-                config.CC_kwargs.setdefault("use_lut", False)
-            self.Image = (
-                working_input(self.image_data, self.Image, high=high)
-                if native_enabled(self)
-                else round_image(self.Image)
             )
-            from .detection.charts import _scope
-
-            _scope.get().measurement_runtime = (
-                "precision-f64-v1" if high else config.chart_detection.get("sampling_policy")
-            )
-
-        self.get_reference_values(config.REF_ILLUMINANT)
-        # Geometry always comes from the original source, even if the first
-        # extraction occurs after FFC. Optional metric switches cannot change it.
-        if self.fitting_policy.version == "ui-compatible-v1":
-            # Geometry must use the original quantized capture, not a float32
-            # round trip that could truncate an exact code value one unit low.
-            bind_detection_source(
-                np.rint(self.image_data.to_srgb()[:, :, ::-1] * 255).astype(np.uint8)
-            )
-        else:
-            bind_detection_source(to_uint8(self.Image[:, :, ::-1]))
+            self.fitting_policy = replace(self.fitting_policy, ui_runtime=selected_runtime)
+            config.fitting_policy = self.fitting_policy.to_dict()
+        high = high_precision(self)
+        if high:
+            # The first high-precision evaluator uses direct CC; a stored
+            # float32 LUT would discard distinctions the source retains.
+            if config.CC_kwargs.get("use_lut", False):
+                raise ValueError(
+                    "high precision requires use_lut=False; its approximate LUT has not been qualified"
+                )
+            config.CC_kwargs.setdefault("use_lut", False)
+        self.Image = working_input(self.image_data, self.Image, high=high)
         from .detection.charts import _scope
 
-        if self.color_semantics.version == "explicit-v1":
-            _scope.get().reference_profile = self.reference_profile
-            if config.do_wb and len(self.reference_profile.neutral_indices) < 2:
-                raise ValueError("WB requires at least two declared neutral cell IDs")
+        _scope.get().measurement_runtime = (
+            "precision-f64-v1" if high else config.chart_detection.get("sampling_policy")
+        )
+
+        self.get_reference_values(config.REF_ILLUMINANT)
+        # Geometry always comes from the original quantized source, even if the
+        # first extraction occurs after FFC; a float32 round trip could truncate an
+        # exact code value one unit low. Optional metric switches cannot change it.
+        bind_detection_source(np.rint(self.image_data.to_srgb()[:, :, ::-1] * 255).astype(np.uint8))
+        _scope.get().reference_profile = self.reference_profile
+        if config.do_wb and len(self.reference_profile.neutral_indices) < 2:
+            raise ValueError("WB requires at least two declared neutral cell IDs")
         self.Models_path = None
         self._pending_saturation = None
-        if self.stage_policy.version == "modern-v1":
-            from .modern import prepare_source
+        from .modern import prepare_source
 
-            try:
-                prepare_source(
-                    self,
-                    required=any(
-                        (config.do_gc, config.do_wb, config.do_cc, config.check_saturation)
-                    ),
+        try:
+            prepare_source(
+                self,
+                required=any((config.do_gc, config.do_wb, config.do_cc, config.check_saturation)),
+            )
+        except Exception as exc:
+            failed_stage = next(
+                stage
+                for stage, enabled in (
+                    ("saturation", config.check_saturation),
+                    ("GC", config.do_gc),
+                    ("WB", config.do_wb),
+                    ("CC", config.do_cc),
                 )
-            except Exception as exc:
-                failed_stage = next(
-                    stage
-                    for stage, enabled in (
-                        ("saturation", config.check_saturation),
-                        ("GC", config.do_gc),
-                        ("WB", config.do_wb),
-                        ("CC", config.do_cc),
-                    )
-                    if enabled
-                )
-                self._record_stage_error(failed_stage, exc)
-                self.last_run["stages"][failed_stage] = {
-                    "status": "failed",
-                    **self._stage_errors[failed_stage],
-                }
-                self.last_run["errors"].append(
-                    {"stage": failed_stage, **self._stage_errors[failed_stage]}
-                )
-                return {}, {}, True
+                if enabled
+            )
+            self._record_stage_error(failed_stage, exc)
+            self.last_run["stages"][failed_stage] = {
+                "status": "failed",
+                **self._stage_errors[failed_stage],
+            }
+            self.last_run["errors"].append(
+                {"stage": failed_stage, **self._stage_errors[failed_stage]}
+            )
+            return {}, {}, True
         metrics, images = {}, {}
         current = self.Image
         # Fit-time FFC gain domain; committed to metadata only when FFC is fitted.
         self._ffc_domain = "lightness"
 
         def fit_color(image):
-            method = get_attr(config.CC_kwargs, "cc_method", "ours")
-            if (
-                config._inferred_legacy_policy
-                and self.fitting_policy.version == "legacy-v1"
-                and isinstance(method, str)
-                and method.lower() == "conv"
-            ):
-                logging.getLogger(__name__).warning(
-                    "Implicit legacy conv fit uses encoded sRGB. For a linear-light 3x3 CCM, "
-                    'refit with Config(model="3x3"). To keep this recipe explicitly, '
-                    'set fitting_policy="legacy-v1".'
-                )
+            method = config.CC_kwargs.get("cc_method", "ours")
             return self.do_color_correction(image, True, method, config.CC_kwargs)
 
         stages = (
@@ -1237,7 +833,7 @@ class ColorCorrection:
             try:
                 explicit = self.color_semantics.version == "explicit-v1"
                 stage_kwargs = getattr(config, stage + "_kwargs", {})
-                wants_metrics = stage != "saturation" and get_attr(stage_kwargs, "get_deltaE", True)
+                wants_metrics = stage != "saturation" and stage_kwargs.get("get_deltaE", True)
                 bind_stage_measurements(current if explicit else None)
                 before = capture_observations(
                     current,
@@ -1305,12 +901,6 @@ class ColorCorrection:
                 stage_metrics = self._explicit_metrics(
                     before, after, config.chart_detection.get("chart_index", 0)
                 )
-            if stage == "CC" and self.fitting_policy.version == "reproducible-v1":
-                stage_metrics = {} if stage_metrics is None else stage_metrics
-                stage_metrics["fitting"] = copy.deepcopy(self.numerical_report["CC"]["fit"])
-                stage_metrics["validation"] = copy.deepcopy(
-                    self.numerical_report["CC"]["validation"]
-                )
             current = output
             if stage != "saturation":
                 metrics[f"{name_}_{stage}"] = stage_metrics
@@ -1344,43 +934,17 @@ class ColorCorrection:
             "validation_options": copy.deepcopy(self.validation_options),
             "numerical_report": copy.deepcopy(self.numerical_report),
             "legacy_reference_illuminant": np.asarray(self.REF_ILLUMINANT).tolist(),
+            # Key order matches the records 2.x wrote for the same recipe.
             "algorithms": {
-                "GC": (
-                    "all-patch-polynomial-explicit-D65-Lab"
-                    if self.color_semantics.version == "explicit-v1"
-                    else "legacy-all-patch-polynomial"
-                ),
-                "WB": "diagonal-with-0.95-headroom",
-                "CC": "encoded-rgb-fit",
-                "FFC": "legacy-uint8-Lab-lightness",
-                "saturation": "legacy-fit-only-highlight-knee-0.90-0.95",
+                "GC": "neutral-pchip-v1; assumed endpoints 0/100",
+                "WB": "neutral-diagonal-v1; recorded headroom",
+                "CC": "ui-compatible-v1; linear-light fit; float32 stage boundaries",
+                "FFC": "ui-compatible-v1; float32 Lab-D65 gain; plane/poly surface",
+                "saturation": "sampled-pixel-report-or-exclude-v1; identity image transform",
+                "ui_runtime": self.fitting_policy.ui_runtime,
+                "pipeline": "native uint8 decode; joint FFC/GC; ordered sampling",
             },
         }
-        if self.stage_policy.version == "modern-v1":
-            self.models.metadata["algorithms"].update(
-                {
-                    "GC": "neutral-pchip-v1; assumed endpoints 0/100",
-                    "WB": "neutral-diagonal-v1; recorded headroom",
-                    "FFC": "guarded-legacy-uint8-Lab-lightness-v1",
-                    "saturation": "sampled-pixel-report-or-exclude-v1; identity image transform",
-                }
-            )
-        if self.fitting_policy.version == "reproducible-v1":
-            self.models.metadata["algorithms"][
-                "CC"
-            ] = "encoded-rgb-reproducible-v1; unique cell means"
-        if self.fitting_policy.ui_runtime in ("native-v1", "precision-f64-v1"):
-            self.models.metadata["algorithms"]["ui_runtime"] = self.fitting_policy.ui_runtime
-            self.models.metadata["algorithms"][
-                "pipeline"
-            ] = "native uint8 decode; joint FFC/GC; ordered sampling"
-        if self.fitting_policy.version == "ui-compatible-v1":
-            self.models.metadata["algorithms"][
-                "CC"
-            ] = "ui-compatible-v1; linear-light fit; float32 stage boundaries"
-            self.models.metadata["algorithms"][
-                "FFC"
-            ] = "ui-compatible-v1; float32 Lab-D65 gain; plane/poly surface"
         if self.fitting_policy.ui_runtime == "precision-f64-v1":
             self.models.metadata["algorithms"].update(
                 {
@@ -1394,9 +958,8 @@ class ColorCorrection:
             # linear-light domain is written.
             self.models.metadata["ffc_domain"] = "linear"
             self.models.metadata["algorithms"]["FFC"] += "; linear-light RGB gain"
-        if getattr(config, "api_version", None) == 2:
-            self.models.metadata["config_version"] = 2
-            self.models.metadata["requested_precision"] = config.precision
+        self.models.metadata["config_version"] = 2
+        self.models.metadata["requested_precision"] = config.precision
         self.last_run["contracts"] = copy.deepcopy(self.models.metadata)
         return metrics, images, False
 
@@ -1649,6 +1212,8 @@ class ColorCorrection:
 
                     current = apply_tone(current, self.models.model_gc)
                 else:
+                    from ._compat.legacy_gc import predict_image
+
                     current = predict_image(
                         img=current,
                         coeffs=self.models.model_gc,

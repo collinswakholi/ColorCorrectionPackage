@@ -12,7 +12,6 @@ from contextlib import contextmanager
 import hashlib
 from importlib.metadata import version
 import json
-import logging
 import os
 from pathlib import Path
 import tempfile
@@ -160,21 +159,19 @@ def configurations():
     cfg.validate()
     assert cfg.fitting_policy["version"] == "ui-compatible-v1"
     assert cfg.fitting_policy["ui_runtime"] == "auto-v2"
-    old = Config(fitting_policy="legacy-v1", CC_kwargs={"mtd": "custom", "degree": 2})
-    old.validate()
-    assert Config.from_dict(old.to_dict()).fitting_policy["version"] == "legacy-v1"
-    # A detector sampling override cannot give a legacy fit a random sampler.
-    for sampling_policy in ("ui-compatible-v1", "ui-native-v1"):
-        legacy = Config(
-            fitting_policy="legacy-v1",
-            chart_detection={
-                "sampling_policy": sampling_policy,
-                "samples_per_patch": 20,
-                "sampling_seed": 42,
-            },
-        )
-        with np.testing.assert_raises_regex(ValueError, "samples_per_patch"):
-            legacy.validate()
+    # 3.0 removed the historical fitters: requesting one fails with a pointer to
+    # the replacement instead of silently selecting a different recipe.
+    for removed in (
+        dict(fitting_policy="legacy-v1"),
+        dict(fitting_policy="reproducible-v1"),
+        dict(fitting_policy="ui-compatible-v1"),
+        dict(CC_kwargs={"mtd": "custom", "degree": 2}),
+        dict(api_version=1),
+    ):
+        with np.testing.assert_raises_regex(ValueError, "3.0"):
+            Config(**removed)
+    with np.testing.assert_raises_regex(ValueError, "source_version=2"):
+        Config.from_dict({"do_ffc": False})
     new = Config(model="pls", basis="root", degree=3, CC_kwargs={"ncomp": 3})
     new.validate()
     replay = Config.from_dict(new.to_dict())
@@ -204,38 +201,10 @@ def configurations():
         raise AssertionError("Mutated precision contradicts the stored byte runtime")
     return {
         "default": cfg.to_dict(),
-        "historical_custom_roundtrip": True,
+        "removed_policies_rejected": 6,
         "generalized_roundtrip": True,
         "invalid_controls": 10,
     }
-
-
-def historical_trainers():
-    from ColorCorrectionPipeline.core.correction import fit_model, predict_
-
-    rng = np.random.default_rng(1729)
-    x = rng.uniform(0.03, 0.96, (96, 3))
-    rows = []
-    for method in ("linear", "pls", "nn", "custom"):
-        model = fit_model(
-            x,
-            x * 0.85 + 0.05,
-            dict(
-                mtd=method,
-                degree=2,
-                hidden_layers=[8],
-                max_iterations=20,
-                ncomp=2,
-                batch_size=12,
-                patience=4,
-                random_state=17,
-                use_lut=False,
-            ),
-        )
-        prediction = predict_(x[:6].reshape(2, 3, 3), model)
-        assert np.isfinite(prediction).all() and prediction.shape == (2, 3, 3)
-        rows.append({"method": method, "estimator": type(model.model).__name__})
-    return rows
 
 
 def legacy_pickle_contracts():
@@ -498,7 +467,6 @@ def verify_refits(samples, folder, device):
         assert pipe.Image is None and pipe.White_Image is None and pipe.fitted_config is None
         assert pipe.image_data is None and pipe.white_image_data is None
         assert pipe.REFERENCE_RGB_PD is None and pipe.REFERENCE_DISPLAY_RGB_PD is None
-        assert not pipe._ffc_multiplier_cache and not pipe._ffc_quality_cache
         assert pipe.observations.to_dict() == previous.observations.to_dict()
         assert pipe.last_run["contracts"] == previous.last_run["contracts"]
         np.testing.assert_array_equal(pipe.predict_image(scene, stages="final")["CC"], baseline)
@@ -514,54 +482,6 @@ def verify_refits(samples, folder, device):
         "ccm_rpcc3_distinct_scene_pixels": changed_pixels,
         "ccm_chart_de00": first.metrics["chart_CC"]["delta_e00_after_mean"],
         "rpcc3_chart_de00": second.metrics["chart_CC"]["delta_e00_after_mean"],
-    }
-
-
-def verify_legacy_conv_notice(samples, folder, device):
-    chart, scene = samples["Image_1.JPG"], samples["Sample_1.JPG"]
-    options = dict(
-        do_ffc=False,
-        do_gc=False,
-        do_wb=False,
-        check_saturation=False,
-        chart_detection={"device": device},
-        CC_kwargs={"cc_method": "CoNv"},
-    )
-    logger = logging.getLogger("ColorCorrectionPipeline.pipeline")
-    with patch.object(logger, "warning", wraps=logger.warning) as notice:
-        implicit = Config.from_dict(options)
-        explicit = Config(fitting_policy="legacy-v1", **options)
-        assert implicit.to_dict() == explicit.to_dict()
-        implicit.validate()
-        pipe = ColorCorrection()
-        notice.assert_not_called()
-
-        _, _, failed = pipe.run(chart, config=implicit)
-        assert not failed, pipe.last_run
-        notice.assert_called_once()
-        message = notice.call_args[0][0]
-        assert "encoded sRGB" in message and 'Config(model="3x3")' in message
-        assert 'fitting_policy="legacy-v1"' in message
-        notice.reset_mock()
-
-        expected = pipe.predict_image(scene, stages="final")["CC"]
-        bundle = folder / "legacy-conv.ccpb"
-        pipe.save_bundle(bundle)
-        restored = ColorCorrection().load_bundle(bundle)
-        np.testing.assert_array_equal(restored.predict_image(scene, stages="final")["CC"], expected)
-        for cfg in (explicit, Config.from_dict(implicit.to_dict())):
-            restored.fit_or_raise(chart, config=cfg)
-            np.testing.assert_array_equal(restored.models.model_cc[0], pipe.models.model_cc[0])
-            np.testing.assert_array_equal(
-                restored.predict_image(scene, stages="final")["CC"], expected
-            )
-        implicit.do_cc = False
-        restored.fit_or_raise(chart, config=implicit)
-        notice.assert_not_called()
-    return {
-        "implicit_conv_notices": 1,
-        "explicit_and_replay_quiet": True,
-        "legacy_matrix_and_prediction_exact": True,
     }
 
 
@@ -659,7 +579,6 @@ def photos(device):
         results.append(verify_mpo_budget(samples["Image_1.JPG"]))
         results.append(verify_seeded_batch_replay(samples, folder, device))
         results.append(verify_refits(samples, folder, device))
-        results.append(verify_legacy_conv_notice(samples, folder, device))
         for model, basis, degree in (
             ("rpcc2", None, None),
             ("pls", "root", 3),
@@ -820,7 +739,6 @@ def main():
         "models": numerical_contracts(),
         "fit_rendering": render_contracts(),
         "batch_worker_budget": verify_batch_worker_budget(),
-        "historical_trainers": historical_trainers(),
         "legacy_pickle_contracts": legacy_pickle_contracts(),
         "precision_estimation": precision_estimation(),
     }
@@ -829,7 +747,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, default=json_value) + "\n", encoding="utf8")
     print(
-        "Passed v2 contracts, 36 model/basis/degree fits, historical trainers"
+        "Passed v2 contracts, 36 model/basis/degree fits, legacy pickle loading"
         + (" and real-image roundtrip/precision checks." if args.photos else ".")
     )
 

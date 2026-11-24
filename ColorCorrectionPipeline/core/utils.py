@@ -9,7 +9,6 @@ operations.
 Standalone implementations copied from v1_2_01 for compatibility.
 """
 
-import gc
 import hashlib
 import logging
 import warnings
@@ -128,18 +127,6 @@ def to_float64(img: np.ndarray, scale: "float | None" = None) -> np.ndarray:
 def get_attr(obj, attr: str, default=None):
     """Get attribute from object with default."""
     return getattr(obj, attr, default)
-
-
-def free_memory():
-    """Free GPU memory if available."""
-    try:
-        import torch
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except Exception:
-        pass
-    gc.collect()
 
 
 # ============================================================================
@@ -542,30 +529,6 @@ def extract_neutral_patches(
 # ============================================================================
 
 
-def compute_diag(mat_ref, mat_det, rf=0.95):
-    """Compute a finite diagonal correction matrix."""
-    mat_ref = np.asarray(mat_ref, dtype=np.float64)
-    mat_det = np.asarray(mat_det, dtype=np.float64)
-    ratios = np.divide(
-        mat_ref,
-        mat_det,
-        out=np.full_like(mat_ref, np.nan, dtype=np.float64),
-        where=np.abs(mat_det) > np.finfo(np.float64).eps,
-    )
-    ratios[~np.isfinite(ratios)] = np.nan
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        factors = np.nanmedian(ratios, axis=0)
-    factors = np.where(np.isfinite(factors), factors, 1.0)
-    diag = np.diag(rf * factors)
-    return diag
-
-
-def estimate_fit(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
-    """Fit polynomial (from v1_2_01)."""
-    return np.polyfit(x, y, degree)
-
-
 def poly_func(x, coeffs):
     """Evaluate polynomial using Horner's method (from v1_2_01)."""
     result = 0
@@ -574,30 +537,13 @@ def poly_func(x, coeffs):
     return result
 
 
-def poly_func_torch(x, coeffs):
-    """Evaluate polynomial using torch and Horner's method (from v1_2_01)."""
-    try:
-        import torch
-
-        result = torch.zeros_like(x)
-        for c in coeffs:
-            result = result * x + c
-        return result
-    except Exception:
-        raise NotImplementedError("poly_func_torch requires torch")
-
-
 __all__ = [
     "clear_chart_cache",
-    "compute_diag",
-    "estimate_fit",
     "extract_color_chart",
     "extract_color_charts",
     "extract_neutral_patches",
-    "free_memory",
     "get_attr",
     "poly_func",
-    "poly_func_torch",
     "to_float64",
     "to_uint8",
 ]

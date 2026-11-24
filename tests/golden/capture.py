@@ -50,55 +50,6 @@ def _scenarios():
             chart={"device": "cpu", "samples_per_patch": 20, "sampling_seed": 42},
             input=one,
         ),
-        "v1_legacy_conv": lambda: Config(
-            fitting_policy="legacy-v1",
-            do_ffc=False,
-            do_gc=False,
-            do_wb=False,
-            check_saturation=False,
-            chart_detection=chart,
-            CC_kwargs={"cc_method": "conv", "method": "Finlayson 2015", "degree": 2},
-        ),
-        "v1_legacy_custom_linear": lambda: Config(
-            fitting_policy="legacy-v1",
-            do_ffc=False,
-            do_gc=False,
-            do_wb=False,
-            check_saturation=False,
-            chart_detection=chart,
-            CC_kwargs={
-                "mtd": "custom",
-                "degree": 2,
-                "hidden_layers": [64],
-                "max_iterations": 100,
-                "random_state": 42,
-                "use_lut": False,
-            },
-        ),
-        # Error path: an unknown regression method must fail the run, not raise.
-        "v1_invalid_mtd_fails": lambda: Config(
-            fitting_policy="legacy-v1",
-            do_ffc=False,
-            do_gc=False,
-            do_wb=False,
-            check_saturation=False,
-            chart_detection=chart,
-            CC_kwargs={"mtd": "conv"},
-        ),
-        "v1_legacy_flat_all_steps": lambda: Config(
-            do_ffc=True,
-            do_gc=True,
-            do_wb=True,
-            do_cc=True,
-            chart_detection=chart,
-            CC_kwargs={
-                "cc_method": "ours",
-                "method": "Finlayson 2015",
-                "mtd": "linear",
-                "degree": 2,
-                "random_state": 42,
-            },
-        ),
     }
 
 

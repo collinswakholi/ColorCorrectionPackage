@@ -32,7 +32,6 @@ def main():
     import ColorCorrectionPipeline as package  # noqa: N813
     from ColorCorrectionPipeline import ColorCorrection, Config, ImageData, MyModels
     from ColorCorrectionPipeline.core.correction import predict_
-    from ColorCorrectionPipeline.fitting import fit_observations
     from ColorCorrectionPipeline.stage_policies import MonotonicToneModel
     from ColorCorrectionPipeline.io import read_image_data, write_image_data
     from ColorCorrectionPipeline.core.accel import HAS_NUMBA, backend_info
@@ -90,30 +89,13 @@ def main():
     }
     x = np.random.default_rng(901).uniform(0.04, 0.94, (24, 3))
     target = x * 0.9 + 0.02
-    groups = ["r%dc%d" % (i // 6 + 1, i % 6 + 1) for i in range(24)]
     image = np.random.default_rng(902).uniform(0.03, 0.9, (96, 128, 3))
+    # 2.x saved metadata-free (legacy-v1) containers with these estimator families.
+    # 3.0 no longer fits them; build equivalent containers to qualify bundle export,
+    # loading and application from the installed package.
     families = {}
     for method in ("linear", "pls", "nn", "custom"):
-        params = {"mtd": method, "degree": 1, "use_lut": False}
-        if method != "linear":
-            params["max_iterations"] = 4
-        if method in ("nn", "custom"):
-            params.update(hidden_layers=[4], patience=2, batch_size=8)
-        fitted = fit_observations(x, target, groups, params, "reproducible-v1")
-        fit_report = fitted.fit_report
-        assert fit_report["fitting_domain"] == "encoded-rgb"
-        assert fit_report["target_domain"] == "unclipped-encoded-srgb"
-        assert fit_report["out_of_gamut_targets"] == {
-            "cell_ids": [],
-            "channel_min": float(target.min()),
-            "channel_max": float(target.max()),
-        }
-        if method == "linear":
-            assert fit_report["objective"] == {
-                "metric": "weighted least squares",
-                "domain": "encoded-srgb",
-                "optimizes_delta_e00": False,
-            }
+        fitted = _saved_family(method, x, target)
         models = MyModels()
         models.model_cc = (fitted, {}, "ours")
         models.model_gc = MonotonicToneModel(
@@ -125,7 +107,7 @@ def main():
         path = work / (method + ".ccpb")
         models.save_bundle(path)
         loaded = MyModels().load_bundle(path)
-        assert loaded.model_cc[0].fit_report == fit_report
+        assert loaded.bundle_interpretation.startswith("legacy-v1")
         np.testing.assert_allclose(predict_(x, loaded.model_cc[0]), before, atol=2e-12, rtol=2e-12)
         pipeline = ColorCorrection().load_bundle(path)
         predicted = pipeline.predict_image(image, stages="final")["CC"]
@@ -143,30 +125,6 @@ def main():
                 np.max(np.abs(predict_(x, loaded.model_cc[0]) - before))
             ),
         }
-
-    # Extended reference targets stay truthful across fitting and safe reload.
-    extended_target = target.copy()
-    extended_target[0, 0], extended_target[1, 2] = -0.1, 1.05
-    extended = fit_observations(
-        x, extended_target, groups, {"degree": 1, "use_lut": False}, "reproducible-v1"
-    )
-    assert extended.fit_report["out_of_gamut_targets"] == {
-        "cell_ids": groups[:2],
-        "channel_min": -0.1,
-        "channel_max": 1.05,
-    }
-    extended_models = MyModels()
-    extended_models.model_cc = (extended, {}, "ours")
-    extended_models.save_bundle(work / "extended-target.ccpb")
-    extended_loaded = MyModels().load_bundle(work / "extended-target.ccpb").model_cc[0]
-    assert extended_loaded.fit_report == extended.fit_report
-    np.testing.assert_array_equal(predict_(x, extended_loaded), predict_(x, extended))
-    encoded_fit_contract = {
-        "domains_verified": True,
-        "bundle_report_preserved": True,
-        "out_of_gamut_cells": groups[:2],
-        "linear_optimizes_delta_e00": False,
-    }
 
     # Qualify prepared execution against an installed portable affine model. A small
     # affine LUT makes a tight numerical oracle without a costly benchmark.
@@ -253,8 +211,9 @@ def main():
     flat = FlatFieldCorrection(
         white, crop_rect=[0, 0, 128, 96], bins=8, smooth_window=3, safe_mode=True
     )
-    gain = flat.compute_multiplier(degree=2, fit_method="linear")
-    assert np.isfinite(gain).all() and np.min(gain) > 0
+    flat.detect_and_crop()
+    assert flat.crop_rect == [0, 0, 128, 96]
+    assert flat.quality_report["gain_limits"] == [0.5, 1.8]
     integer = np.arange(180, dtype=np.uint16).reshape(6, 10, 3) * 307
     record = write_image_data(work / "uint16.png", ImageData.from_array(integer), overwrite=True)
     np.testing.assert_array_equal(read_image_data(record.path).pixels, integer / 65535)
@@ -278,10 +237,7 @@ def main():
             do_gc=False,
             do_wb=False,
             check_saturation=False,
-            color_semantics={"version": "explicit-v1"},
-            stage_policy="modern-v1",
-            fitting_policy="reproducible-v1",
-            CC_kwargs={"degree": 1},
+            model="3x3",
             chart_detection={"device": args.photo_device},
             save=True,
             model_format="bundle",
@@ -361,30 +317,6 @@ def main():
             )
     native_ui = None
     if args.photo:
-        config = Config(
-            do_ffc=False,
-            do_gc=False,
-            do_wb=False,
-            check_saturation=False,
-            fitting_policy="ui-compatible-v1",
-            CC_kwargs={"model": "rpcc2"},
-            chart_detection={"device": args.photo_device},
-            validation_options={"enabled": False},
-            save=True,
-            model_format="bundle",
-            save_path=str(work),
-        )
-        _, stages, failed = calibration.run(
-            ImageData.from_array(bgr, channel_order="BGR"), name_="ui-photo", config=config
-        )
-        assert not failed, calibration.last_run
-        restored = ColorCorrection().load_bundle(work / "ui-photo_models.ccpb")
-        pixels = restored.predict_image(
-            ImageData.from_array(bgr, channel_order="BGR"), stages="final"
-        )["CC"]
-        np.testing.assert_array_equal(pixels, stages["ui-photo_CC"])
-        ui_families["photo_bundle_reload_exact"] = True
-
         # Qualify the new runtime from bytes, without depending on the UI app.
         native_input = ImageData.from_array(bgr, channel_order="BGR")
         config = Config(
@@ -453,7 +385,6 @@ def main():
         "ui_compatible_families": ui_families,
         "native_ui": native_ui,
         "calibration_name_contract": name_contract,
-        "encoded_fit_contract": encoded_fit_contract,
         "python": platform.python_version(),
         "executable": sys.executable,
         "prefix": str(prefix),
@@ -480,6 +411,37 @@ def main():
         assert (
             photo and photo["gpu_requirement_met"]
         ), "required GPU default was not met; see recorded provider/fallback evidence"
+
+
+def _saved_family(method, x, target):
+    """A metadata-free CC container as 2.x legacy-v1 fits saved it."""
+    from sklearn.cross_decomposition import PLSRegression
+    from sklearn.linear_model import LinearRegression
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import PolynomialFeatures
+
+    from ColorCorrectionPipeline.core.correction import CustomNN, Regressor_Model
+
+    model = Regressor_Model()
+    model.mtd, model.degree, model.use_lut = method, 1, False
+    features = PolynomialFeatures(degree=1, include_bias=True).fit_transform(x)
+    if method == "custom":
+        import torch
+
+        torch.manual_seed(0)
+        estimator = CustomNN(hidden_layers=[4])
+        estimator.input_dim, estimator.output_dim, estimator.device = 4, 3, "cpu"
+        estimator.model = torch.nn.Sequential(
+            torch.nn.Linear(4, 4), torch.nn.ReLU(), torch.nn.Linear(4, 3)
+        ).eval()
+    else:
+        estimator = {
+            "linear": LinearRegression(),
+            "pls": PLSRegression(n_components=2),
+            "nn": MLPRegressor(hidden_layer_sizes=(4,), max_iter=20, random_state=0),
+        }[method].fit(features, target)
+    model.model = estimator
+    return model
 
 
 if __name__ == "__main__":

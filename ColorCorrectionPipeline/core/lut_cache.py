@@ -120,10 +120,13 @@ def inference_identity(model):
     """Return full inference/settings hash, or (None, reason) when opaque."""
     from .correction import Regressor_Model, _predict_direct
     from ..portable_inference import AffinePredictor, MLPPredictor, TorchPredictor
-    from ..fitting import DeterministicTorchRegressor
     from ..ui_fitting import UIPredictor
 
-    CustomNN = _loaded_class("ColorCorrectionPipeline.core._custom_nn", "CustomNN")
+    # Load-only 2.x estimators exist only once their module has been imported.
+    CustomNN = _loaded_class("ColorCorrectionPipeline._compat.estimators", "CustomNN")
+    DeterministicTorchRegressor = _loaded_class(
+        "ColorCorrectionPipeline._compat.estimators", "DeterministicTorchRegressor"
+    )
     LinearRegression = _loaded_class("sklearn.linear_model", "LinearRegression")
     PLSRegression = _loaded_class("sklearn.cross_decomposition", "PLSRegression")
     MLPRegressor = _loaded_class("sklearn.neural_network", "MLPRegressor")

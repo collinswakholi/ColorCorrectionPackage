@@ -594,7 +594,7 @@ def apply_ffc_float(
 
     Converts sRGB → Lab, multiplies L channel by *multiplier*, then
     converts Lab → sRGB.  Avoids the uint8/BGR round-trip that the
-    original ``FlatFieldCorrection.apply_ffc`` uses.
+    uint8 ``FlatFieldCorrection.apply_ffc`` of 2.x used.
 
     Parameters
     ----------

@@ -130,6 +130,7 @@ ignore = [
 # arguments with capitalised names (convert_to_LCHab, metrics, Image=, RGB=, ...),
 # and colour-science/matrix notation for locals (X, M, RGB, Lab, Z_flat).
 "ColorCorrectionPipeline/core/*.py" = ["N801", "N802", "N803", "N806"]
+"ColorCorrectionPipeline/_compat/*.py" = ["N803", "N806"]
 "ColorCorrectionPipeline/flat_field/*.py" = ["N802", "N803", "N806"]
 "ColorCorrectionPipeline/pipeline.py" = ["N803", "N806", "I001"]
 "ColorCorrectionPipeline/config.py" = ["N803", "I001"]
@@ -189,20 +190,15 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "colour.*",
-    "colour_checker_detection.*",
     "cv2.*",
     "numba.*",
     "onnxruntime.*",
     "pandas.*",
     "psutil.*",
     "scipy.*",
-    "seaborn.*",
-    "skimage.*",
     "sklearn.*",
-    "statsmodels.*",
     "threadpoolctl.*",
     "tifffile.*",
-    "torchsummary.*",
 ]
 ignore_missing_imports = true
 
@@ -217,7 +213,6 @@ module = [
     "ColorCorrectionPipeline.bundle",
     "ColorCorrectionPipeline.contracts",
     "ColorCorrectionPipeline.core.accel",
-    "ColorCorrectionPipeline.core.color_spaces",
     "ColorCorrectionPipeline.core.correction",
     "ColorCorrectionPipeline.core.transforms",
     "ColorCorrectionPipeline.core.utils",

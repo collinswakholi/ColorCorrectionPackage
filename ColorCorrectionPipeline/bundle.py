@@ -211,8 +211,7 @@ def _array(values, shape, label):
 
 def _torch_layers(model):
     import torch
-    from .core.correction import CustomNN
-    from .fitting import DeterministicTorchRegressor
+    from ._compat.estimators import CustomNN, DeterministicTorchRegressor
 
     if (
         type(model) not in (CustomNN, DeterministicTorchRegressor)

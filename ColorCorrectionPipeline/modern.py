@@ -1,15 +1,14 @@
-"""Opt-in numerical stage orchestration over fixed, full-precision observations.
+"""Modern-v1 stage fitting (GC, WB, saturation report) over fixed observations.
 
-Legacy entry points stay in pipeline.py. These helpers deliberately do not detect
-new geometry or manufacture measurements from reference targets.
+These helpers deliberately do not detect new geometry or manufacture
+measurements from reference targets. ``apply_tone`` also applies the
+neutral-pchip-v1 tone models that 2.x saved.
 """
 
-import copy
 import numpy as np
 
 from .colorimetry import D65, rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb
 from .observations import capture_observations
-from .sampling import sample_quadrilaterals
 from .stage_policies import (
     fit_monotonic_tone,
     fit_neutral_wb,
@@ -37,15 +36,12 @@ def prepare_source(owner, *, required):
         return
     face = selected_face(owner, owner.Image, "source")
     owner._source_face = face
-    if owner.fitting_policy.version == "ui-compatible-v1":
-        from .ui_fitting import sample_regions
-        from .ui_native import face_sample_points, high_precision, sample_regions_float64
+    from .ui_fitting import sample_regions
+    from .ui_native import face_sample_points, high_precision, sample_regions_float64
 
-        sampler = sample_regions_float64 if high_precision(owner) else sample_regions
-        count, xy = face_sample_points(face)
-        samples = sampler(owner.Image, face.quadrilaterals, count, xy=xy)
-    else:
-        samples = sample_quadrilaterals(owner.Image, face.quadrilaterals, face.sample_count)
+    sampler = sample_regions_float64 if high_precision(owner) else sample_regions
+    count, xy = face_sample_points(face)
+    samples = sampler(owner.Image, face.quadrilaterals, count, xy=xy)
     per_channel = np.mean(samples >= face.clipping_threshold, axis=1)
     owner.numerical_report["source_clipping"] = {
         "basis": "original sampled pixels at encoded RGB threshold; not sensor RAW evidence",
@@ -98,23 +94,12 @@ _REFERENCE_APPLY_TONE = apply_tone
 
 def fit_gamma(owner, image):
     face = selected_face(owner, image, "GC_training")
-    from .ui_native import (
-        enabled as native_enabled,
-        lab as native_lab,
-        reference as native_reference,
-        sample_ffc,
-    )
+    from .ui_native import lab as native_lab, reference as native_reference, sample_ffc
 
-    if native_enabled(owner):
-        if owner.models.model_ffc is not None:
-            face = sample_ffc(owner, face)
-        lightness = native_lab(face.measured_rgb, scalar=True)[:, 0]
-        reference = native_reference(owner.reference_profile)[2][:, 0]
-    else:
-        lightness = xyz_to_lab(rgb_to_xyz(face.measured_rgb, encoding="srgb"), white=D65)[:, 0]
-        reference = owner.color_semantics.reference_to_working_lab(
-            owner.reference_profile.canonical_lab_d50
-        )[:, 0]
+    if owner.models.model_ffc is not None:
+        face = sample_ffc(owner, face)
+    lightness = native_lab(face.measured_rgb, scalar=True)[:, 0]
+    reference = native_reference(owner.reference_profile)[2][:, 0]
     model, report = fit_monotonic_tone(
         lightness,
         reference,
@@ -125,25 +110,11 @@ def fit_gamma(owner, image):
     )
     owner.models.model_gc = model
     owner.numerical_report["GC"] = report
-    if native_enabled(owner):
-        from .ui_native import render_fit_stage, runtime
+    from .ui_native import render_fit_stage, runtime
 
-        report["ui_runtime"] = runtime(owner)
-        report["training_observation"] = face.to_dict()
-        result = render_fit_stage(owner, owner.Image, "GC")
-    else:
-        result = apply_tone(image, model)
-    from .ui_native import high_precision
-
-    if (
-        owner.fitting_policy.version == "ui-compatible-v1"
-        and not native_enabled(owner)
-        and not high_precision(owner)
-    ):
-        from .ui_fitting import round_image
-
-        result = round_image(result)
-    return result, {}, False
+    report["ui_runtime"] = runtime(owner)
+    report["training_observation"] = face.to_dict()
+    return render_fit_stage(owner, owner.Image, "GC"), {}, False
 
 
 def fit_wb(owner, image):
@@ -163,7 +134,7 @@ def fit_wb(owner, image):
     result = np.clip(image @ matrix, 0, 1)
     from .ui_native import high_precision
 
-    if owner.fitting_policy.version == "ui-compatible-v1" and not high_precision(owner):
+    if not high_precision(owner):
         from .ui_fitting import round_image
 
         result = round_image(result)
@@ -178,135 +149,3 @@ def report_saturation(owner, image):
     report["image_transform"] = "identity; observations are never reference-assisted recovery"
     owner.numerical_report["saturation"] = report
     return image, None, None
-
-
-def fit_cc(owner, image, method, parameters):
-    if owner.fitting_policy.version == "ui-compatible-v1":
-        from .ui_fitting import fit_stage
-
-        return fit_stage(owner, image, method, parameters)
-    from .fitting import fit_observations, fit_conventional_observations
-    from .evaluation import grouped_cc_validation
-    from .core.correction import predict_
-    import colour  # noqa: F401  (loads colour-science here, as before)
-
-    face = selected_face(owner, image, "CC_training")
-    fractions = clipping(owner, face)
-    eligible, selection = saturation_selection(face.cell_ids, fractions, policy=owner.stage_policy)
-    x, y = face.measured_rgb, owner.REFERENCE_RGB_PD.values
-    groups = np.asarray(face.cell_ids)
-    synthetic = np.zeros(len(x), dtype=bool)
-    if owner.fitting_policy.anchor_weight > 0:
-        x = np.concatenate((x, np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])))
-        y = np.concatenate((y, np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])))
-        groups = np.r_[groups, ["synthetic-assumption:black", "synthetic-assumption:white"]]
-        eligible = np.r_[eligible, [True, True]]
-        synthetic = np.r_[synthetic, [True, True]]
-    # The documented sample is one fixed region mean per independent chart cell.
-    # No repeated means, random pseudo-observations, or implicit synthetic anchors.
-    params = copy.deepcopy(parameters or {})
-    for option in ("n_samples", "augment_extremes", "extreme_anchor_repeat", "shuffle_fit_data"):
-        if option in params:
-            raise ValueError(
-                "%s is a legacy sampling option; reproducible-v1 uses one mean per cell and FittingPolicy.anchor_weight"
-                % option
-            )
-    display_keys = {"get_deltaE", "show", "cc_method"}
-    params = {key: value for key, value in params.items() if key not in display_keys}
-    if method.lower() == "ours":
-        params.setdefault("degree", 1)
-        params.setdefault("mtd", "linear")
-        params.setdefault("use_lut", False)
-        model = fit_observations(
-            x[eligible],
-            y[eligible],
-            groups[eligible],
-            params,
-            owner.fitting_policy,
-            synthetic_mask=synthetic[eligible],
-        )
-        effective = copy.deepcopy(model.fit_report.get("effective_parameters", params))
-        owner.models.model_cc = (model, effective, "ours")
-        output = np.clip(predict_(image, model), 0, 1)
-        fit_report = model.fit_report
-
-        def fit_predict(a, b, g, test):
-            fold_params = {**params, "use_lut": False}
-            mask = np.array([cell.startswith("synthetic-assumption:") for cell in g])
-            fitted = fit_observations(
-                a, b, g, fold_params, owner.fitting_policy, synthetic_mask=mask
-            )
-            return np.clip(predict_(test, fitted), 0, 1)
-
-    elif method.lower() == "conv":
-        model, effective, fit_report = fit_conventional_observations(
-            x[eligible],
-            y[eligible],
-            groups[eligible],
-            params,
-            owner.fitting_policy,
-            synthetic_mask=synthetic[eligible],
-        )
-        owner.models.model_cc = (model, effective, "conv")
-        from .conventional import apply_conventional
-
-        output = np.clip(apply_conventional(image, model, **effective), 0, 1)
-
-        def fit_predict(a, b, g, test):
-            mask = np.array([cell.startswith("synthetic-assumption:") for cell in g])
-            fitted, options, _ = fit_conventional_observations(
-                a, b, g, params, owner.fitting_policy, synthetic_mask=mask
-            )
-            return np.clip(apply_conventional(test, fitted, **options), 0, 1)
-
-    else:
-        raise ValueError("cc_method must be ours or conv")
-
-    report = {
-        "fit": fit_report,
-        "selection": selection,
-        "sampling": "one full-precision fixed-region mean per cell; no independent pixel repetitions",
-    }
-    report["anchor_assumptions"] = {
-        "black": [0, 0, 0],
-        "white": [1, 1, 1],
-        "weight_per_anchor": owner.fitting_policy.anchor_weight,
-        "measured": False,
-        "validation_test_eligible": False,
-    }
-    if owner.validation_options.get("enabled", True):
-        reference_lab = owner.reference_profile.canonical_lab_d50
-
-        # Match fold targets to canonical reference values, not clipped display swatches.
-        def metric(expected, predicted, indices=None):
-            if indices is None:
-                raise ValueError("canonical CIEDE2000 requires original validation indices")
-            return owner.color_semantics.delta_e00(
-                predicted, reference_lab[np.asarray(indices)], input_encoding="srgb"
-            )
-
-        report["validation"] = grouped_cc_validation(
-            x,
-            y,
-            groups,
-            fit_predict,
-            eligible=eligible,
-            synthetic_mask=synthetic,
-            n_splits=owner.validation_options.get("n_splits", 4),
-            random_state=owner.validation_options.get(
-                "random_state", owner.fitting_policy.random_state
-            ),
-            metric=metric,
-            metric_name="CIEDE2000 canonical reference at common evaluation white",
-        )
-        report["validation"][
-            "prediction_path"
-        ] = "direct estimator on held-out region means; not mean of corrected pixels or LUT output"
-    else:
-        report["validation"] = {
-            "status": "unavailable",
-            "reason": "disabled by caller",
-            "scope": "CC-only conditional on fitted upstream stages",
-        }
-    owner.numerical_report["CC"] = report
-    return output, {}, False

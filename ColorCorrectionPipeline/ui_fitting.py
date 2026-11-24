@@ -11,7 +11,7 @@ import math
 
 import numpy as np
 
-from .colorimetry import srgb_to_linear, linear_to_srgb, xyz_to_rgb, lab_to_xyz, adapt_xyz, D65
+from .colorimetry import srgb_to_linear, linear_to_srgb, lab_to_xyz, adapt_xyz, D65
 from .portable_inference import owned_array
 
 VERSION = "ui-compatible-v1"
@@ -755,27 +755,21 @@ def fit_stage(owner, image, method, parameters):
     from .modern import selected_face
     from .core.correction import Regressor_Model, predict_
     from .evaluation import grouped_cc_validation
-    from .colorimetry import D50
 
     face = selected_face(owner, image, "CC_training")
     x = np.asarray(face.measured_rgb)
     truth = owner.reference_profile.canonical_lab_d50
-    y = xyz_to_rgb(
-        adapt_xyz(lab_to_xyz(truth, white=D50), D50, D65), encoding="linear-srgb", policy="preserve"
-    )
     params = dict(parameters or {})
     params["cc_method"] = method
-    from .ui_native import enabled as native_enabled, high_precision, reference as native_reference
+    from .ui_native import high_precision, reference as native_reference
 
-    if native_enabled(owner):
-        y = native_reference(owner.reference_profile)[0]
+    # Fits use the native-v1 or precision-f64-v1 runtime (staged-v1 fitting was
+    # removed in 3.0); both take the native linear-light reference targets.
+    y = native_reference(owner.reference_profile)[0]
     if high_precision(owner):
         params.setdefault("use_lut", False)
     predictor, report = fit_ui(x, y, params)
-    if native_enabled(owner):
-        report["details"]["ui_runtime"] = (
-            "precision-f64-v1" if high_precision(owner) else "native-v1"
-        )
+    report["details"]["ui_runtime"] = "precision-f64-v1" if high_precision(owner) else "native-v1"
     settings = report["effective_parameters"]
     model = Regressor_Model()
     for name, value in settings.items():

@@ -1,54 +1,27 @@
 """
-Core module for color_correc_optim
-===================================
+Core module for ColorCorrectionPipeline
+=======================================
 
-This module contains core color correction algorithms, utilities, and
-transformations used throughout the pipeline.
+Low-level inference classes, transforms and utilities used by the pipeline.
 
 Submodules:
-    - color_spaces: Color space conversions and utilities
-    - correction: Color correction algorithms (conventional and custom)
-    - transforms: Polynomial features and transformations
-    - metrics: Color difference metrics (Delta-E, MAE, etc.)
-    - utils: General utility functions
+    - correction: color-correction inference (Regressor_Model, predict_) and the
+      load-only appliers for 2.x models (CustomNN, legacy polynomial predict_image)
+    - transforms: polynomial features
+    - utils: chart extraction, format conversions and small numeric helpers
+    - accel: vectorised/Numba color conversion and LUT kernels
 """
 
 import warnings
 
-from .color_spaces import (
-    adapt_chart,
-    convert_to_lab,
-    extrapolate_if_sat_image,
-)
-from .correction import (
-    Regressor_Model,
-    color_correction,
-    color_correction_1,
-    estimate_gamma_profile,
-    extract_color_chart_ex,
-    fit_model,
-    predict_,
-    predict_image,
-    wb_correction,
-)
-from .metrics import (
-    Metrics,
-    arrange_metrics,
-    compute_mae,
-    desc_stats,
-    get_metrics,
-)
+from .correction import Regressor_Model, predict_
 from .utils import (
     HAS_MCC,
-    compute_diag,
-    estimate_fit,
     extract_color_chart,
     extract_color_charts,
     extract_neutral_patches,
-    free_memory,
     get_attr,
     poly_func,
-    poly_func_torch,
     to_float64,
     to_uint8,
 )
@@ -67,12 +40,13 @@ def __getattr__(name):
         from .transforms import get_poly_features
 
         return get_poly_features
-    if name == "CustomNN":
-        # Deferred so importing ColorCorrectionPipeline.core does not import scikit-learn.
-        from ._custom_nn import CustomNN
+    if name in ("CustomNN", "predict_image"):
+        # Load-only 2.x appliers, deferred so importing core stays cheap.
+        from . import correction
 
-        globals()["CustomNN"] = CustomNN
-        return CustomNN
+        value = getattr(correction, name)
+        globals()[name] = value
+        return value
     raise AttributeError(name)
 
 
@@ -81,40 +55,20 @@ def __dir__():
 
 
 __all__ = [
-    # Color spaces
-    "adapt_chart",
-    "convert_to_lab",
-    "extrapolate_if_sat_image",
-    # Correction
+    # Correction (CustomNN and predict_image apply models saved by 2.x)
     "CustomNN",
     "Regressor_Model",
-    "color_correction",
-    "color_correction_1",
-    "estimate_gamma_profile",
-    "extract_color_chart_ex",
-    "fit_model",
     "predict_",
     "predict_image",
-    "wb_correction",
-    # Metrics
-    "Metrics",
-    "arrange_metrics",
-    "compute_mae",
-    "desc_stats",
-    "get_metrics",
     # Transforms
     "get_poly_features",
     # Utils
     "HAS_MCC",
-    "compute_diag",
-    "estimate_fit",
     "extract_color_chart",
     "extract_color_charts",
     "extract_neutral_patches",
-    "free_memory",
     "get_attr",
     "poly_func",
-    "poly_func_torch",
     "to_float64",
     "to_uint8",
 ]
