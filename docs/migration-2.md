@@ -33,6 +33,9 @@ needed.
 
 To reproduce a released 1.x environment, pin the
 original package and dependencies, for example `pip install ColorCorrectionPipeline==1.5.0`.
+To refit with the `legacy-v1`, `reproducible-v1` or staged `ui-compatible-v1`
+recipes, which 3.0.0 removed, pin `ColorCorrectionPipeline==2.3.0`; models saved
+by those recipes still load and apply in 3.0.0 (see [migration-3.md](migration-3.md)).
 
 ## Migrating a conventional CCM trained on JPEGs
 

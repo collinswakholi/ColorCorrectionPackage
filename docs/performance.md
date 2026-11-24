@@ -181,6 +181,3 @@ For memory-bound captures start with `iter_predict(..., max_workers=1,
 max_in_flight=1)`. A single runnable image can use the caller's bounded CPU
 workers for native pixel kernels; concurrent images and external executor
 threads do not multiply that budget. Strict export still reads back the PNG.
-On the reproducible fitting path, the built-in neutral GC curve processes
-large frames in row blocks to bound temporary Lab arrays. Custom curves keep
-their existing whole-input semantics.
