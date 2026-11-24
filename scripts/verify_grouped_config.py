@@ -13,6 +13,7 @@ qualifies the full NN100 configuration on the sample photographs.
 import argparse
 import hashlib
 import json
+import math
 import pickle
 import subprocess
 from copy import deepcopy
@@ -474,6 +475,22 @@ def oracle_worker(specification):
     )
 
 
+def metrics_match(x, y):
+    """Exact equality, except floats agree to 1e-12 relative precision.
+
+    Summations over many samples can land one unit in the last place apart between
+    two otherwise identical fits (seen with Python 3.9 and Numba 0.60). The images
+    themselves are still compared exactly below.
+    """
+    if isinstance(x, dict) and isinstance(y, dict):
+        return x.keys() == y.keys() and all(metrics_match(x[k], y[k]) for k in x)
+    if isinstance(x, list) and isinstance(y, list):
+        return len(x) == len(y) and all(metrics_match(i, k) for i, k in zip(x, y))
+    if isinstance(x, float) and isinstance(y, float):
+        return x == y or math.isclose(x, y, rel_tol=1e-12, abs_tol=1e-12)
+    return bool(x == y)
+
+
 def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
     rows = []
     with sample_paths() as samples:
@@ -492,7 +509,7 @@ def photo_contracts(folder, nn_epochs, oracle_python=None, forbid_source=None):
             grouped.save_path = str(destination)
             current, metrics, images = fitted(grouped, chart, white)
             a, b = encoded(ordinary_metrics), encoded(metrics)
-            if a != b:
+            if not metrics_match(a, b):
 
                 def compare(path, x, y):
                     if isinstance(x, dict) and isinstance(y, dict):
