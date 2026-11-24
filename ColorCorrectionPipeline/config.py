@@ -16,6 +16,8 @@ from .contracts import ReferenceProfile
 from .stage_policies import StagePolicy
 from .fitting import FittingPolicy, require_fit_supported
 from .config_groups import (
+    FFCOptions,
+    Steps,
     UNSET,
     GROUP_NAMES,
     GROUPED_LAYOUT,
@@ -24,7 +26,18 @@ from .config_groups import (
     group_view,
 )
 
-__all__ = ["Config"]
+__all__ = ["Config", "PRESETS"]
+
+#: Named fitting presets accepted by ``calibrate(model=...)`` and ``Config.from_preset``.
+#: Each maps to keyword arguments of :class:`Config`.
+PRESETS: Dict[str, Dict[str, Any]] = {
+    "rpcc2": {"model": "rpcc2"},
+    "rpcc3": {"model": "rpcc3"},
+    "ccm": {"model": "ccm"},
+    "3x3": {"model": "ccm"},
+    "pls": {"model": "pls"},
+    "high-precision": {"model": "rpcc2", "precision": "high"},
+}
 
 _SCALAR_DEFAULTS: Dict[str, Any] = {
     "do_ffc": True,
@@ -170,12 +183,23 @@ class Config:
         >>> Config.from_preset("pls", white=False).CC_kwargs["model"]
         'pls'
         """
-        from .simple import preset_config
-
-        return cast(
-            "Config",
-            preset_config(name, white=white, frame_index=frame_index, device=device, **overrides),
-        )
+        key = str(name).lower()
+        if key not in PRESETS:
+            raise ValueError(
+                "unknown preset %r; choose one of %s" % (name, ", ".join(sorted(PRESETS)))
+            )
+        kwargs: Dict[str, Any] = dict(PRESETS[key])
+        image_input: Dict[str, Any] = {} if frame_index is None else {"frame_index": frame_index}
+        image_input.update(overrides.pop("input", None) or {})
+        chart: Dict[str, Any] = {"device": device}
+        chart.update(overrides.pop("chart", None) or {})
+        if "steps" not in overrides:
+            kwargs["steps"] = Steps(ffc=FFCOptions(enabled=bool(white)))
+        kwargs.update(overrides)
+        if image_input:
+            kwargs["input"] = image_input
+        kwargs["chart"] = chart
+        return cls(**kwargs)
 
     def __init__(
         self,

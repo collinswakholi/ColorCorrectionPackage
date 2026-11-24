@@ -21,53 +21,9 @@ import numpy as np
 
 __all__ = ["Calibration", "calibrate", "correct", "PRESETS"]
 
+from .config import PRESETS, Config
+
 PathLike = Union[str, "os.PathLike[str]"]
-
-#: Named fitting presets accepted by ``calibrate(model=...)`` and ``Config.from_preset``.
-#: Each maps to keyword arguments of :class:`Config`.
-PRESETS: Dict[str, Dict[str, Any]] = {
-    "rpcc2": {"model": "rpcc2"},
-    "rpcc3": {"model": "rpcc3"},
-    "ccm": {"model": "ccm"},
-    "3x3": {"model": "ccm"},
-    "pls": {"model": "pls"},
-    "high-precision": {"model": "rpcc2", "precision": "high"},
-}
-
-
-def preset_config(
-    name: str = "rpcc2",
-    *,
-    white: bool = True,
-    frame_index: Optional[int] = 0,
-    device: str = "auto",
-    **overrides: Any,
-):
-    """Build a v2 :class:`Config` from a preset name plus keyword overrides.
-
-    ``white`` enables flat-field correction (it needs a white image at fit time).
-    ``frame_index`` selects the image frame (``None`` keeps the strict single-frame check).
-    Grouped overrides such as ``chart={...}`` or ``input={...}`` are merged with these
-    defaults rather than replacing them.
-    """
-    from .config import Config
-    from .config_groups import FFCOptions, Steps
-
-    key = str(name).lower()
-    if key not in PRESETS:
-        raise ValueError("unknown preset %r; choose one of %s" % (name, ", ".join(sorted(PRESETS))))
-    kwargs: Dict[str, Any] = dict(PRESETS[key])
-    image_input: Dict[str, Any] = {} if frame_index is None else {"frame_index": frame_index}
-    image_input.update(overrides.pop("input", None) or {})
-    chart: Dict[str, Any] = {"device": device}
-    chart.update(overrides.pop("chart", None) or {})
-    if "steps" not in overrides:
-        kwargs["steps"] = Steps(ffc=FFCOptions(enabled=bool(white)))
-    kwargs.update(overrides)
-    if image_input:
-        kwargs["input"] = image_input
-    kwargs["chart"] = chart
-    return Config(**kwargs)
 
 
 @dataclass
@@ -134,7 +90,7 @@ def calibrate(
     from .pipeline import ColorCorrection
 
     if config is None:
-        config = preset_config(
+        config = Config.from_preset(
             model, white=white is not None, frame_index=frame_index, device=device, **options
         )
     elif options:
