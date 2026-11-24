@@ -5,7 +5,7 @@ Flat-field white-plane detection and safe-crop validation
 ``FlatFieldCorrection`` finds the white reference plane in a white-field image
 (bundled ONNX detector, an explicit ``crop_rect`` or manual ROI selection) and
 enforces the safe-mode signal, saturation, coverage and gain policies. The
-pipeline's FFC fitter (``ui_stages.fit_ffc``) builds the gain surface from that
+pipeline's FFC fitter (``ui_stages.fit_gain``) builds the gain surface from that
 crop. 3.0 removed the 2.x multiplier fitters (``compute_multiplier`` with its
 linear/NN/PLS/SVM backends), their plotting helpers and ``apply_ffc``; saved FFC
 gains still apply through the pipeline.

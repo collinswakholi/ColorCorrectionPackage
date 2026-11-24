@@ -6,7 +6,6 @@ Equations are ported from the MIT-licensed CCP UI color, sample and FFC modules.
 """
 
 import math
-from dataclasses import replace
 
 import numpy as np
 
@@ -16,15 +15,43 @@ D65 = (0.31271, 0.32902)
 # Native D50 coordinates differ from the canonical-reference shorthand.
 D50 = (0.34567, 0.35850)
 EPSILON, KAPPA = 216.0 / 24389.0, 24389.0 / 27.0
+# ColorChecker Classic 24 Lab D50 values of the ColorCorrect Studio catalog.
+CLASSIC24_LAB = (
+    (37.54, 14.37, 14.92),
+    (64.66, 19.27, 17.5),
+    (49.32, -3.82, -22.54),
+    (43.46, -12.74, 22.72),
+    (54.94, 9.61, -24.79),
+    (70.48, -32.26, -0.37),
+    (62.73, 35.83, 56.5),
+    (39.43, 10.75, -45.17),
+    (50.57, 48.64, 16.67),
+    (30.1, 22.54, -20.87),
+    (71.77, -24.13, 58.19),
+    (71.51, 18.24, 67.37),
+    (28.37, 15.42, -49.8),
+    (54.38, -39.72, 32.27),
+    (42.43, 51.05, 28.62),
+    (81.8, 2.67, 80.41),
+    (50.63, 51.28, -14.12),
+    (49.57, -29.71, -28.32),
+    (95.19, -1.03, 2.93),
+    (81.29, -0.57, 0.44),
+    (66.89, -0.75, -0.06),
+    (50.76, -0.13, 0.14),
+    (35.63, -0.46, -0.48),
+    (20.64, 0.07, -0.46),
+)
 
 
-def runtime(value):
-    """Return the persisted runtime without resolving defaults during prediction."""
-    metadata = getattr(value, "metadata", None)
-    if metadata is not None:
-        policy = metadata.get("fitting_policy", {})
-    else:
-        policy = getattr(value, "fitting_policy", {})
+def runtime(source):
+    """Return the image runtime recorded by fitted models or named by a fitting policy.
+
+    ``source`` is a model container (its saved ``metadata``), a ``FittingPolicy``
+    or a policy dictionary. Prediction never resolves defaults here.
+    """
+    metadata = getattr(source, "metadata", None)
+    policy = metadata.get("fitting_policy", {}) if metadata is not None else source
     if not isinstance(policy, dict):
         return policy.ui_runtime if policy.version == "ui-compatible-v1" else None
     return policy.get("ui_runtime") if policy.get("version") == "ui-compatible-v1" else None
@@ -33,28 +60,20 @@ def runtime(value):
 FFC_DOMAINS = ("lightness", "linear")
 
 
-def ffc_domain(value):
-    """Return the FFC gain domain; records without one replay as ``"lightness"``.
-
-    A fitting owner carries the requested domain until its metadata is
-    committed; fitted model containers read the persisted metadata.
-    """
-    if hasattr(value, "models"):
-        domain = getattr(value, "_ffc_domain", "lightness")
-    else:
-        metadata = getattr(value, "metadata", None) or {}
-        domain = metadata.get("ffc_domain", "lightness")
+def ffc_domain(models):
+    """Return the saved FFC gain domain; records without one replay as ``"lightness"``."""
+    domain = (getattr(models, "metadata", None) or {}).get("ffc_domain", "lightness")
     if domain not in FFC_DOMAINS:
         raise ValueError("FFC domain must be 'lightness' or 'linear'")
     return domain
 
 
-def enabled(value):
-    return runtime(value) in (RUNTIME, HIGH_RUNTIME)
+def enabled(source):
+    return runtime(source) in (RUNTIME, HIGH_RUNTIME)
 
 
-def high_precision(value):
-    return runtime(value) == HIGH_RUNTIME
+def high_precision(source):
+    return runtime(source) == HIGH_RUNTIME
 
 
 def _white(xy):
@@ -243,24 +262,22 @@ def reference(profile):
 
 
 def default_reference():
-    from .ui_fitting import default_reference as staged_reference
+    """Classic24 reference in the UI catalog's own Lab D50 coordinates."""
     from .contracts import ReferenceProfile
 
-    profile = staged_reference()
+    base = ReferenceProfile.classic24()
     # Preserve the original UI catalog coordinates rather than an inverse
     # round trip through the package's independently rounded D50 white.
-    from .ui_fitting import _UI_CLASSIC_LAB
-
     return ReferenceProfile.from_values(
-        _UI_CLASSIC_LAB,
+        CLASSIC24_LAB,
         color_space="lab",
         white=D50,
         scale=1,
         profile_id="ui-native-classic24",
         revision=1,
-        names=profile.names,
-        cell_ids=profile.cell_ids,
-        neutral_ids=profile.neutral_ids,
+        names=base.names,
+        cell_ids=base.cell_ids,
+        neutral_ids=base.neutral_ids,
         retain_source=True,
     )
 
@@ -343,70 +360,6 @@ def face_sample_points(face):
     return count, points(face.quadrilaterals, count, seed)
 
 
-def sample_ffc(owner, face):
-    from .ui_fitting import sample_regions
-
-    count, xy = face_sample_points(face)
-    high = high_precision(owner)
-    samples = (sample_regions_float64 if high else sample_regions)(
-        owner.Image, face.quadrilaterals, count, xy=xy
-    )
-    h, w = owner.Image.shape[:2]
-    dtype = np.float64 if high else np.float32
-    x = (np.clip(xy[..., 0], 0, w - 1) * (w - 1) / max(w - 1, 1)).astype(dtype)
-    y = (np.clip(xy[..., 1], 0, h - 1) * (h - 1) / max(h - 1, 1)).astype(dtype)
-    x0 = np.floor(x).astype(int)
-    y0 = np.floor(y).astype(int)
-    x1 = np.minimum(x0 + 1, w - 1)
-    y1 = np.minimum(y0 + 1, h - 1)
-    fx = x - x0.astype(dtype)
-    fy = y - y0.astype(dtype)
-    g = owner.models.model_ffc.astype(dtype)
-    gains = (
-        g[y0, x0] * (1 - fy) * (1 - fx)
-        + g[y1, x0] * fy * (1 - fx)
-        + g[y0, x1] * (1 - fy) * fx
-        + g[y1, x1] * fy * fx
-    )
-    corrected = apply_color(samples, gains, scalar=True, rounded=False, domain=ffc_domain(owner))
-    clipped = np.mean(np.any(corrected >= face.clipping_threshold, axis=2), axis=1)
-    return replace(
-        face,
-        measured_rgb=ordered_mean(corrected),
-        clipped_fractions=clipped,
-        provenance={
-            **dict(face.provenance),
-            "measurement_policy": runtime(owner) + "/FFC-after-bilinear",
-            "sample_reduction": "row-order-f64",
-        },
-    )
-
-
-def render_fit_stage(owner, image, stage):
-    # Fit metadata is committed only after all stages succeed. Use the resolved
-    # policy and the same guarded byte-runtime renderer as bundle prediction.
-    domain = ffc_domain(owner)
-    if not high_precision(owner) and image.shape[0] * image.shape[1] >= 65536:
-        from .ui_execution import try_execute
-
-        result = try_execute(
-            image,
-            owner.models,
-            (stage,),
-            fit_policy=owner.fitting_policy.to_dict(),
-            ffc_domain=domain,
-        )
-        if result is not None:
-            return result[stage]
-    return apply_color(
-        image,
-        owner.models.model_ffc,
-        owner.models.model_gc if stage == "GC" else None,
-        rounded=not high_precision(owner),
-        domain=domain,
-    )
-
-
 def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain="lightness"):
     """Apply the joint FFC/GC equations.
 
@@ -431,165 +384,3 @@ def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain
         value[..., 0] = np.clip(curve.predict(value[..., 0]), 0, 100)
     result = np.clip(_encode(_multiply(XYZ_TO_RGB, _lab_to_xyz(value, D65)), scalar=scalar), 0, 1)
     return result.astype(np.float32).astype(np.float64) if rounded else result
-
-
-def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
-    from .ui_execution import try_execute
-
-    high = high_precision(models)
-    domain = ffc_domain(models)
-    if not high:
-        result = try_execute(
-            image, models, selected, native_codes=native_codes, chunk_pixels=chunk_pixels
-        )
-        if result is not None:
-            return result
-    if high:
-        return _predict_high(image, models, selected, chunk_pixels, domain)
-    from .core.correction import predict_
-    from .core.correction import chunked_cc
-
-    source = (
-        np.asarray(image, dtype=np.float64)
-        if high
-        else (
-            normalize_codes(image)
-            if native_codes
-            else np.asarray(image, dtype=np.float32).astype(np.float64)
-        )
-    )
-    current = source
-    result = {}
-    order = ("FFC", "GC", "WB", "CC")
-    stop = max(order.index(k) for k in selected)
-    gain = models.model_ffc
-    curve = models.model_gc
-    if gain is not None and np.shape(gain) != source.shape[:2]:
-        raise ValueError("native UI FFC requires the calibrated image dimensions")
-    for index, name in enumerate(order[: stop + 1]):
-        if name == "FFC" and gain is not None:
-            if "FFC" in selected or curve is None or stop == 0:
-                current = apply_color(source, gain, rounded=not high, domain=domain)
-        elif name == "GC" and curve is not None:
-            current = apply_color(source, gain, curve, rounded=not high, domain=domain)
-        elif name == "WB" and models.model_wb is not None:
-            current = np.clip(current @ models.model_wb, 0, 1)
-            if not high:
-                current = current.astype(np.float32).astype(np.float64)
-        elif name == "CC" and models.model_cc is not None:
-            extended = "basis" in models.model_cc[1]
-            if chunk_pixels is not None or high or extended:
-                current = chunked_cc(current, models.model_cc, chunk_pixels or 65536)
-            else:
-                current = predict_(RGB=current, M=models.model_cc[0])
-            current = np.clip(current, 0, 1)
-            if not high:
-                current = current.astype(np.float32).astype(np.float64)
-        if (
-            current.shape != source.shape
-            or not np.isfinite(current).all()
-            or np.any(current < 0)
-            or np.any(current > 1)
-        ):
-            raise FloatingPointError("native UI %s produced invalid image data" % name)
-        if name in selected:
-            result[name] = current.copy()
-    return result
-
-
-# Pointwise sub-block for threaded high-precision prediction. Smaller
-# temporaries than the 65536-pixel CC chunk avoid most fresh page mapping; 32768
-# was the fastest and most stable size on 4K frames (see docs/performance.md).
-_SUB_BLOCK = 32768
-
-
-def _predict_high(image, models, selected, chunk_pixels, domain):
-    """Float64 stages in bounded pixel blocks, optionally on several threads.
-
-    Every stage is pointwise, so each block reproduces the full-frame equations
-    exactly. Blocks keep the historical CC chunk boundaries (``chunk_pixels`` or
-    65536 pixels) and the LUT/direct decision is still made once per image. Only
-    the selected stage outputs are allocated at full frame size; intermediate
-    stages and the validity checks stay within one block.
-    """
-    from ._cpu_workers import ranges, run_slices, worker_count
-    from .core.correction import cc_block, cc_uses_lut
-
-    source = np.asarray(image, dtype=np.float64)
-    order = ("FFC", "GC", "WB", "CC")
-    stop = max(order.index(k) for k in selected)
-    gain = models.model_ffc
-    curve = models.model_gc
-    if gain is not None and np.shape(gain) != source.shape[:2]:
-        raise ValueError("native UI FFC requires the calibrated image dimensions")
-    flat = source.reshape(-1, 3)
-    gains = None if gain is None else np.asarray(gain).reshape(-1)
-    pixels = len(flat)
-    chunk = chunk_pixels or 65536
-    cc = models.model_cc if stop >= 3 else None
-    use_lut = cc_uses_lut(cc, pixels) if cc is not None else False
-    wb = models.model_wb
-    fused_ffc = gain is not None and ("FFC" in selected or curve is None or stop == 0)
-    outputs = {name: np.empty(flat.shape, dtype=np.float64) for name in selected}
-
-    def valid(current, block):
-        return not (
-            current.shape != block.shape
-            or not np.isfinite(current).all()
-            or np.any(current < 0)
-            or np.any(current > 1)
-        )
-
-    def run(first_block, last_block):
-        # Return the earliest stage index that produced invalid data, if any.
-        failed = None
-        staged = np.empty((min(chunk, pixels), 3), dtype=np.float64) if stop == 3 else None
-        for start in range(first_block * chunk, min(last_block * chunk, pixels), chunk):
-            end = min(start + chunk, pixels)
-            # Pointwise colour stages use sub-blocks small enough to reuse heap
-            # memory; CC keeps the historical chunk so its matrix products see
-            # exactly the same operands.
-            for first in range(start, end, _SUB_BLOCK):
-                last = min(first + _SUB_BLOCK, end)
-                block = flat[first:last]
-                block_gain = None if gains is None else gains[first:last]
-                current = block
-                for index, name in enumerate(order[: min(stop, 2) + 1]):
-                    if name == "FFC" and fused_ffc:
-                        current = apply_color(block, block_gain, rounded=False, domain=domain)
-                    elif name == "GC" and curve is not None:
-                        current = apply_color(
-                            block, block_gain, curve, rounded=False, domain=domain
-                        )
-                    elif name == "WB" and wb is not None:
-                        current = np.clip(current @ wb, 0, 1)
-                    if not valid(current, block):
-                        failed = index if failed is None else min(failed, index)
-                        break
-                    if name in outputs:
-                        outputs[name][first:last] = current
-                else:
-                    if staged is not None:
-                        staged[first - start : last - start] = current
-                    continue
-                break
-            else:
-                if staged is not None:
-                    current = staged[: end - start]
-                    if cc is not None:
-                        current = np.clip(cc_block(current, cc, use_lut), 0, 1)
-                    if not valid(current, flat[start:end]):
-                        failed = 3 if failed is None else min(failed, 3)
-                        continue
-                    if "CC" in outputs:
-                        outputs["CC"][start:end] = current
-        return failed
-
-    blocks = (pixels + chunk - 1) // chunk
-    workers = min(blocks, worker_count(pixels, 65536))
-    failures = [
-        index for index in run_slices(run, ranges(blocks, workers), workers) if index is not None
-    ]
-    if failures:
-        raise FloatingPointError("native UI %s produced invalid image data" % order[min(failures)])
-    return {name: outputs[name].reshape(source.shape) for name in order if name in outputs}

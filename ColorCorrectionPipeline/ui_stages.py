@@ -1,4 +1,4 @@
-"""UI-compatible FFC fitting with the package's existing quality gates.
+"""UI-compatible flat-field gain surface with the package's existing quality gates.
 
 Numerical equations ported from the MIT-licensed ccp_core/ffc.rs by
 Collins Wakholi (2026). ``apply_ffc`` also replays staged-v1 gains saved by 2.x.
@@ -8,8 +8,18 @@ from copy import deepcopy
 
 import numpy as np
 
-from .colorimetry import D65, lab_to_xyz, rgb_to_xyz, xyz_to_lab, xyz_to_rgb
+from .colorimetry import (
+    D65,
+    lab_to_xyz,
+    linear_to_srgb,
+    rgb_to_xyz,
+    srgb_to_linear,
+    xyz_to_lab,
+    xyz_to_rgb,
+)
 from .ui_fitting import _integer, _solve, round_image
+from .ui_native import FFC_DOMAINS, working_input
+from .ui_native import lightness as native_lightness
 
 
 def apply_ffc(rgb, gain, domain="lightness"):
@@ -23,8 +33,6 @@ def apply_ffc(rgb, gain, domain="lightness"):
     if multiplier.shape != image.shape[:2]:
         raise ValueError("UI FFC requires the calibrated image dimensions")
     if domain == "linear":
-        from .colorimetry import linear_to_srgb, srgb_to_linear
-
         linear = srgb_to_linear(image) * multiplier[..., None]
         return round_image(linear_to_srgb(np.clip(linear, 0, 1), policy="clip"))
     if domain != "lightness":
@@ -63,12 +71,15 @@ def _resize(coarse, height, width, dtype=np.float32):
     return result
 
 
-def fit_ffc(owner, image, parameters):
-    """Fit the UI plane/polynomial surface; reject unqualified FFC solvers."""
-    from .flat_field.correction import FlatFieldCorrection
-    from .ui_native import FFC_DOMAINS, high_precision
+def fit_gain(white_bgr, white, shape, parameters, *, high_precision_mode):
+    """Fit the UI plane/polynomial gain surface; reject unqualified FFC solvers.
 
-    high_precision_mode = high_precision(owner)
+    ``white_bgr`` is the uint8 BGR white capture for the crop and quality guard,
+    ``white`` its ``ImageData`` and ``shape`` the chart image shape. Returns the
+    read-only float64 gain map, its quality report and the gain domain.
+    """
+    from .flat_field.correction import FlatFieldCorrection
+
     dtype = np.float64 if high_precision_mode else np.float32
 
     p = deepcopy(parameters)
@@ -110,23 +121,18 @@ def fit_ffc(owner, image, parameters):
     domain = p.get("domain", "lightness")
     if not isinstance(domain, str) or domain not in FFC_DOMAINS:
         raise ValueError("FFC domain must be 'lightness' or 'linear'")
-    owner._ffc_domain = domain
     init.update(bins=bins, safe_mode=True)
     if high_precision_mode:
-        init["quality_source"] = owner.white_image_data.to_srgb()
-    guard = FlatFieldCorrection(owner.White_Image, **init)
+        init["quality_source"] = white.to_srgb()
+    guard = FlatFieldCorrection(white_bgr, **init)
     guard.detect_and_crop()
     guard._validate_safe_crop()
     quality = deepcopy(guard.quality_report)
     x1, y1, x2, y2 = guard.crop_rect  # type: ignore[misc]
-    white = owner.white_image_data
     source = white.pixels if white.color_space == "srgb" else white.to_srgb()
     h, w = source.shape[:2]
-    if source.shape != image.shape:
+    if source.shape != tuple(shape):
         raise ValueError("FFC white and source images must have identical dimensions")
-    from .ui_native import lightness as native_lightness
-    from .ui_native import working_input
-
     crop = working_input(white, source[y1:y2, x1:x2], high=high_precision_mode)
     lightness = native_lightness(crop, dtype, domain=domain)
     # In the linear domain "lightness" holds 100*Y; ratios are luminance gains.
@@ -209,8 +215,4 @@ def fit_ffc(owner, image, parameters):
         upsampling=("float64" if high_precision_mode else "float32")
         + " endpoint-aligned Catmull-Rom",
     )
-    owner.models.model_ffc = gain
-    owner.numerical_report["FFC"] = quality
-    from .ui_native import render_fit_stage
-
-    return render_fit_stage(owner, image, "FFC"), {}, False
+    return gain, quality, domain

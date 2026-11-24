@@ -7,7 +7,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from ColorCorrectionPipeline import ColorCorrection, Config, _cpu_workers, colorimetry, ui_native
+from ColorCorrectionPipeline import (
+    ColorCorrection,
+    Config,
+    _cpu_workers,
+    colorimetry,
+    ui_execution,
+    ui_native,
+)
 from ColorCorrectionPipeline.core.correction import chunked_cc
 
 IMAGES = Path(__file__).resolve().parents[1] / "Images"
@@ -168,7 +175,7 @@ def test_blocked_high_precision_matches_full_frame(
     pipe, source = high_fit
     monkeypatch.setattr(_cpu_workers, "worker_count", lambda size, minimum: workers)
     expected = _full_frame_reference(source, pipe.models, selected, chunk_pixels)
-    actual = ui_native.predict(source, pipe.models, selected, chunk_pixels)
+    actual = ui_execution.predict(source, pipe.models, selected, chunk_pixels)
     assert list(actual) == list(expected)
     for name in expected:
         np.testing.assert_array_equal(actual[name], expected[name])
@@ -181,4 +188,4 @@ def test_blocked_high_precision_reports_the_first_invalid_stage(high_fit):
     models = copy.deepcopy(pipe.models)
     models.model_wb = np.diag([np.nan, 1.0, 1.0])
     with pytest.raises(FloatingPointError, match="native UI WB produced invalid"):
-        ui_native.predict(source, models, ("FFC", "GC", "WB", "CC"))
+        ui_execution.predict(source, models, ("FFC", "GC", "WB", "CC"))

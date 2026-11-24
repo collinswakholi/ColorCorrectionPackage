@@ -112,7 +112,8 @@ def numerical_contracts():
 def render_contracts():
     from types import SimpleNamespace
     from ColorCorrectionPipeline.models import MyModels
-    from ColorCorrectionPipeline import ui_native
+    from ColorCorrectionPipeline import ui_execution, ui_native
+    from ColorCorrectionPipeline.modern import StageFit
     from ColorCorrectionPipeline.stage_policies import MonotonicToneModel
     from ColorCorrectionPipeline.ui_stages import _resize
     from ColorCorrectionPipeline.fitting import FittingPolicy
@@ -141,9 +142,9 @@ def render_contracts():
     models.metadata = {"fitting_policy": policy.to_dict()}
     for stage, tone in (("FFC", None), ("GC", curve)):
         expected = ui_native.apply_color(image, gain, tone)
-        actual = ui_native.render_fit_stage(owner, image, stage)
+        actual = StageFit().render(owner, image, stage)
         np.testing.assert_allclose(actual, expected, rtol=0, atol=np.finfo(np.float32).eps)
-        replayed = ui_native.predict(canonical, models, (stage,), native_codes=True)[stage]
+        replayed = ui_execution.predict(canonical, models, (stage,), native_codes=True)[stage]
         np.testing.assert_array_equal(replayed, actual)
     q = np.array([[[0.0, 0.0], [3.0, 0.0], [3.0, 3.0], [0.0, 3.0]]])
     for bad in (float("nan"), float("inf"), -0.25, 1.25):
@@ -228,7 +229,7 @@ def legacy_pickle_contracts():
 def precision_estimation():
     from types import SimpleNamespace
     from ColorCorrectionPipeline import FittingPolicy
-    from ColorCorrectionPipeline.ui_stages import fit_ffc
+    from ColorCorrectionPipeline.modern import StageFit
 
     white = np.full((64, 64, 3), 0.6)
     changed = white + np.linspace(0, 2.0**-26, 64)[None, :, None]
@@ -242,7 +243,7 @@ def precision_estimation():
             models=SimpleNamespace(model_ffc=None),
             numerical_report={},
         )
-        fit_ffc(
+        StageFit().ffc(
             owner,
             white,
             {"fit_method": "linear", "crop_rect": [0, 0, 64, 64], "bins": 8, "smooth_window": 3},

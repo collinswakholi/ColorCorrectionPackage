@@ -16,6 +16,7 @@ import json
 import logging
 import sys
 import threading
+from copy import deepcopy
 from typing import Any, Optional
 
 import numpy as np
@@ -271,6 +272,21 @@ class Regressor_Model:
         if "use_lut" not in state:
             self.use_lut = False
         self.attach_lut_builder()
+
+    @classmethod
+    def from_ui_fit(cls, predictor, report):
+        """Wrap a fitted ``UIPredictor`` and its ``fit_ui`` report as a CC model."""
+        settings = report["effective_parameters"]
+        model = cls()
+        for name, value in settings.items():
+            if name not in ("model", "include_combinations", "lut_grid_size"):
+                setattr(model, name, deepcopy(value))
+        model._lut_grid_size = settings["lut_grid_size"]
+        model.fitting_version = _UI_VERSION
+        model.model = predictor
+        model.fit_report = report
+        model.attach_lut_builder()
+        return model
 
     def _predict_for_lut(self, rgb_n3):
         result = _predict_direct(rgb_n3, self)

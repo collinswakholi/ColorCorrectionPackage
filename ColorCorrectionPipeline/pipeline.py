@@ -60,6 +60,7 @@ from .detection import (
 from .core import predict_, to_float64, to_uint8
 from .core.accel import apply_ffc_float
 from .models import MyModels
+from .modern import StageFit
 
 __all__ = ["ColorCorrection", "FitResult", "CalibrationError"]
 
@@ -106,7 +107,7 @@ class _FittedState:
     REF_ILLUMINANT: Optional[np.ndarray] = None
     validation_options: dict = field(default_factory=dict)
     numerical_report: dict = field(default_factory=dict)
-    _chart_index: int = 0
+    _stage_fit: StageFit = field(default_factory=StageFit)
 
     # Fit-only inputs, derived views and caches have no counterpart in a bundle.
     Image: Optional[np.ndarray] = None
@@ -114,7 +115,6 @@ class _FittedState:
     fitted_config: Optional[Config] = None
     image_data: Optional[ImageData] = None
     white_image_data: Optional[ImageData] = None
-    _source_face: Any = None
     REFERENCE_CHART: Any = None
     REFERENCE_RGB_PD: Optional["pd.DataFrame"] = None
     REFERENCE_NEUTRAL_PATCHES_PD: Optional["pd.DataFrame"] = None
@@ -208,7 +208,7 @@ class ColorCorrection:
 
         fitting_rgb = (
             native_reference(profile)[1]
-            if native_enabled(self)
+            if native_enabled(self.fitting_policy)
             else self.color_semantics.reference_to_working_rgb(
                 profile.canonical_lab_d50, clip=False
             )
@@ -277,9 +277,7 @@ class ColorCorrection:
             return Image, None, True
 
         try:
-            from .ui_stages import fit_ffc
-
-            return fit_ffc(self, Image, ffc_kwargs or {})
+            return self._stage_fit.ffc(self, Image, ffc_kwargs or {})
         except Exception as e:
             self._record_stage_error("FFC", e)
             return Image, None, True
@@ -308,9 +306,7 @@ class ColorCorrection:
             return Image, None, None
 
         try:
-            from .modern import report_saturation
-
-            return report_saturation(self, Image)
+            return self._stage_fit.saturation(self, Image)
         except Exception as e:
             self._record_stage_error("saturation", e)
             raise
@@ -340,9 +336,7 @@ class ColorCorrection:
             return Image, None, False
 
         try:
-            from .modern import fit_gamma
-
-            return fit_gamma(self, Image)
+            return self._stage_fit.gamma(self, Image)
         except Exception as e:
             self._record_stage_error("GC", e)
             return Image, None, True
@@ -373,9 +367,7 @@ class ColorCorrection:
             return Image, None, False
 
         try:
-            from .modern import fit_wb
-
-            return fit_wb(self, Image)
+            return self._stage_fit.wb(self, Image)
         except Exception as e:
             self._record_stage_error("WB", e)
             return Image, None, True
@@ -410,9 +402,7 @@ class ColorCorrection:
             return Image, None, False
 
         try:
-            from .ui_fitting import fit_stage
-
-            return fit_stage(self, Image, cc_method, cc_kwargs)
+            return self._stage_fit.cc(self, Image, cc_method, cc_kwargs)
         except Exception as e:
             self._record_stage_error("CC", e)
             return Image, None, True
@@ -602,8 +592,7 @@ class ColorCorrection:
             candidate.fitting_policy = FittingPolicy.from_value(selected.fitting_policy)
             candidate.validation_options = copy.deepcopy(selected.validation_options)
             candidate.numerical_report = {}
-            candidate._source_face = None
-            candidate._chart_index = selected.chart_detection.get("chart_index", 0)
+            candidate._stage_fit = StageFit(selected.chart_detection.get("chart_index", 0))
             candidate.reference_profile = selected.reference_profile
             candidate.image_data = candidate.white_image_data = candidate.observations = None
             candidate.stage_observations = {}
@@ -751,7 +740,7 @@ class ColorCorrection:
             )
             self.fitting_policy = replace(self.fitting_policy, ui_runtime=selected_runtime)
             config.fitting_policy = self.fitting_policy.to_dict()
-        high = high_precision(self)
+        high = high_precision(self.fitting_policy)
         if high:
             # The first high-precision evaluator uses direct CC; a stored
             # float32 LUT would discard distinctions the source retains.
@@ -777,10 +766,8 @@ class ColorCorrection:
             raise ValueError("WB requires at least two declared neutral cell IDs")
         self.Models_path = None
         self._pending_saturation = None
-        from .modern import prepare_source
-
         try:
-            prepare_source(
+            self._stage_fit.prepare_source(
                 self,
                 required=any((config.do_gc, config.do_wb, config.do_cc, config.check_saturation)),
             )
@@ -806,8 +793,6 @@ class ColorCorrection:
             return {}, {}, True
         metrics, images = {}, {}
         current = self.Image
-        # Fit-time FFC gain domain; committed to metadata only when FFC is fitted.
-        self._ffc_domain = "lightness"
 
         def fit_color(image):
             method = config.CC_kwargs.get("cc_method", "ours")
@@ -1136,8 +1121,8 @@ class ColorCorrection:
             high_precision,
             runtime,
             validate_input,
-            predict as native_predict,
         )
+        from .ui_execution import predict as native_predict
 
         if native_enabled(self.models):
             if not high_precision(self.models):
@@ -1296,7 +1281,7 @@ class ColorCorrection:
                 fitting_policy=FittingPolicy.from_value(metadata.get("fitting_policy")),
                 numerical_report=copy.deepcopy(metadata.get("numerical_report", {})),
                 validation_options=copy.deepcopy(metadata.get("validation_options", {})),
-                _chart_index=metadata.get("chart_selection", {}).get("chart_index", 0),
+                _stage_fit=StageFit(metadata.get("chart_selection", {}).get("chart_index", 0)),
             )
             loaded_run = {
                 "success": True,
