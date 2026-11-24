@@ -62,7 +62,9 @@ def test_customnn_pickled_before_the_module_split_still_loads():
 
     assert type(model) is CustomNN is from_core
     assert type(model).__module__ == "ColorCorrectionPipeline.core.correction"
-    np.testing.assert_array_equal(model.predict(data["X"]), data["pred"])
+    # float32 network: BLAS kernels differ by an ulp between CPUs, so compare
+    # to float32 precision rather than bit-for-bit across machines.
+    np.testing.assert_allclose(model.predict(data["X"]), data["pred"], rtol=1e-5, atol=1e-7)
     assert type(pickle.loads(pickle.dumps(model))) is CustomNN
 
 
