@@ -53,7 +53,6 @@ class DetectionOptions:
     confidence: float = 0.15
     iou: float = 0.7
     sampling_inset: float = 0.75
-    allow_mcc_fallback: bool = False
     max_detections: int = 300
     chart_index: int = 0
     device: str = "auto"
@@ -99,10 +98,13 @@ class DetectionOptions:
             or not 0 <= self.chart_index <= 63
         ):
             raise ValueError("chart_index must be an integer from 0 to 63")
-        if self.backend not in ("auto", "model", "mcc"):
-            raise ValueError("chart detection backend must be auto, model, or mcc")
-        if self.backend == "mcc" and self.chart_index != 0:
-            raise ValueError("the MCC compatibility backend supports chart_index=0 only")
+        if self.backend == "mcc":
+            raise ValueError(
+                "the OpenCV MCC chart backend was removed in ColorCorrectionPipeline 3.0; "
+                "use backend='auto' (the bundled chart model)"
+            )
+        if self.backend not in ("auto", "model"):
+            raise ValueError("chart detection backend must be auto or model")
         for key in ("model_path", "recall_model_path"):
             value = getattr(self, key)
             if value is not None and (
@@ -118,8 +120,6 @@ class DetectionOptions:
                 or not 0 < value <= 1
             ):
                 raise ValueError("chart detection %s must be finite in (0, 1]" % key)
-        if not isinstance(self.allow_mcc_fallback, bool):
-            raise ValueError("allow_mcc_fallback must be boolean")
         if (
             isinstance(self.max_detections, bool)
             or not isinstance(self.max_detections, int)
@@ -144,7 +144,6 @@ class _Scope:
     diagnostics: List[Dict[str, Any]] = field(default_factory=list)
     geometry: Any = None
     shape: Any = None
-    fallback: bool = False
     source_image: Any = None
 
 
@@ -205,8 +204,6 @@ def _options_and_path(state):
     configured = options.model_path or os.environ.get("CCP_CHART_MODEL")
     if not configured:
         configured = str(DEFAULT_MODEL_PATH)
-    if options.backend == "mcc" or state.fallback:
-        return options, None
     return options, Path(configured).expanduser().resolve()
 
 
@@ -580,22 +577,6 @@ def _model_charts(image):
     forward_completed = False
     try:
         options, path = _options_and_path(state)
-        if path is None:
-            if options.chart_index != 0:
-                raise ChartSelectionError(
-                    "MCC fallback cannot preserve a nonzero selected chart_index"
-                )
-            if not state.diagnostics:
-                _record(
-                    state,
-                    backend="mcc",
-                    reason=(
-                        "explicit MCC"
-                        if options.backend == "mcc"
-                        else "explicit fallback after model failure"
-                    ),
-                )
-            return None
         if state.geometry is not None:
             if image.shape[:2] != state.shape:
                 raise ChartDetectionError(
@@ -655,21 +636,6 @@ def _model_charts(image):
             provider_attempts=getattr(exc, "provider_attempts", []),
         )
         _record(state, **failure_details)
-        if (
-            state.options.allow_mcc_fallback
-            and state.options.chart_index == 0
-            and not isinstance(exc, ChartSelectionError)
-        ):
-            import warnings
-
-            warnings.warn(
-                "model chart detection failed; explicit MCC fallback: %s" % exc,
-                RuntimeWarning,
-                stacklevel=3,
-            )
-            state.fallback = True
-            _record(state, backend="mcc", status="fallback", reason=str(exc))
-            return None
         raise
 
 
@@ -706,12 +672,10 @@ def _sample(image, patches, count):
 
 
 def model_extract_color_charts(image, n_charts=1):
-    """Return legacy RGB [0,255] samples/drawing/dimensions, or None for MCC."""
+    """Return RGB [0,255] samples, a drawing and chart dimensions."""
     if isinstance(n_charts, bool) or not isinstance(n_charts, int) or n_charts < 1:
         raise ValueError("n_charts must be a positive integer")
     charts = _model_charts(image)
-    if charts is None:
-        return None
     index = (_scope.get().options if _scope.get() is not None else DetectionOptions()).chart_index
     chosen = charts[index : index + n_charts]
     drawing = image.copy()
@@ -725,7 +689,7 @@ def model_extract_color_charts(image, n_charts=1):
 
 
 def model_chart_samples(image, samples_per_patch):
-    """Return deterministic normalized RGB samples in cell-major order, or None for MCC."""
+    """Return deterministic normalized RGB samples in cell-major order."""
     if (
         isinstance(samples_per_patch, bool)
         or not isinstance(samples_per_patch, int)
@@ -733,7 +697,5 @@ def model_chart_samples(image, samples_per_patch):
     ):
         raise ValueError("model samples_per_patch must be an integer from 1 to 4096")
     charts = _model_charts(image)
-    if charts is None:
-        return None
     index = (_scope.get().options if _scope.get() is not None else DetectionOptions()).chart_index
     return _sample(image, charts[index]["patches"], samples_per_patch).reshape(-1, 3) / 255.0

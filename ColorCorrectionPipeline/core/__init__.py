@@ -12,11 +12,8 @@ Submodules:
     - accel: vectorised/Numba color conversion and LUT kernels
 """
 
-import warnings
-
 from .correction import Regressor_Model, predict_
 from .utils import (
-    HAS_MCC,
     extract_color_chart,
     extract_color_charts,
     extract_neutral_patches,
@@ -25,14 +22,6 @@ from .utils import (
     to_float64,
     to_uint8,
 )
-
-# MCC is now an explicitly selected legacy backend; model detection is independent.
-if not HAS_MCC:
-    warnings.warn(
-        "cv2.mcc module not found \u2014 the legacy MCC backend is unavailable. "
-        "Model-based detection remains available with the bundled ONNX model and onnxruntime.",
-        ImportWarning,
-    )
 
 
 def __getattr__(name):
@@ -63,7 +52,6 @@ __all__ = [
     # Transforms
     "get_poly_features",
     # Utils
-    "HAS_MCC",
     "extract_color_chart",
     "extract_color_charts",
     "extract_neutral_patches",

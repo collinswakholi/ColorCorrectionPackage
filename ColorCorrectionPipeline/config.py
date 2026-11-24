@@ -653,12 +653,6 @@ class Config:
             raise ValueError(
                 "explicit-v1 working RGB is D65; declare other reference whites in ReferenceProfile"
             )
-        if self.chart_detection.get("backend") == "mcc" or self.chart_detection.get(
-            "allow_mcc_fallback", False
-        ):
-            raise ValueError(
-                "explicit-v1 observations require model geometry; MCC remains a legacy-v1 compatibility route"
-            )
         validate_image_options(self.image_options)
         if self.image_options.get("apply_orientation", True) is False:
             raise ValueError(

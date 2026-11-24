@@ -1,4 +1,4 @@
-"""Model-first chart detection with an explicit MCC compatibility route.
+"""Classic24 chart detection with the bundled ONNX model.
 
 The supplied Opt2 ONNX contract uses 24 *anchor classes*, not 24 color cells.
 Only Classic 4x6 reference charts are supported by the Python pipeline today.

@@ -58,7 +58,6 @@ from .detection import (
     get_detection_diagnostics,
 )
 from .core import predict_, to_float64, to_uint8
-from .core.utils import clear_chart_cache
 from .core.accel import apply_ffc_float
 from .models import MyModels
 
@@ -683,7 +682,6 @@ class ColorCorrection:
             raise
 
     def _run_stages(self, Image, White_Image, name_, config):
-        clear_chart_cache()
         self.image_data, self.Image = self._prepare_input(
             Image, self.color_semantics, config.image_options
         )
