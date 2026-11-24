@@ -16,16 +16,17 @@ ColorCorrectionPipeline/
   colorimetry.py              Declared transfer, white-point and color operations
   observations.py             Fixed chart measurements
   fitting.py                  Fitting policies and fit-support checks
-  stage_policies.py           Neutral-stage contracts and numerical models
-  modern.py                   Versioned stage orchestration
-  ui_fitting.py               UI-family solvers, features and predictor validation
+  stage_policies.py           Neutral-stage contracts, tone/WB models and apply_tone
+  modern.py                   StageFit: the per-run stage fitters (FFC, GC, WB, CC)
+  ui_fitting.py               UI-family solvers, features and UIPredictor
   ui_nn.py                    Ordered residual-network training arithmetic
-  ui_native.py                Byte and high-precision image equations
-  ui_stages.py                UI-family stage fitting
-  ui_execution.py             Optional image kernels qualified against those equations
-  detection/                  ONNX geometry, provider selection and execution evidence
+  ui_native.py                Byte and high-precision image equations (leaf)
+  ui_stages.py                FFC gain-surface fit and staged FFC replay
+  ui_execution.py             Native image prediction: fused kernel, else reference
+  detection/                  ONNX inference, chart geometry recipes, providers
   flat_field/                 White-plane detection and guarded gain estimation
-  core/                       Saved-model correction, transforms and shared execution
+  core/                       Regressor_Model with its LUT cache, CC application,
+                              transforms and shared execution kernels
   io/                         Strict decode, declared precision and verified export
   models.py                   Model container and activation-time validation
   bundle.py                   Bounded numerical serialization and content identity
@@ -71,6 +72,55 @@ The dependency direction is deliberate:
 - Optional execution must agree with the reference predictor before it is selected.
 - Examples consume public APIs; verification also uses independent fixtures and
   external numerical references.
+
+## Module layers
+
+Imports point downward. The numerical core has no import cycles, including
+cycles hidden by function-local imports.
+
+```text
+pipeline --- acceleration              simple --> config --> config_groups,
+   |   prediction, batch, results, reporting        fitting, contracts
+   v
+models --- bundle --> _compat
+   |
+modern.StageFit            the per-run stage fitters (FFC, GC, WB, CC)
+   |
+   +--> ui_execution       native image prediction (fused kernel, else reference)
+   +--> observations ----> detection (charts, geometry, providers)
+   +--> core.correction    Regressor_Model + LUT cache, CC tuples, predict_
+   +--> core.execution     shared tone/LUT/affine kernels
+   +--> ui_stages          FFC gain surface, staged FFC replay
+           |
+           v
+        ui_fitting         fit_ui, UIPredictor --> ui_nn
+           |
+           v
+leaves: ui_native, stage_policies (apply_tone), colorimetry, contracts, core.accel
+```
+
+Before the 3.0 structural cleanup, 23 modules formed one import cycle that
+function-local imports hid. The stage fitters were spread over `modern`,
+`ui_stages`, `ui_fitting` and `ui_native`, and they wrote private pipeline
+fields (`_chart_index`, `_source_face`, `_ffc_domain`). `core/lut_cache.py`
+wrote nine private `Regressor_Model` fields. `config` imported `simple`, and
+detection imported the UI fitting modules for its geometry:
+
+```text
+before (<-> = mutual imports)               after
+ui_native <-> ui_fitting <-> modern         modern.StageFit --> ui_stages --> ui_native
+    ^            ^            ^             modern.StageFit --> core.correction --> ui_fitting
+    v            v            v             ui_execution --> core.correction, ui_native
+ui_stages <-> ui_execution <-> core.correction <-> core.lut_cache
+prediction <-> bundle <-> models            (core.lut_cache merged into Regressor_Model)
+config <-> simple                           simple --> config
+detection --> ui_native, ui_fitting         detection --> detection.geometry
+```
+
+Two pairs still refer to each other through function-local imports:
+`MyModels.save_bundle` and `load_bundle` delegate to `bundle`, which builds
+`MyModels`; and `ColorCorrection.prepare_execution` builds an
+`acceleration.PreparedExecution`, which hosts a fresh `ColorCorrection`.
 
 ## Boundaries that protect compatibility
 
