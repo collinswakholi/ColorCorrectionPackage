@@ -125,8 +125,7 @@ def fit_gain(white_bgr, white, shape, parameters, *, high_precision_mode):
     if high_precision_mode:
         init["quality_source"] = white.to_srgb()
     guard = FlatFieldCorrection(white_bgr, **init)
-    guard.detect_and_crop()
-    guard._validate_safe_crop()
+    guard.detect_and_crop()  # safe_mode also validates the crop
     quality = deepcopy(guard.quality_report)
     x1, y1, x2, y2 = guard.crop_rect  # type: ignore[misc]
     source = white.pixels if white.color_space == "srgb" else white.to_srgb()
