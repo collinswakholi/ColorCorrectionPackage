@@ -3,30 +3,25 @@
 The default `auto` detector uses the bundled Opt2 1280 ONNX model. It runs with
 ONNX Runtime with GPU-first provider selection and CPU fallback; it does not
 require the Studio native engine, PyTorch for detection, or a model download. Model identity and notices
-are recorded beside the bundled model. This is a different detection/sampling
-algorithm from OpenCV MCC, so extracted patch values can change.
+are recorded beside the bundled model. The OpenCV MCC backend was removed in
+3.0 (`backend="mcc"` raises); see [Migrating to 3.0](migration-3.md).
 See [GPU selection](gpu-detection.md) for CUDA, DirectML, Vulkan, Metal/CoreML,
 runtime requirements and verified-versus-unqualified hardware cases. Set
 `device="cpu"` inside `chart_detection` to reproduce the earlier CPU detector.
 
-`Config(chart_detection={...})` accepts `backend` (`auto`, `model`, or `mcc`),
+`Config(chart_detection={...})` accepts `backend` (`auto` or `model`),
 `model_path`, optional `recall_model_path`, `confidence` (default .15), `iou`
-(.7), `sampling_inset` (.75), `max_detections` (300), and
-`allow_mcc_fallback` (false).
+(.7), `sampling_inset` (.75) and `max_detections` (300).
 GPU options and `chart_index` are documented separately. CPU recovery retains
-the same ONNX detector and is independent of optional MCC compatibility.
+the same ONNX detector.
 
 Model lookup precedence is the explicit `model_path`, `CCP_CHART_MODEL`, then
 `ColorCorrectionPipeline/detection/models/chart_detector_1280.onnx`. No sibling
 checkout is searched and no remote asset is downloaded. A missing bundled or
 configured model raises `ModelUnavailableError` in both `auto` and `model`
 modes. A broken installation cannot silently change detector algorithms.
-
-Use `backend="mcc"` to reproduce the legacy detector. Opt in to
-`allow_mcc_fallback=True` only when accepting a different detector on model
-failure; a warning and diagnostic entry identify that fallback. Missing runtime,
-malformed model output, no valid lattice, and unsupported chart layouts have
-distinct errors. Model loading is for trusted ONNX assets.
+Missing runtime, malformed model output, no valid lattice, and unsupported
+chart layouts have distinct errors. Model loading is for trusted ONNX assets.
 
 Only Classic 4x6 references are supported by the Python calibration pipeline.
 The model recognizes anchor classes for Classic, Spyder and Digital SG. The

@@ -1,10 +1,11 @@
 # Pipeline contracts and color interpretation
 
 New calibrations default to UI-native RPCC2 with linear-light fitting and
-calibration-time precision selection. Explicit `legacy-v1` and
-`reproducible-v1` profiles preserve their encoded-sRGB training recipes.
-Saved calibrations restore their recorded interpretation. The
-[migration guide](migration-2.md) describes those choices.
+calibration-time precision selection. The encoded-sRGB `legacy-v1` and
+`reproducible-v1` training recipes were removed in 3.0
+([Migrating to 3.0](migration-3.md)); saved calibrations still restore their
+recorded interpretation. The [migration guide](migration-2.md) describes the
+current choices.
 
 GPU-first detection is independent of the fitting domain. Pin
 `chart_detection={"device":"cpu"}` when reproducing earlier CPU chart
@@ -42,13 +43,11 @@ fitting. IDs are stable within one capture/run, not inferred physical chart seri
 numbers or guaranteed tracking IDs across independent detections.
 
 In explicit mode, detection previews use uint8, while measured RGB is sampled from
-full-precision working pixels. Legacy mode retains its earlier uint8/OpenCV
-sampling. Observation means and clipped fractions use an 81-point grid per cell;
-clipped fractions describe sampled pixels, not complete cell-region coverage.
-The extended regression training grid has its separately configured `n_samples`.
+full-precision working pixels. Observation means and clipped fractions use an
+81-point grid per cell; clipped fractions describe sampled pixels, not complete cell-region coverage.
 An observation summary is not the full training dataset or an independent label
 for every repeated pixel. Missing geometry is recorded as unavailable, never zero
-measurements or fabricated cells. MCC remains a legacy route without model quads.
+measurements or fabricated cells.
 
 ## Canonical references and explicit color semantics
 
@@ -69,13 +68,12 @@ requested; see [UI-native reference handling](ui-compatible-fitting.md).
 `explicit-v1` declares sRGB primaries, encoded sRGB/D65 working images, canonical
 Lab D50 references, and a common evaluation white. The fitting policy determines
 the feature domain and the qualified adaptation. UI-native fitting uses Bradford
-and linear RGB. Historical explicit gamma uses its all-patch polynomial recipe
-with canonical working-white lightness and D65 Lab conversion. Modern profiles
-use the neutral-stage algorithms recorded by their stage policy.
+and linear RGB. Modern profiles use the neutral-stage algorithms recorded by
+their stage policy. Saved historical calibrations (all-patch polynomial gamma,
+last-six-cell WB, encoded-RGB `legacy-v1`/`reproducible-v1` CC) apply with their
+recorded equations, but can no longer be fitted.
 
-Declared neutral IDs drive explicit WB; historical WB defaults to the last six
-cells and preserves its headroom convention. The legacy and reproducible CC
-profiles fit encoded RGB, while UI-native CC fits linear RGB. Input/output
+Declared neutral IDs drive explicit WB. UI-native CC fits linear RGB. Input/output
 encoding is a separate declaration. The stage engine requires output policy
 `clip`; pure conversion helpers also expose preserving policies.
 
@@ -122,10 +120,9 @@ non-executable inference parameters. Old package versions do not understand new
 explicit metadata.
 
 The [numerical policy guide](numerical-policies-and-validation.md) describes
-reproducible encoded-RGB fitting and grouped evaluation. The
+the stage policies and grouped evaluation. The
 [UI-native guide](ui-compatible-fitting.md) specifies the default neutral stages,
 joint FFC/GC rendering and linear-light CC.
 Independent-capture validation requires a separately measured capture. The 2.0
 high-precision FFC path has separate tests for original white-field values and
 is identified in the stored runtime.
-Fit/apply parity comparisons must account for the legacy fit-only saturation operation.

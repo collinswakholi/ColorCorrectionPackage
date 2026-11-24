@@ -17,7 +17,7 @@ Windows tests cover Python 3.8, 3.12, 3.13 and 3.14. Cross-platform results come
 from CI. Qualification uses standard CPython builds with the GIL.
 
 Checks include isolated wheel installation, dependency consistency, actual
-sample-image detection, 36 model/basis/degree requests, historical trainers,
+sample-image detection, 36 model/basis/degree requests, legacy model loading,
 safe bundle replay, strict exports and precision-sensitive samples. The
 performance extra is tested separately so NumPy reference execution remains
 available when Numba is absent. The source archive is independently built and

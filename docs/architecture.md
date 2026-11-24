@@ -15,7 +15,7 @@ ColorCorrectionPipeline/
   contracts.py                Owned images, references and observations
   colorimetry.py              Declared transfer, white-point and color operations
   observations.py             Fixed chart measurements
-  fitting.py                  Fitting policies and reproducible historical fits
+  fitting.py                  Fitting policies and fit-support checks
   stage_policies.py           Neutral-stage contracts and numerical models
   modern.py                   Versioned stage orchestration
   ui_fitting.py               UI-family solvers, features and predictor validation
@@ -25,7 +25,7 @@ ColorCorrectionPipeline/
   ui_execution.py             Optional image kernels qualified against those equations
   detection/                  ONNX geometry, provider selection and execution evidence
   flat_field/                 White-plane detection and guarded gain estimation
-  core/                       Historical numerical entry points and shared execution
+  core/                       Saved-model correction, transforms and shared execution
   io/                         Strict decode, declared precision and verified export
   models.py                   Model container and activation-time validation
   bundle.py                   Bounded numerical serialization and content identity
@@ -83,7 +83,8 @@ mutations; there is no mirrored mutable tree to keep synchronized.
 
 `Config.to_dict()` keeps the existing flat contract used by runtime snapshots
 and persistence. The explicit `grouped-v1` settings layout has its own marker
-and API-2 interpretation; historical unversioned flat mappings retain API 1.
+and API-2 interpretation. Unversioned flat mappings require
+`source_version=2`; the API-1 profile was removed in 3.0.
 Categorization does not change a feature order, numerical runtime or bundle
 schema. Step-local ownership coexists with shared precision, color, reference,
 observation and geometry checks. Export and prepared execution remain separate
@@ -93,8 +94,9 @@ public APIs rather than unused Config wrappers.
 Its `sampling_policy` mapping is shared by configuration defaults and validation,
 so adding a runtime cannot leave a separate sampling list out of sync.
 New-fit default resolution is distinct from interpretation of an old settings
-dictionary or a saved model. Historical encoded-RGB and UI-native linear-RGB
-training keep their recorded solvers and arithmetic.
+dictionary or a saved model. New fits use only the UI-compatible linear-RGB
+recipe; saved historical encoded-RGB models apply with their recorded arithmetic
+through `_compat/`.
 
 `ui_fitting.py` owns feature generation for new linear, PLS and NN fits. The
 predictor validates feature dimensions from that same versioned description.
@@ -115,12 +117,13 @@ packaging mistakes that an in-checkout test could miss.
 
 - Resource access lives in the examples' shared helper. It uses the Traversable
   API on current Python and the supported legacy API only on Python 3.8.
-- Historical modules and import paths remain explicit because old scripts and
-  trusted historical model files can depend on them.
+- Import paths named by trusted historical model files remain resolvable, for
+  example 1.x `key_functions` classes are remapped on unpickle. The historical
+  fitting modules themselves were removed in 3.0 ([migration](migration-3.md)).
 - Optional numerical kernels keep a reference path and capability checks.
   Backend presence alone does not establish numerical accuracy or GPU execution.
 - README instructions, migration guidance and installed examples describe the
-  same new-fit defaults. Historical recipes are labeled with their profile.
+  same new-fit defaults. Saved historical recipes are labeled with their profile.
 - Regression fixtures and generated qualification evidence have separate roles.
   The repository carries executable checks. Large generated outputs stay outside
   release archives.

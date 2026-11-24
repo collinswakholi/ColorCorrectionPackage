@@ -4,11 +4,13 @@ Calibrate **flat-field correction (FFC) → gamma correction (GC) → white bala
 (WB) → color correction (CC)**, then apply the fitted calibration to images
 captured under the same conditions.
 
-**Version 2.x defaults to the UI-native RPCC2 workflow.** Legacy methodology is
-retired as the default, along with `ours`/`conv` naming in the primary API.
-For a linear-light 3×3 CCM, use `Config(model="3x3")` when fitting the chart.
-Historical `conv` configurations retain their encoded-sRGB fit, and saved
-calibrations retain their original predictions. See the [conventional CCM migration note](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-2.md#migrating-a-conventional-ccm-trained-on-jpegs).
+**Version 3.0 fits only the UI-native workflow (RPCC2 by default).** The 2.x
+historical fitters (`legacy-v1`, `reproducible-v1`, `staged-v1`, API-1
+configurations, the OpenCV MCC backend and the 1.x `key_functions` module) were
+removed; requesting one raises an error that names the replacement. For a
+linear-light 3×3 CCM, use `Config(model="3x3")`. Calibrations saved by 2.x and
+earlier still load and keep their original predictions. See
+[migrating to 3.0](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-3.md).
 
 ## Install
 
@@ -167,7 +169,7 @@ with ExitStack() as stack:
 With automatic persistence, set the format explicitly to `bundle` and
 use the fit name to locate the file. Here it is `sample-results/chart_models.ccpb`.
 The result's `artifacts` lists the paths written by that fit. With saving enabled,
-omitting the format selects the historical pickle format. With saving disabled,
+omitting the format selects the trusted-file pickle format. With saving disabled,
 call `pipeline.save_bundle(path)` after a successful fit to choose the filename,
 as the quickstart does.
 
@@ -209,8 +211,9 @@ for solver-specific controls, defaults, constraints and JSON.
 
 Grouped options are immutable snapshots over the existing flat configuration.
 Old constructor arguments and kwargs remain supported; contradictory aliases
-fail explicitly. Unversioned flat dictionaries retain their historical API-1
-interpretation. A loaded calibration owns its recorded numerical recipe.
+fail explicitly. `Config.from_dict` needs a recorded `api_version` (or
+`source_version=2`): unversioned dictionaries were API-1 requests, which 3.0
+removed. A loaded calibration owns its recorded numerical recipe.
 
 ### Reproducible random chart sampling
 
@@ -224,7 +227,8 @@ For a UI-native fit, omit both settings for the default 9 × 9 grid (81 points p
 
 - [Fully customizable example](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/ColorCorrectionPipeline/examples/customizable.py):
   editable grouped JSON, custom references, multiple scenes, TIFF/PNG exports and replay checks.
-- [Migration and model selection](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-2.md): retired defaults, historical training and feature bases.
+- [Migrating to 3.0](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-3.md): removed fitters and APIs, their replacements, and loading saved models.
+- [Migration and model selection](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/migration-2.md): 2.x defaults and feature bases.
 - [Images and exports](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/image-io-policies.md): encoding, range, precision consent and strict readback.
 - [Calibration bundles](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/calibration-bundles.md): portable validated inference parameters.
 - [Numerical policies](https://github.com/collinswakholi/ColorCorrectionPackage/blob/v3.0.0/docs/numerical-policies-and-validation.md): fit objectives, quality guards and validation scope.
@@ -244,7 +248,7 @@ pytest tests                       # unit, regression and golden-output tests
 python tests/golden/capture.py     # compare against the stored 2.2.0 baseline only
 black --check ColorCorrectionPipeline tests scripts
 ruff check ColorCorrectionPipeline tests scripts
-mypy ColorCorrectionPipeline       # legacy modules excluded in pyproject.toml [tool.mypy]
+mypy ColorCorrectionPipeline       # untyped modules excluded in pyproject.toml [tool.mypy]
 ```
 
 CI (`.github/workflows/lint-and-test.yml`) runs the same formatting, lint and type-check

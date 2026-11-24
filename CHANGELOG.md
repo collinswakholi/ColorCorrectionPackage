@@ -1,5 +1,52 @@
 # Changelog
 
+## [3.0.0] - Unreleased
+
+3.0 keeps only the 2.x default fitting recipe (UI-compatible, native-v1 or
+precision-f64-v1 runtime). Calibrations saved by 2.x and earlier still load and
+apply unchanged; the 2.x default fit gives the same results. See
+`docs/migration-3.md`.
+
+### Removed
+
+- Fitting with `fitting_policy="legacy-v1"`, `"reproducible-v1"` and
+  `"ui-compatible-v1"` with the `staged-v1` runtime, and with `stage_policy` or
+  `color_semantics` `legacy-v1`. These now raise a `ValueError` naming the
+  replacement; models they saved still load.
+- The API-1 configuration profile: `api_version=1`, `Config.from_dict` of an
+  unversioned dictionary (pass `source_version=2`), and `CC_kwargs` with
+  `mtd`/`cc_method`/`method`/`root_polynomial_expansion` but no `model`, which
+  silently selected `legacy-v1`. All raise a `ValueError`.
+- The `"ui-native-v2"` fitting-policy alias (use the default `precision="auto"`).
+- The 1.x `ColorCorrectionPipeline.key_functions` module. Its pickles still load:
+  `key_functions.Regressor_Model`/`CustomNN` are remapped on unpickling, and they
+  now also apply through `predict_image` (2.3.0 failed on missing LUT attributes).
+- Legacy fitters and their helpers: `core.fit_model`, `estimate_gamma_profile`,
+  `wb_correction`, `color_correction`, `color_correction_1`,
+  `extract_color_chart_ex`; the `core.metrics` and `core.color_spaces` modules;
+  `fitting.fit_observations`/`fit_conventional_observations`;
+  `FlatFieldCorrection.compute_multiplier`, `fit_model`, `apply_ffc` and its
+  plotting helpers; `ColorCorrection.clear_ffc_cache`.
+- The OpenCV MCC chart-detection backend (`backend="mcc"`, `allow_mcc_fallback`,
+  `core.HAS_MCC` and its import-time `ImportWarning`).
+- `io.read_image`, `io.read_batch` and `io.write_image`; use `read_image_data` and
+  `write_image_data`.
+- Unused helpers: `core.utils.compute_temperature` (always raised),
+  `compute_diag`, `estimate_fit`, `poly_func_torch`, `free_memory`,
+  `clear_chart_cache`; `core.accel.xyz_to_lab_fast`, `lab_to_xyz_fast`,
+  `ffc_sample_bins`, `extrapolate_saturated_pixels`; `core.transforms`
+  `fit_polynomial_surface`/`apply_polynomial_surface`; `batch.collect_batch`.
+- `examples/legacy_training.py`, `setup.py`, `MANIFEST.in`, the `[segmentation]`
+  extra, the import-time filter for torch `FutureWarning`s and the four `v1_*`
+  golden scenarios.
+
+### Changed
+
+- Load-only compatibility code (saved-policy validation, the legacy polynomial
+  gamma applier and the `CustomNN`/`DeterministicTorchRegressor` estimators)
+  lives in `ColorCorrectionPipeline._compat`. Pickled class paths are unchanged.
+- `ColorCorrection.get_reference_values` requires explicit-v1 color semantics.
+
 ## [2.3.0]
 
 - Faster high-precision prediction: `precision="high"` runs its stages per pixel block on up to eight threads and no longer keeps a full-frame copy of every intermediate stage. A 3840×2160 prediction takes 1.7 s instead of 7.9 s with a 472 MB instead of 1.35 GB allocation peak, and the bundled 1152×768 sample takes 0.18 s instead of 0.82 s. Outputs are bit-identical; native byte prediction is unchanged.

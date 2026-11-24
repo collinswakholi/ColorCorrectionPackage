@@ -12,9 +12,7 @@ from ColorCorrectionPipeline import ColorCorrection, Config
 
 config = Config(
     do_ffc=False,
-    color_semantics={"version": "explicit-v1"},
-    stage_policy="modern-v1", fitting_policy="reproducible-v1",
-    CC_kwargs={"degree": 1},
+    model="3x3",
     save=True, save_path="calibration-results", model_format="bundle",
     image_options={"frame_index": 0},  # camera JPEGs often carry a preview frame
 )

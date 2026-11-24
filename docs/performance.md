@@ -58,7 +58,8 @@ which were left unchanged because those digests are part of the image contract.
 A fresh calibration used the Classic24 chart in `Images/Image_1.JPG` and the
 white-field photograph `Images/white.JPG`, with all
 FFC/GC/WB/CC stages enabled, explicit color semantics, modern stage policies,
-reproducible degree-1 linear fitting and no regressor LUT. Frame 0 was selected
+reproducible degree-1 linear fitting (a 2.x recipe removed in 3.0) and no
+regressor LUT. Frame 0 was selected
 explicitly. Both photographs are 1152×768. Chart inference actually executed
 210 nodes on the WebGPU provider through D3D12; this is execution evidence,
 not merely an advertised GPU provider.

@@ -248,24 +248,12 @@ Recorded policy identities and supported flat compatibility fields without a
 grouped alias remain explicit in that document; presentation does not discard
 them merely to make the JSON tree look simpler.
 
-An old unversioned flat dictionary still takes the API-1 compatibility route.
-Do not add a new marker merely to relabel an old experiment. Historical ML and
-conventional trainers remain available through their original flat settings and
-explicit policies:
-
-```python
-historical = Config(
-    fitting_policy="legacy-v1",
-    CC_kwargs={"mtd": "nn", "hidden_layers": [64], "max_iterations": 1000},
-)
-historical_document = historical.to_dict()
-```
-
-The grouped API is for modern API-2 UI-family configurations. API-1/historical
-configurations must retain their flat form; `to_grouped_dict()` rejects them
-rather than silently translating a historical sklearn MLP into the native
-residual NN. Loading an existing calibration remains the way to reproduce its
-stored predictions without retraining.
+In 3.0 an unversioned flat dictionary raises instead of taking the removed
+API-1 route; pass `source_version=2` to read it as API 2. The historical ML and
+conventional trainers (`fitting_policy="legacy-v1"`, `CC_kwargs={"mtd": ...}`
+without a `model`) were also removed (see [Migrating to 3.0](migration-3.md)).
+Loading an existing calibration remains the way to reproduce its stored
+predictions without retraining.
 
 ## Run the complete example
 

@@ -1,11 +1,9 @@
 # Explicit image I/O and precision-preserving exports
 
-`read_image_data` and `write_image_data` provide the strict interpretation path.
-Existing `read_image`, `read_batch` and `write_image` defaults keep their original
-return types and numerical behavior, including the legacy writer's uint8 output.
-`read_image(..., strict=True, image_options={...})` routes through the explicit
-loader while retaining an array return. The pipeline uses the strict path when
-explicit color semantics are selected.
+`read_image_data` and `write_image_data` provide the strict interpretation path,
+which the pipeline uses. The 1.x-style `read_image` (including `strict=True`),
+`read_batch` and `write_image` were removed in 3.0; use these two functions
+instead (see [Migrating to 3.0](migration-3.md)).
 
 ## Loading
 
