@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Documentation
+
+- Rewrote the README around the common tasks: install, calibrate, correct many images, configure, upgrade from 2.x. Its links now point to `main`, so they work before a release is tagged.
+- New [configuration guide](docs/configuration.md) with a recipe for each common task and a table of every setting, its default and its allowed values. Every example is run against the sample photos. `docs/grouped-configuration.md` now points to it.
+
 ## [3.0.0] - 2026-11-24
 
 3.0 keeps only the 2.x default fitting recipe (UI-compatible, native-v1 or
