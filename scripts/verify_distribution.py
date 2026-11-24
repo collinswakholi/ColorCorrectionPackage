@@ -72,7 +72,7 @@ def verify_wheel(path, expected_version=None):
         # Base requirement on platforms with Numba wheels; the extra covers the rest.
         base = [r for r in numba if r not in extra]
         assert extra and len(base) == 1, numba
-        assert "python_version >= \"3.10\"" in base[0] or "python_version >= '3.10'" in base[0], base
+        assert 'python_version >= "3.10"' in base[0] or "python_version >= '3.10'" in base[0], base
         assert "performance" in metadata.get_all("Provides-Extra", [])
         assert "bundled detector models declare AGPL-3.0" in metadata["License"]
         for suffix in (
