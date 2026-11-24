@@ -18,10 +18,7 @@ import warnings
 from .color_spaces import (
     adapt_chart,
     convert_to_lab,
-    convert_to_LCHab,
-    do_color_adaptation,
     extrapolate_if_sat_image,
-    srgb_to_cielab_D50,
 )
 from .correction import (
     Regressor_Model,
@@ -44,7 +41,6 @@ from .metrics import (
 from .utils import (
     HAS_MCC,
     compute_diag,
-    compute_temperature,
     estimate_fit,
     extract_color_chart,
     extract_color_charts,
@@ -88,10 +84,7 @@ __all__ = [
     # Color spaces
     "adapt_chart",
     "convert_to_lab",
-    "convert_to_LCHab",
-    "do_color_adaptation",
     "extrapolate_if_sat_image",
-    "srgb_to_cielab_D50",
     # Correction
     "CustomNN",
     "Regressor_Model",
@@ -114,7 +107,6 @@ __all__ = [
     # Utils
     "HAS_MCC",
     "compute_diag",
-    "compute_temperature",
     "estimate_fit",
     "extract_color_chart",
     "extract_color_charts",

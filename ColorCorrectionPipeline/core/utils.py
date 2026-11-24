@@ -561,11 +561,6 @@ def compute_diag(mat_ref, mat_det, rf=0.95):
     return diag
 
 
-def compute_temperature(xyz: np.ndarray) -> float:
-    """Compute color temperature."""
-    raise NotImplementedError("compute_temperature requires ColorCorrectionPipeline package")
-
-
 def estimate_fit(x: np.ndarray, y: np.ndarray, degree: int) -> np.ndarray:
     """Fit polynomial (from v1_2_01)."""
     return np.polyfit(x, y, degree)
@@ -595,7 +590,6 @@ def poly_func_torch(x, coeffs):
 __all__ = [
     "clear_chart_cache",
     "compute_diag",
-    "compute_temperature",
     "estimate_fit",
     "extract_color_chart",
     "extract_color_charts",

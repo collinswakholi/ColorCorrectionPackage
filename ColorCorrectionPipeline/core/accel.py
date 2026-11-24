@@ -25,8 +25,6 @@ __all__ = [
     "apply_linear_to_srgb_image",
     "srgb_to_xyz_matrix",
     "xyz_to_srgb_matrix",
-    "xyz_to_lab_fast",
-    "lab_to_xyz_fast",
     "srgb_to_lab_fast_image",
     "lab_to_srgb_fast_image",
     "trilinear_lut_apply",
@@ -305,45 +303,6 @@ def lab_to_srgb_fast_image(lab: np.ndarray) -> np.ndarray:
     srgb = np.clip(srgb, 0, 1)
 
     return srgb.reshape(shape)
-
-
-def xyz_to_lab_fast(xyz: np.ndarray, illuminant_xy: np.ndarray = None) -> np.ndarray:
-    """Fast XYZ to Lab. Default illuminant = D65."""
-    if illuminant_xy is not None:
-        # Convert xy to XYZ (Y=1)
-        x, y = illuminant_xy[0], illuminant_xy[1]
-        wp = np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
-    else:
-        wp = _D65_XYZ
-
-    shape = xyz.shape
-    flat = xyz.reshape(-1, 3)
-    xyz_n = flat / wp
-    f = _f_lab(xyz_n)
-    lab = np.empty_like(f)
-    lab[:, 0] = 116.0 * f[:, 1] - 16.0
-    lab[:, 1] = 500.0 * (f[:, 0] - f[:, 1])
-    lab[:, 2] = 200.0 * (f[:, 1] - f[:, 2])
-    return lab.reshape(shape)
-
-
-def lab_to_xyz_fast(lab: np.ndarray, illuminant_xy: np.ndarray = None) -> np.ndarray:
-    """Fast Lab to XYZ. Default illuminant = D65."""
-    if illuminant_xy is not None:
-        x, y = illuminant_xy[0], illuminant_xy[1]
-        wp = np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
-    else:
-        wp = _D65_XYZ
-
-    shape = lab.shape
-    flat = lab.reshape(-1, 3)
-    fy = (flat[:, 0] + 16.0) / 116.0
-    fx = flat[:, 1] / 500.0 + fy
-    fz = fy - flat[:, 2] / 200.0
-    f = np.column_stack([fx, fy, fz])
-    xyz_n = _f_lab_inv(f)
-    xyz = xyz_n * wp
-    return xyz.reshape(shape)
 
 
 # ============================================================================
