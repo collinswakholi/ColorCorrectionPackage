@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.0.0] - Unreleased
+## [3.0.0] - 2026-11-24
 
 3.0 keeps only the 2.x default fitting recipe (UI-compatible, native-v1 or
 precision-f64-v1 runtime). Calibrations saved by 2.x and earlier still load and
@@ -59,7 +59,7 @@ apply unchanged; the 2.x default fit gives the same results. See
 - `predict_images(..., stages="final")` returns only the final image, like
   `predict_image`: 4.9 s for the same four photos.
 
-## [2.3.0]
+## [2.3.0] - 2026-11-24
 
 - Faster high-precision prediction: `precision="high"` runs its stages per pixel block on up to eight threads and no longer keeps a full-frame copy of every intermediate stage. A 3840×2160 prediction takes 1.7 s instead of 7.9 s with a 472 MB instead of 1.35 GB allocation peak, and the bundled 1152×768 sample takes 0.18 s instead of 0.82 s. Outputs are bit-identical; native byte prediction is unchanged.
 - Opt-in linear-light flat-field correction: `FFC_kwargs={"domain": "linear"}` or `FFCOptions(apply={"domain": "linear"})` fits the white-field gain from luminance and multiplies decoded linear RGB by it instead of scaling Lab L* only, which removes most of the chroma error an L*-only gain leaves under vignetting. Available with UI-compatible (API 2) fitting; the default `"lightness"` is unchanged, and calibrations, bundles and pickles without the setting replay as before. Linear calibrations record `ffc_domain` and save a `spatial-linear-gain-v1` FFC stage, which earlier versions refuse to load.
