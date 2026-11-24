@@ -409,7 +409,7 @@ class PreparedExecution:
             if models.model_gc is not None:
                 if isinstance(models.model_gc, MonotonicToneModel):
                     if backend is None or tone_gain is None:
-                        from .modern import apply_tone
+                        from .stage_policies import apply_tone
 
                         block = apply_tone(block.reshape(1, -1, 3), models.model_gc).reshape(-1, 3)
                         diagnostics["GC"] = "explicit-D65-neutral-PCHIP"

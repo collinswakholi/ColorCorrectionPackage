@@ -34,9 +34,6 @@ def apply_ffc(rgb, gain, domain="lightness"):
     return round_image(xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip"))
 
 
-_REFERENCE_APPLY_FFC = apply_ffc
-
-
 def _cubic_weights(t):
     t2, t3 = t * t, t * t * t
     return (

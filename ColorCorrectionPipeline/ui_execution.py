@@ -269,17 +269,11 @@ def try_execute(
         or (ffc_domain != "lightness" and models.model_ffc is not None)
     ):
         return None
-    from . import modern, ui_stages
     from .core.correction import Regressor_Model
     from .core.execution import _tone_parameters
     from .ui_fitting import UIPredictor
     from .colorimetry import _RGB_TO_XYZ, _XYZ_TO_RGB, white_xyz, D65
 
-    if (
-        modern.apply_tone is not modern._REFERENCE_APPLY_TONE
-        or ui_stages.apply_ffc is not ui_stages._REFERENCE_APPLY_FFC
-    ):
-        return None
     order = ("FFC", "GC", "WB", "CC")
     indices = np.array([i for i, name in enumerate(order) if name in selected], dtype=np.int64)
     stop = int(indices[-1])

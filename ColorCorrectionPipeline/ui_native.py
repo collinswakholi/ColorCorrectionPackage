@@ -434,13 +434,6 @@ def apply_color(image, gain=None, curve=None, scalar=False, rounded=True, domain
 
 
 def predict(image, models, selected, chunk_pixels=None, *, native_codes=False):
-    from . import modern, ui_stages
-
-    if (
-        modern.apply_tone is not modern._REFERENCE_APPLY_TONE
-        or ui_stages.apply_ffc is not ui_stages._REFERENCE_APPLY_FFC
-    ):
-        raise ValueError("native UI fusion does not support overridden tone/FFC hooks")
     from .ui_execution import try_execute
 
     high = high_precision(models)

@@ -1206,7 +1206,7 @@ class ColorCorrection:
                     current = apply_ffc_float(current, self.models.model_ffc)
             elif stage == "GC" and self.models.model_gc is not None:
                 if isinstance(self.models.model_gc, MonotonicToneModel):
-                    from .modern import apply_tone
+                    from .stage_policies import apply_tone
 
                     current = apply_tone(current, self.models.model_gc)
                 else:

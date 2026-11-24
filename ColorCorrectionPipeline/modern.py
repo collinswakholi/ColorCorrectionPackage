@@ -1,18 +1,15 @@
 """Modern-v1 stage fitting (GC, WB, saturation report) over fixed observations.
 
 These helpers deliberately do not detect new geometry or manufacture
-measurements from reference targets. ``apply_tone`` also applies the
-neutral-pchip-v1 tone models that 2.x saved.
+measurements from reference targets.
 """
 
 import numpy as np
 
-from .colorimetry import D65, rgb_to_xyz, xyz_to_lab, lab_to_xyz, xyz_to_rgb
 from .observations import capture_observations
 from .stage_policies import (
     fit_monotonic_tone,
     fit_neutral_wb,
-    is_standard_tone,
     saturation_selection,
 )
 
@@ -60,36 +57,6 @@ def clipping(owner, face):
     if source.face_id != face.face_id or source.cell_ids != face.cell_ids:
         raise ValueError("stage observations no longer match original chart cells")
     return np.maximum(source.clipped_fractions, face.clipped_fractions)
-
-
-_TONE_BLOCK_PIXELS = 192 * 1024
-
-
-def apply_tone(rgb, model):
-    image = np.asarray(rgb, dtype=np.float64)
-    # The reference Lab conversions hold several float64 arrays. Bound their
-    # working set by rows without changing the fitted curve or RGB equations.
-    if (
-        image.ndim == 3
-        and image.shape[0] * image.shape[1] > _TONE_BLOCK_PIXELS
-        and is_standard_tone(model)
-    ):
-        output = np.empty_like(image)
-        rows = max(1, _TONE_BLOCK_PIXELS // image.shape[1])
-        for y in range(0, len(image), rows):
-            block = image[y : y + rows]
-            output[y : y + rows] = _tone_block(block, model)
-        return output
-    return _tone_block(image, model)
-
-
-def _tone_block(image, model):
-    lab = xyz_to_lab(rgb_to_xyz(image, encoding="srgb"), white=D65)
-    lab[..., 0] = model.predict(lab[..., 0])
-    return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip")
-
-
-_REFERENCE_APPLY_TONE = apply_tone
 
 
 def fit_gamma(owner, image):

@@ -135,7 +135,7 @@ if accel.HAS_NUMBA:
 
 def evaluate_tone(rgb, model, *, backend="auto", allow_fallback=True):
     """Direct float64 D65 neutral PCHIP, with reference fallback and no LUT."""
-    from ..modern import apply_tone
+    from ..stage_policies import apply_tone
     from ..colorimetry import _RGB_TO_XYZ, _XYZ_TO_RGB, D65, white_xyz
 
     values, clipped = _rgb(rgb, "reject")

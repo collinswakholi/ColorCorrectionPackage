@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass, fields
 
 import numpy as np
 
+from .colorimetry import D65, lab_to_xyz, rgb_to_xyz, xyz_to_lab, xyz_to_rgb
+
 
 @dataclass(frozen=True)
 class StagePolicy:
@@ -190,6 +192,34 @@ def is_standard_tone(model):
         and "predict" not in vars(model)
         and MonotonicToneModel.predict is _TONE_PREDICT
     )
+
+
+_TONE_BLOCK_PIXELS = 192 * 1024
+
+
+def apply_tone(rgb, model):
+    """Map the L* of encoded sRGB through a tone model (also neutral-pchip-v1 from 2.x)."""
+    image = np.asarray(rgb, dtype=np.float64)
+    # The reference Lab conversions hold several float64 arrays. Bound their
+    # working set by rows without changing the fitted curve or RGB equations.
+    if (
+        image.ndim == 3
+        and image.shape[0] * image.shape[1] > _TONE_BLOCK_PIXELS
+        and is_standard_tone(model)
+    ):
+        output = np.empty_like(image)
+        rows = max(1, _TONE_BLOCK_PIXELS // image.shape[1])
+        for y in range(0, len(image), rows):
+            block = image[y : y + rows]
+            output[y : y + rows] = _tone_block(block, model)
+        return output
+    return _tone_block(image, model)
+
+
+def _tone_block(image, model):
+    lab = xyz_to_lab(rgb_to_xyz(image, encoding="srgb"), white=D65)
+    lab[..., 0] = model.predict(lab[..., 0])
+    return xyz_to_rgb(lab_to_xyz(lab, white=D65), encoding="srgb", policy="clip")
 
 
 def fit_monotonic_tone(
