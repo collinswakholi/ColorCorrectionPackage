@@ -20,6 +20,14 @@ from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 
+from .geometry import (
+    anchor_center,
+    native_homography,
+    native_letterbox,
+    native_warp,
+    order_quad,
+    precise_homography,
+)
 from .providers import infer_model, validate_device_options
 
 DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "chart_detector_1280.onnx"
@@ -280,8 +288,6 @@ def _decode(output, options, gain=1.0, left=0, top=0):
         box[:2] = (box[:2] - [left, top]) / gain
         box[2:4] /= gain
         if options.sampling_policy == "ui-native-v1":
-            from ..ui_native import anchor_center
-
             box[:2] = anchor_center(box)
         if any(np.linalg.norm(box[:2] - det["center"]) < 3 for det in detections):
             continue
@@ -329,18 +335,7 @@ def _aabb_iou(a, b):
 
 
 def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False, native=False):
-    if native:
-        from ..ui_native import (
-            homography as solve_native_homography,
-        )
-        from ..ui_native import (
-            order_quad,
-        )
-        from ..ui_native import (
-            warp as warp_points,
-        )
-    else:
-        warp_points = _warp
+    warp_points = native_warp if native else _warp
     rows, cols = _LAYOUTS[chart_type]
     best = {}
     for det in cluster:
@@ -365,11 +360,9 @@ def _assemble_one(cluster, chart_type, inset, width, height, ui_precision=False,
             [best[i]["center"] for i in ids], dtype=np.float64 if ui_precision else np.float32
         )
         if native:
-            candidate = solve_native_homography(src, dst)
+            candidate = native_homography(src, dst)
         elif ui_precision:
-            from ..ui_fitting import homography as solve_homography
-
-            candidate = solve_homography(src, dst)
+            candidate = precise_homography(src, dst)
         else:
             candidate = cv2.getPerspectiveTransform(src.astype(np.float32), dst)
         if not np.isfinite(candidate).all() or abs(np.linalg.det(candidate)) < 1e-10:
@@ -536,9 +529,7 @@ def _assemble(detections, options, width, height):
 def _forward(image, path, options):
     def prepare(size):
         if options.sampling_policy == "ui-native-v1":
-            from ..ui_native import letterbox
-
-            tensor, gain, left, top = letterbox(image, size)
+            tensor, gain, left, top = native_letterbox(image, size)
         else:
             tensor, gain, left, top = _letterbox(image, size)
         return tensor, (gain, left, top)

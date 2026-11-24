@@ -886,16 +886,3 @@ def default_reference():
         cell_ids=base.cell_ids,
         neutral_ids=base.neutral_ids,
     )
-
-
-def homography(source, destination):
-    """Solve the UI geometry in float64 without OpenCV's float32 point cast."""
-    matrix = np.zeros((8, 8), dtype=np.float64)
-    rhs = np.asarray(destination, dtype=np.float64).reshape(-1)
-    for index, ((x, y), (u, v)) in enumerate(zip(source, destination)):
-        matrix[2 * index] = [x, y, 1, 0, 0, 0, -u * x, -u * y]
-        matrix[2 * index + 1] = [0, 0, 0, x, y, 1, -v * x, -v * y]
-    try:
-        return np.r_[np.linalg.solve(matrix, rhs), 1.0].reshape(3, 3)
-    except np.linalg.LinAlgError:
-        return np.full((3, 3), np.nan)
