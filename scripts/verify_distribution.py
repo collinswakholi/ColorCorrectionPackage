@@ -68,9 +68,11 @@ def verify_wheel(path, expected_version=None):
         assert metadata["Requires-Python"] == ">=3.8", metadata["Requires-Python"]
         requirements = metadata.get_all("Requires-Dist", [])
         numba = [req for req in requirements if req.lower().startswith("numba")]
-        assert numba and all(
-            "extra == 'performance'" in req or 'extra == "performance"' in req for req in numba
-        ), numba
+        extra = [r for r in numba if "extra == 'performance'" in r or 'extra == "performance"' in r]
+        # Base requirement on platforms with Numba wheels; the extra covers the rest.
+        base = [r for r in numba if r not in extra]
+        assert extra and len(base) == 1, numba
+        assert "python_version >= \"3.10\"" in base[0] or "python_version >= '3.10'" in base[0], base
         assert "performance" in metadata.get_all("Provides-Extra", [])
         assert "bundled detector models declare AGPL-3.0" in metadata["License"]
         for suffix in (
@@ -87,7 +89,7 @@ def verify_wheel(path, expected_version=None):
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "version": version,
             "requires_python": metadata["Requires-Python"],
-            "numba_optional": True,
+            "numba_default_on_wheel_platforms": True,
             "assets": records,
         }
 

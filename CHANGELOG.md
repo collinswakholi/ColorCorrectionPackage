@@ -1,6 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [3.0.1] - 2026-11-24
+
+### Changed
+
+- Numba is now installed by default on Python 3.10+ for Windows (x64, ARM64), Linux (x86_64, aarch64) and Apple-silicon macOS. A plain `pip install ColorCorrectionPipeline` of 3.0.0 ran on the NumPy backend: for four 24 MP photos, a fit took 175 s instead of 14 s and correction 132 s instead of 5.6 s, with identical results. Python 3.8/3.9 and Intel Macs, where Numba has no current wheels, keep it optional through the `[performance]` extra, which still works everywhere.
+
+### Fixed
+
+- Two tests compared float32 neural-network outputs more strictly than float32 precision and could fail on some CI CPUs. Statistics are now compared to the precision of each output's dtype.
 
 ### Documentation
 
