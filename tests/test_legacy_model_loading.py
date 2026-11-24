@@ -20,7 +20,9 @@ SCENE = str(DATA / "scene.png")
 MANIFEST = json.loads((DATA / "expected.json").read_text())["fixtures"]
 # Arrays are stored as float32 subsamples; the float64 statistics cover every pixel.
 ARRAY_ATOL = 1e-6
-STATS_RTOL, STATS_ATOL = 1e-7, 1e-9
+# Statistics are compared to the precision of the stage's dtype: float32 networks
+# land within a few ulps of the recorded values on other CPUs (BLAS kernels differ).
+STATS_TOL = {"float64": (1e-7, 1e-9), "float32": (2e-6, 1e-7)}
 
 PIPELINE = sorted(key for key in MANIFEST if not key.startswith("key_functions_"))
 KEY_FUNCTIONS = sorted(key for key in MANIFEST if key.startswith("key_functions_"))
@@ -51,12 +53,9 @@ def _assert_matches(record, images, stages=None):
             assert str(value.dtype) == expected["dtype"], stage
             assert list(value.shape) == expected["shape"], stage
             pixels = value.reshape(-1, 3)
-            np.testing.assert_allclose(
-                pixels.mean(0), expected["mean"], rtol=STATS_RTOL, atol=STATS_ATOL
-            )
-            np.testing.assert_allclose(
-                pixels.std(0), expected["std"], rtol=STATS_RTOL, atol=STATS_ATOL
-            )
+            rtol, atol = STATS_TOL.get(str(value.dtype), STATS_TOL["float64"])
+            np.testing.assert_allclose(pixels.mean(0), expected["mean"], rtol=rtol, atol=atol)
+            np.testing.assert_allclose(pixels.std(0), expected["std"], rtol=rtol, atol=atol)
             sample = stored[stage]
             step = value.shape[0] // sample.shape[0]
             np.testing.assert_allclose(
