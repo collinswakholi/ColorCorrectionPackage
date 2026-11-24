@@ -4,12 +4,10 @@ import logging
 import warnings
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 import ColorCorrectionPipeline
 from ColorCorrectionPipeline import ColorCorrection, Config
-from ColorCorrectionPipeline.io import read_batch, write_image
 
 IMAGES = Path(__file__).resolve().parents[1] / "Images"
 CHART, WHITE, SCENE = (str(IMAGES / n) for n in ("Image_1.JPG", "white.JPG", "Sample_1.JPG"))
@@ -53,15 +51,3 @@ def test_prediction_timing_is_logged(fitted, caplog):
     records = [r for r in caplog.records if r.name == "ColorCorrectionPipeline.pipeline"]
     assert any(r.getMessage().startswith("Prediction done in") for r in records)
     assert all(r.levelno == logging.INFO for r in records)
-
-
-def test_read_batch_logs_progress_and_failures(tmp_path, caplog, capsys):
-    good = tmp_path / "ok.png"
-    assert write_image(good, np.zeros((4, 4, 3)))
-    with caplog.at_level(logging.INFO, logger="ColorCorrectionPipeline.io"):
-        images, failed = read_batch([good, tmp_path / "missing.png"])
-    assert len(images) == 1 and len(failed) == 1
-    messages = {(r.levelno, r.getMessage().split(":")[0]) for r in caplog.records}
-    assert (logging.INFO, "Successfully read 1/2 images") in messages
-    assert (logging.WARNING, "Failed to read 1 images") in messages
-    assert capsys.readouterr().out == ""

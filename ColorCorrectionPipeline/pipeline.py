@@ -524,7 +524,7 @@ class ColorCorrection:
             raise ValueError(f"{label} must have nonempty shape (height, width, 3)")
         if not np.issubdtype(image.dtype, np.floating):
             raise TypeError(
-                f"{label} ndarray must be floating RGB in [0, 1]; use read_image for integer images"
+                f"{label} ndarray must be floating RGB in [0, 1]; use read_image_data for integer images"
             )
         if not np.isfinite(image).all() or np.any(image < 0) or np.any(image > 1):
             raise ValueError(f"{label} must contain finite RGB values in [0, 1]")

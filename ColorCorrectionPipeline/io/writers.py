@@ -2,11 +2,8 @@
 Image writing utilities
 =======================
 
-This module provides utilities for writing images with proper color space
-handling and format conversion.
-
 Functions:
-    - write_image: Write image to file
+    - write_image_data: strict, verified, atomically published image export
 """
 
 import os
@@ -17,126 +14,16 @@ import tempfile
 import zlib
 import io
 import logging
-import warnings
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import cv2
 import numpy as np
 
-__all__ = ["write_image", "write_image_data", "ExportRecord"]
+__all__ = ["write_image_data", "ExportRecord"]
 
 logger = logging.getLogger(__name__)
-
-
-def write_image(
-    path: Union[str, Path],
-    image: np.ndarray,
-    color_space: str = "rgb",
-    quality: int = 95,
-    create_dirs: bool = True,
-) -> bool:
-    """
-    Write image to file with proper color space handling.
-
-    Args:
-        path: Output file path
-        image: Image array (H, W, C) or (H, W)
-        color_space: Input color space ('rgb', 'bgr', 'gray')
-        quality: JPEG quality (1-100) or PNG compression (0-9)
-        create_dirs: Whether to create parent directories
-
-    Returns:
-        bool: True if successful, False otherwise
-
-    Raises:
-        ValueError: If a floating-point image contains NaN or infinite values.
-
-    Samples are quantized to uint8 with the strict exporter's equation
-    (``rint(value * 255)``): floats are read as 0-1 and clipped, uint16 is scaled by
-    255/65535 and rounded, other integer types are read as 0-255 codes and clipped.
-    Use :func:`write_image_data` for 16-bit or float output and export metadata.
-
-    Example:
-        >>> img_rgb = np.random.rand(480, 640, 3).astype(np.float64)
-        >>> success = write_image("output.jpg", img_rgb, color_space="rgb", quality=95)
-        >>> print(f"Write {'succeeded' if success else 'failed'}")
-    """
-    path = Path(path)
-
-    # Create parent directories if needed
-    if create_dirs:
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-    img_out = _legacy_to_uint8(image)
-
-    # Handle color space conversion (OpenCV writes BGR)
-    if len(img_out.shape) == 2:
-        # Grayscale - no conversion needed
-        pass
-    else:
-        if color_space.lower() == "rgb":
-            img_out = cv2.cvtColor(img_out, cv2.COLOR_RGB2BGR)
-        elif color_space.lower() == "bgr":
-            pass  # Already BGR
-        elif color_space.lower() == "gray":
-            if len(img_out.shape) == 3:
-                img_out = cv2.cvtColor(img_out, cv2.COLOR_RGB2GRAY)
-        else:
-            warnings.warn(f"Unknown color_space '{color_space}', assuming BGR", stacklevel=2)
-
-    # Set encoding parameters
-    ext = path.suffix.lower()
-    if ext in (".jpg", ".jpeg"):
-        params = [cv2.IMWRITE_JPEG_QUALITY, quality]
-    elif ext == ".png":
-        # PNG compression level (0-9)
-        compression = min(9, max(0, (100 - quality) // 10))
-        params = [cv2.IMWRITE_PNG_COMPRESSION, compression]
-    elif ext == ".webp":
-        params = [cv2.IMWRITE_WEBP_QUALITY, quality]
-    else:
-        params = []
-
-    # Write image
-    try:
-        success = cv2.imwrite(str(path), img_out, params)
-        if success:
-            logger.info("Image written to %s", path)
-        else:
-            logger.error("Failed to write image to %s", path)
-        return success
-    except Exception as e:
-        logger.error("Exception writing image to %s: %s", path, e)
-        return False
-
-
-def _legacy_to_uint8(image):
-    """Quantize a legacy ``write_image`` input to uint8 codes.
-
-    Uses the same rounding as :func:`_quantize_strict`. Before 2.3 floats and uint16
-    were truncated, NaN became 0 and other integers wrapped around (300 -> 44).
-    """
-    image = np.asarray(image)
-    kind = image.dtype.kind
-    if image.dtype == np.uint8:
-        return image
-    if kind == "f":
-        values = image.astype(np.float64)
-        if not np.isfinite(values).all():
-            raise ValueError(
-                "write_image requires finite values; the image contains NaN or infinity"
-            )
-        np.clip(values, 0.0, 1.0, out=values)
-    elif image.dtype == np.uint16:
-        values = image.astype(np.float64) / 65535.0
-    elif kind in "biu":
-        return np.clip(image, 0, 255).astype(np.uint8)
-    else:
-        raise TypeError(f"write_image does not support dtype {image.dtype}")
-    storage, _ = _quantize_strict(np.ascontiguousarray(values), np.dtype(np.uint8), 255)
-    return storage
 
 
 @dataclass(frozen=True)
