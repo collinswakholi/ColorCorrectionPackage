@@ -37,7 +37,7 @@ def test_classic_builtin_is_the_unchanged_default_reference():
     "chart, layout, neutrals",
     [
         ("spyder", (4, 6), (18, 19, 20, 21, 22, 23)),
-        ("digital-sg", (10, 14), (60, 61, 62, 63, 64, 65, 74, 75, 76, 77, 78, 79)),
+        ("digital-sg", (10, 14), (60, 61, 62, 63, 64, 65)),
     ],
 )
 def test_builtin_references_use_studios_named_grey_patches(chart, layout, neutrals):

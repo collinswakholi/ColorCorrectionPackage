@@ -3,8 +3,10 @@
 Values are CIE Lab D50/2 degrees in the detector's row-major cell order (row 1 is the
 assembled top of the chart), copied from ColorCorrect Studio's audited catalog
 (ColorCorrectionPackage_UI ``app/ColorCorrect.Engine/ReferenceTemplates.json``, which
-matches its Rust ``ccp_core/src/refs.rs``). Grey patches for GC and WB are Studio's
-named neutrals (``refs/neutrals.json``); they are never chosen by low chroma.
+matches its Rust ``ccp_core/src/refs.rs``). Grey patches for GC and WB are named
+cells, never chosen by low chroma: Studio's neutrals (``refs/neutrals.json``) for
+Spyder, and for Digital SG only the white-to-black ramp E5..J5 (Studio also uses the
+second ramp E6..J6).
 
 Sources (not manufacturer-certified values):
 
@@ -271,12 +273,6 @@ CHARTS: Dict[str, ChartSpec] = {
             "r5c8",
             "r5c9",
             "r5c10",
-            "r6c5",
-            "r6c6",
-            "r6c7",
-            "r6c8",
-            "r6c9",
-            "r6c10",
         ),
         source="BabelColor ColorCheckerSG After Nov 2014 (CIE Lab D50/2deg), via ColorCorrect Studio",
     ),

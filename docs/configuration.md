@@ -370,7 +370,7 @@ patch's true colour. GC and WB also need to know which patches are **grey**.
 | --- | --- | --- | --- | --- |
 | ColorChecker Classic 24 | `"classic"` (or `"passport"`) | 4 × 6 | Bottom row, white to black (`r4c1`–`r4c6`) | Post-November-2014 values |
 | SpyderCHECKR 24 | `"spyder"` | 4 × 6 | Datacolor's grey row A1–A6, the bottom row (`r4c1`–`r4c6`) | darktable "after 2018" V2 table |
-| ColorChecker Digital SG | `"digital-sg"` | 10 × 14 | The central grey ramps E5–J5 and E6–J6 (`r5c5`–`r5c10`, `r6c5`–`r6c10`) | BabelColor "After Nov 2014" |
+| ColorChecker Digital SG | `"digital-sg"` | 10 × 14 | The white-to-black ramp E5–J5 (`r5c5`–`r5c10`) | BabelColor "After Nov 2014" |
 
 All values are CIE Lab D50 and match ColorCorrect Studio's audited catalog. They
 are published measurements, not manufacturer-certified ones. Digital SG's many
