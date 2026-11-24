@@ -238,44 +238,22 @@ def historical_trainers():
     return rows
 
 
-def legacy_import_contracts():
-    """Historical model imports remain usable without optional chart backends."""
-    import pickle
-    import sys
-    from types import SimpleNamespace
-    from ColorCorrectionPipeline import key_functions as legacy
+def legacy_pickle_contracts():
+    """1.x pickles name key_functions classes; loading maps them to current classes."""
+    import io
+    from ColorCorrectionPipeline._compat import load_pickle
 
-    model = legacy.Regressor_Model()
-    model.degree = 2
-    restored = pickle.loads(pickle.dumps(model))
-    assert type(restored) is type(model) and restored.degree == 2
-    assert type(restored).__module__ == "ColorCorrectionPipeline.key_functions"
-    image = np.zeros((8, 8, 3), dtype=np.uint8)
-    with patch.dict(sys.modules, {"colour_checker_detection": None}):
-        try:
-            legacy.detect_colour_checkers_segmentation(image)
-        except ImportError as exc:
-            assert "ColorCorrectionPipeline[segmentation]" in str(exc)
-        else:
-            raise AssertionError("Missing segmentation backend was accepted")
-    with patch.object(legacy, "cv2", SimpleNamespace()):
-        requests = (
-            lambda: legacy.extract_color_chart(image),
-            lambda: legacy.extract_color_charts(image),
-            lambda: legacy.extract_color_chart_ex(image, np.zeros((24, 3))),
-        )
-        for request in requests:
-            try:
-                request()
-            except ImportError as exc:
-                assert "opencv-contrib-python" in str(exc)
-            else:
-                raise AssertionError("Missing MCC backend was accepted")
-    return {
-        "base_import": True,
-        "pickle_class_path": type(restored).__module__,
-        "optional_backend_errors": 4,
-    }
+    # Protocol-2 bytes as a 1.x pickler wrote them: key_functions.Regressor_Model
+    # with __dict__ {"degree": 2}. The module itself no longer exists.
+    data = (
+        b"\x80\x02cColorCorrectionPipeline.key_functions\nRegressor_Model\nq\x00)\x81}"
+        b"X\x06\x00\x00\x00degreeK\x02sb."
+    )
+    restored = load_pickle(io.BytesIO(data))
+    assert type(restored).__module__ == "ColorCorrectionPipeline.core.correction"
+    assert type(restored).__name__ == "Regressor_Model" and restored.degree == 2
+    assert restored.use_lut is False  # pre-LUT artifacts keep exact prediction
+    return {"pickle_class_path": type(restored).__module__, "degree": restored.degree}
 
 
 def precision_estimation():
@@ -843,7 +821,7 @@ def main():
         "fit_rendering": render_contracts(),
         "batch_worker_budget": verify_batch_worker_budget(),
         "historical_trainers": historical_trainers(),
-        "legacy_import_contracts": legacy_import_contracts(),
+        "legacy_pickle_contracts": legacy_pickle_contracts(),
         "precision_estimation": precision_estimation(),
     }
     if args.photos:

@@ -19,13 +19,6 @@ def test_core_mcc_extracts_classic24():
     assert drawn is not None
 
 
-def test_key_functions_mcc_extracts_classic24():
-    from ColorCorrectionPipeline import key_functions as kf
-
-    patches = kf.extract_color_chart(cv2.imread(str(CHART)))[0]
-    assert patches is not None and len(patches) == 24
-
-
 def test_legacy_pipeline_with_mcc_backend_fits():
     from ColorCorrectionPipeline import ColorCorrection, Config
 

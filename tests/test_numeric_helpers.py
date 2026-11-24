@@ -29,23 +29,6 @@ def test_core_to_float64_explicit_scale_overrides_guess():
     np.testing.assert_allclose(to_float64(np.array([0.25, 1.0])), [0.25, 1.0])
 
 
-# --- legacy key_functions helpers --------------------------------------------------
-
-
-def test_legacy_to_uint8_clips_and_rounds_instead_of_wrapping():
-    from ColorCorrectionPipeline import key_functions as kf
-
-    assert kf.to_uint8(np.array([1.01, -0.01, 0.999, 0.5])).tolist() == [255, 0, 255, 128]
-    assert kf.to_uint8(np.array([7], dtype=np.uint8)).tolist() == [7]
-
-
-def test_legacy_to_float64_scales_integer_types_by_their_range():
-    from ColorCorrectionPipeline import key_functions as kf
-
-    np.testing.assert_allclose(kf.to_float64(np.array([255], dtype=np.uint8)), [1.0])
-    np.testing.assert_allclose(kf.to_float64(np.array([65535], dtype=np.uint16)), [1.0])
-
-
 # --- saturation curve -----------------------------------------------------------------
 
 

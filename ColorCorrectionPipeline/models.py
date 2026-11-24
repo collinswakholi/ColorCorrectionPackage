@@ -14,6 +14,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
 
+from ._compat import load_pickle
+
 __all__ = ["MyModels"]
 
 
@@ -437,7 +439,7 @@ class MyModels:
                 f.flush()
                 os.fsync(f.fileno())
             with temporary_path.open("rb") as f:
-                self._validated_state(pickle.load(f))
+                self._validated_state(load_pickle(f))
             os.replace(temporary_path, filepath)
         except Exception as e:
             raise OSError(f"Failed to save models to {filepath}: {e}") from e
@@ -482,7 +484,7 @@ class MyModels:
 
         try:
             with open(filepath, "rb") as f:
-                loaded: MyModels = pickle.load(f)
+                loaded: MyModels = load_pickle(f)
             state = self._validated_state(loaded)
         except Exception as e:
             raise OSError(f"Failed to load models from {filepath}: {e}") from e

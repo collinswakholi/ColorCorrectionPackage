@@ -53,7 +53,4 @@ Filter them with the `warnings` module as usual, e.g.
   and training progress. `verbose` defaults to `False`; the output is an explicit request.
 - Manual flat-field ROI selection prints its interactive instruction before opening the
   OpenCV window.
-- `key_functions` keeps the prints of its legacy reporting helpers (statistics tests,
-  `Logger`, grid-search results). That module is kept for historical scripts and pickles
-  and its console output is part of those helpers' contract.
 - The tutorial scripts under `ColorCorrectionPipeline.examples` print their results.

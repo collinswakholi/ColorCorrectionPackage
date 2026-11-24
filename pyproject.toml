@@ -129,7 +129,6 @@ ignore = [
 # Legacy naming kept for API compatibility: public functions, classes and keyword
 # arguments with capitalised names (convert_to_LCHab, metrics, Image=, RGB=, ...),
 # and colour-science/matrix notation for locals (X, M, RGB, Lab, Z_flat).
-"ColorCorrectionPipeline/key_functions.py" = ["N801", "N802", "N803", "N806"]
 "ColorCorrectionPipeline/core/*.py" = ["N801", "N802", "N803", "N806"]
 "ColorCorrectionPipeline/flat_field/*.py" = ["N802", "N803", "N806"]
 "ColorCorrectionPipeline/pipeline.py" = ["N803", "N806", "I001"]
@@ -226,7 +225,6 @@ module = [
     "ColorCorrectionPipeline.examples.customizable",
     "ColorCorrectionPipeline.fitting",
     "ColorCorrectionPipeline.flat_field.correction",
-    "ColorCorrectionPipeline.key_functions",
     "ColorCorrectionPipeline.models",
     "ColorCorrectionPipeline.pipeline",
     "ColorCorrectionPipeline.prediction",

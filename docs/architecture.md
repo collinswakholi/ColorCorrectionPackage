@@ -41,8 +41,9 @@ pyproject.toml                Build, dependency and package-resource declaration
 ```
 
 Small numerical and worker helpers live beside their consumers. The retained
-`checker_compat.py`, `conventional.py` and `key_functions.py` modules protect
-supported library signatures and historical import/application contracts.
+`checker_compat.py` and `conventional.py` modules protect supported library
+signatures. `_compat/` holds the load-only code that keeps calibrations saved by
+2.x and earlier loading and applying; nothing in it fits a new calibration.
 Trained source models, scratch results and interpreter/build caches are excluded
 from the public archives. The two pinned ONNX inference assets carry their
 provenance and notices.
