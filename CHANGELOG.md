@@ -47,6 +47,18 @@ apply unchanged; the 2.x default fit gives the same results. See
   lives in `ColorCorrectionPipeline._compat`. Pickled class paths are unchanged.
 - `ColorCorrection.get_reference_values` requires explicit-v1 color semantics.
 
+### Fixed
+
+- `predict_images` no longer runs every pixel kernel on one core. Its image
+  threads now share the caller's kernel budget, and `max_workers=1` runs on the
+  calling thread. Four 24-megapixel photos: 9.8 s instead of 12.9 s with 4
+  workers, and 10.8 s instead of 48.8 s with 1 worker. Outputs are unchanged.
+
+### Added
+
+- `predict_images(..., stages="final")` returns only the final image, like
+  `predict_image`: 4.9 s for the same four photos.
+
 ## [2.3.0]
 
 - Faster high-precision prediction: `precision="high"` runs its stages per pixel block on up to eight threads and no longer keeps a full-frame copy of every intermediate stage. A 3840×2160 prediction takes 1.7 s instead of 7.9 s with a 472 MB instead of 1.35 GB allocation peak, and the bundled 1152×768 sample takes 0.18 s instead of 0.82 s. Outputs are bit-identical; native byte prediction is unchanged.

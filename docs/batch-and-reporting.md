@@ -4,6 +4,9 @@ The batch and report APIs provide partial-failure records, cancellation,
 controlled retention and non-executable persistence. The established `run()`
 tuple, trusted pickle methods, `predict_image()` stage selection and
 `predict_images()` ordered list/exception behavior remain available.
+`predict_images(images, stages="final")` returns only each final image, as
+`predict_image` does. Its image threads share the caller's pixel-kernel budget,
+and `max_workers=1` runs on the calling thread like a loop of `predict_image`.
 
 ## Fit/save/load a portable calibration
 

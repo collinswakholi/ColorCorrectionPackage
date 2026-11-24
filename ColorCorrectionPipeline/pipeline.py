@@ -1337,24 +1337,30 @@ class ColorCorrection:
         images: List[Union[str, np.ndarray]],
         on_progress: Optional[Callable[[int, int, str], None]] = None,
         max_workers: Optional[int] = None,
+        *,
+        stages=None,
     ) -> List[Dict[str, np.ndarray]]:
         """Apply one calibration snapshot to the entire batch, in input order."""
         with self._state_lock:
             snapshot = copy.copy(self)
             snapshot.models = copy.copy(self.models)
-        return snapshot._predict_images(images, on_progress, max_workers)
+        return snapshot._predict_images(images, on_progress, max_workers, stages=stages)
 
     def _predict_images(
         self,
         images: List[Union[str, np.ndarray]],
         on_progress: Optional[Callable[[int, int, str], None]] = None,
         max_workers: Optional[int] = None,
+        *,
+        stages=None,
     ) -> List[Dict[str, np.ndarray]]:
         """
         Apply saved models to multiple images in parallel.
 
-        Uses a thread pool so that Numba-compiled kernels (which release
-        the GIL) and I/O (cv2.imread) can overlap.
+        Image threads overlap decoding and single-threaded NumPy work. The
+        caller's pixel-kernel budget is split between them, so a batch never
+        uses more cores than one image would, and one worker runs on the
+        calling thread exactly like a loop of :meth:`predict_image`.
 
         Parameters
         ----------
@@ -1364,13 +1370,16 @@ class ColorCorrection:
             ``on_progress(completed, total, image_name)`` called from the
             main thread after each image finishes.
         max_workers : int, optional
-            Number of threads.  Defaults to ``min(os.cpu_count(), 4)``.
+            Number of image threads.  Defaults to ``min(os.cpu_count(), 4)``.
+        stages : optional
+            Same as :meth:`predict_image`. ``stages="final"`` returns only the
+            final output and skips the intermediate stage images.
 
         Returns
         -------
         results : list of dict
-            Same order as *images*.  Each dict has keys
-            ``'FFC', 'GC', 'WB', 'CC'`` → float64 RGB arrays.
+            Same order as *images*, each the dict :meth:`predict_image` returns
+            for these ``stages`` (by default ``'FFC', 'GC', 'WB', 'CC'``).
 
         Example
         -------
@@ -1397,19 +1406,39 @@ class ColorCorrection:
                 return os.path.basename(img)
             return f"image_{idx}"
 
+        def _predict(idx):
+            return self.predict_image(images[idx], show=False, stages=stages)
+
         def _worker(idx):
-            return idx, self.predict_image(images[idx], show=False)
+            return idx, _predict(idx)
 
         completed = 0
         t0 = time.time()
 
+        if max_workers == 1:
+            # The calling thread keeps its own kernel budget; a private pool
+            # thread would get one core (see _cpu_workers.image_worker_limit).
+            for idx in range(n):
+                results[idx] = _predict(idx)
+                if on_progress is not None:
+                    on_progress(idx + 1, n, _name(images[idx], idx))
+            logger.info("Batch prediction done — %d images in %.2fs", n, time.time() - t0)
+            return results  # type: ignore[return-value]
+
+        from ._cpu_workers import image_worker_limit, set_image_worker_limit
+
+        # Split the caller's kernel budget instead of giving each thread one core.
+        per_image = max(1, image_worker_limit() // max_workers)
         limit_context = (
-            threadpool_limits(limits=1)
-            if threadpool_limits is not None and max_workers > 1
-            else nullcontext()
+            threadpool_limits(limits=1) if threadpool_limits is not None else nullcontext()
         )
         with limit_context:
-            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            with ThreadPoolExecutor(
+                max_workers=max_workers,
+                thread_name_prefix="ccp-predict",
+                initializer=set_image_worker_limit,
+                initargs=(per_image,),
+            ) as pool:
                 futures = {pool.submit(_worker, i): i for i in range(n)}
 
                 for future in as_completed(futures):
