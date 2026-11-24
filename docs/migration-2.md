@@ -12,7 +12,7 @@ files retain their recorded predictions.
 Grouped configuration is an additive way to express that same recipe. It places
 step switches beside their controls without changing fitted numbers, existing
 kwargs forms or saved-calibration interpretation. See the
-[grouped configuration reference](grouped-configuration.md) for all categories.
+[configuration guide](configuration.md) for all categories.
 
 ## Install and run
 

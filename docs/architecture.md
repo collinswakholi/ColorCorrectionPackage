@@ -124,7 +124,7 @@ Two pairs still refer to each other through function-local imports:
 
 ## Boundaries that protect compatibility
 
-The [grouped configuration API](grouped-configuration.md) is a presentation and
+The [grouped configuration API](configuration.md) is a presentation and
 validation boundary over the existing flat `Config` state. Frozen `Steps` and
 step option containers own their mapping inputs. Grouped constructor requests
 normalize into the same stage dictionaries, policies and switches consumed by

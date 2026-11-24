@@ -150,7 +150,7 @@ class Config:
     (ReferenceProfile), ``color`` (color semantics), ``numerics`` (precision),
     ``observations`` (saturation diagnostics), and ``persistence``. GC/WB quality,
     CC fitting/application and CC-only validation live with their owning step.
-    See docs/grouped-configuration.md for the complete categorized reference.
+    See docs/configuration.md for recipes and every setting with its default.
 
     Example:
         >>> config = Config(steps={
