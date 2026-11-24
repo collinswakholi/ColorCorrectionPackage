@@ -31,12 +31,9 @@ to use the included sample images after installing the package.
 """
 
 import logging
-import warnings
 from importlib import import_module
 
 from .__version__ import __version__, __version_info__
-
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
 # Library convention: never configure output for the application. Progress and
 # diagnostic messages go to the "ColorCorrectionPipeline" logger hierarchy; enable

@@ -14,7 +14,7 @@ import threading
 from types import ModuleType
 from typing import Any, Optional
 
-__all__ = ["LazyModule", "colour", "pandas", "scipy_stats", "sklearn_metrics"]
+__all__ = ["LazyModule", "colour", "pandas"]
 
 
 class LazyModule:
@@ -55,5 +55,3 @@ class LazyModule:
 
 colour = LazyModule("colour")
 pandas = LazyModule("pandas")
-scipy_stats = LazyModule("scipy.stats")
-sklearn_metrics = LazyModule("sklearn.metrics")
