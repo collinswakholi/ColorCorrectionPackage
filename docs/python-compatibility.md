@@ -27,7 +27,7 @@ installed, and the examples run outside the repository.
 
 On November 6, 2026, a clean binary-only installation under CPython 3.15.2
 failed on required dependency availability. ONNX Runtime 1.31.1 and
-scikit-image 0.26.0 lacked CPython 3.15 wheels. All maintained package Python
+scikit-image 0.26.0 (then a dependency; removed in 3.0.0) lacked CPython 3.15 wheels. All maintained package Python
 modules parsed under 3.15, but that syntax check cannot qualify a working
 installation. Python 3.15 is therefore outside the qualified version set.
 
