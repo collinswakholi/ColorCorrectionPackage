@@ -113,7 +113,14 @@ jobs:
           run('-m', 'pip', 'check')
           common = ['-I', root / 'scripts/verify_installed.py', '--forbid-source', root,
                     '--photo', root / 'Images/Image_1.JPG']
-          run(*common, '--expect-numba', 'no', '--output', evidence / 'base.json')
+          import platform
+          machine = platform.machine()
+          numba_by_default = sys.version_info >= (3, 10) and (
+              (sys.platform == 'win32' and machine in ('AMD64', 'ARM64'))
+              or (sys.platform.startswith('linux') and machine in ('x86_64', 'aarch64'))
+              or (sys.platform == 'darwin' and machine == 'arm64'))
+          run(*common, '--expect-numba', 'yes' if numba_by_default else 'no',
+              '--output', evidence / 'base.json')
           v2_examples('base')
           run('-m', 'pip', 'install', str(wheel) + '[performance]')
           run('-m', 'pip', 'check')

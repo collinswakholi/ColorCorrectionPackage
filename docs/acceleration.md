@@ -29,9 +29,12 @@ affine polynomial models (linear and PLS) have an explicit NumPy adapter and an
 optional fused float64 Numba adapter, with fastmath disabled. Other known model
 families retain their recorded inference adapter. Unsupported explicit backend
 requests fail when `allow_fallback=False`; automatic selection reports the actual
-backend, output precision, and any fallback. Install the optional accelerator
-with `pip install "ColorCorrectionPipeline[performance]"`. The base wheel runs
-without Numba. Taichi is not a production backend.
+backend, output precision, and any fallback. Since 3.0.1, Numba is installed
+with the package on Python 3.10+ for Windows (x64, ARM64), Linux (x86_64,
+aarch64) and Apple-silicon macOS, where it ships wheels. Elsewhere (Python
+3.8/3.9, Intel macOS) install it with `pip install "ColorCorrectionPipeline[performance]"`.
+Without Numba the package still runs, with identical results, on the NumPy
+backend, which is about 10–20 times slower. Taichi is not a production backend.
 Saved legacy polynomial GC retains its existing runtime-dependent NumPy/Numba
 Lab conversion and Torch CUDA polynomial helper, when available. An explicit
 CPU backend controls the new CC/LUT kernels; it does not redefine those legacy

@@ -10,15 +10,14 @@ from an optional photo of a white target), tone (**gamma**), color cast
 ## Install
 
 ```shell
-pip install "ColorCorrectionPipeline[performance]"
+pip install ColorCorrectionPipeline
 ```
 
-The `[performance]` extra installs Numba, which makes fitting and correcting
-**10–20× faster** with identical results; a plain `pip install ColorCorrectionPipeline`
-also works. For 24 MP photos, one fit took 14 s with it and 175 s without. Add
-`[tiff]` (for example `[performance,tiff]`) to read compressed 16-bit TIFFs.
-
-Python 3.8–3.14 on Windows, Linux and macOS. Chart detection uses a GPU when
+Python 3.8–3.14 on Windows, Linux and macOS. On Python 3.10+ for Windows, Linux
+and Apple-silicon Macs this also installs Numba, which makes fitting and
+correcting **10–20× faster** with identical results. On Python 3.8/3.9 or an
+Intel Mac, add it with `pip install "ColorCorrectionPipeline[performance]"`.
+To read compressed 16-bit TIFFs, add `[tiff]`. Chart detection uses a GPU when
 one is available and falls back to the CPU on its own.
 
 ## Quick start
