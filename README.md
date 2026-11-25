@@ -1,6 +1,7 @@
 # ColorCorrectionPipeline
 
-Calibrate a camera setup from one photo of a **ColorChecker Classic 24** chart,
+Calibrate a camera setup from one photo of a color chart (a **ColorChecker Classic 24**,
+**SpyderCHECKR 24** or **ColorChecker Digital SG**),
 then apply that calibration to every image taken under the same conditions.
 
 The pipeline corrects, in order: uneven lighting (**flat-field correction**,
@@ -47,6 +48,31 @@ from ColorCorrectionPipeline.io import write_image_data
 write_image_data("scene_corrected.png", image, dtype="uint8", allow_precision_loss=True)
 ```
 
+## Which chart?
+
+The detector recognises three charts and picks the matching reference values for you:
+
+| Chart | Patches | Status |
+| --- | --- | --- |
+| ColorChecker Classic 24 (and the Passport's Classic face) | 24 | Fully supported |
+| SpyderCHECKR 24 | 24 | New: verified on synthetic charts, not yet on real photos |
+| ColorChecker Digital SG | 140 | New: verified on synthetic charts, not yet on real photos |
+
+`calibrate()` uses whichever chart is in the photo (a Classic wins if there are
+several). To choose one, pass `chart_type="spyder"` or `"digital-sg"`.
+
+If you measured your own chart, use its values instead of the built-in ones:
+
+```python
+from ColorCorrectionPipeline import Config, ReferenceProfile, calibrate
+
+reference = ReferenceProfile.from_csv("my_chart.csv", chart="classic")  # Lab D50 by default
+cal = calibrate("chart.jpg", white="white.jpg", config=Config(reference=reference))
+```
+
+Values can be Lab, XYZ or sRGB, under any standard white, in row- or column-major
+order or labelled by cell. See [chart reference values](https://github.com/collinswakholi/ColorCorrectionPackage/blob/main/docs/configuration.md#chart-reference-values).
+
 ## Correct many images
 
 ```python
@@ -78,7 +104,7 @@ cal = calibrate("chart.jpg", white="white.jpg", model="rpcc3")
 | `high-precision` | Your scenes are 16-bit or float. |
 
 For anything else, such as turning stages off, flat-field options, neural-network
-or PLS models, CPU-only detection, or your own chart reference values, build a
+or PLS models, CPU-only detection, build a
 `Config`:
 
 ```python

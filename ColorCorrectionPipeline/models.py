@@ -111,10 +111,8 @@ class MyModels:
             ):
                 raise ValueError("explicit saved calibration requires a D65 reference illuminant")
             profile = ReferenceProfile.from_dict(metadata["reference_profile"])
-            if profile.template_id != "classic_4x6" or profile.layout != (4, 6):
-                raise ValueError(
-                    "saved calibration requires a supported Classic24 reference layout"
-                )
+            if profile.template_id not in ("classic_4x6", "spyder_4x6", "digital_sg_10x14"):
+                raise ValueError("saved calibration uses an unsupported chart reference layout")
             switches = metadata["enabled_stages"]
             expected_switches = {"do_ffc", "do_gc", "do_wb", "do_cc", "check_saturation"}
             if (

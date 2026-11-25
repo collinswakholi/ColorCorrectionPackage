@@ -17,7 +17,8 @@ else keeps the default shown below.
 [three ways to configure](#three-ways-to-configure) ·
 [FFC](#ffc-flat-field-correction) · [GC](#gc-gamma-correction) ·
 [WB](#wb-white-balance) · [CC](#cc-color-correction) ·
-[shared settings](#shared-settings) · [recipes](#recipes) ·
+[shared settings](#shared-settings) · [chart reference values](#chart-reference-values) ·
+[recipes](#recipes) ·
 [rules](#rules-worth-knowing) · [older argument names](#older-argument-names)
 
 ## The settings map
@@ -93,6 +94,7 @@ config = Config(
         "grayscale_policy": "reject",             # "reject" | "replicate"
     },
     chart={
+        "type": "auto",                           # "auto" | "classic" | "spyder" | "digital-sg"
         "device": "auto",                         # "auto" (GPU, else CPU) | "cpu"
         "samples_per_axis": 9,                    # grid points per axis in each patch (9 × 9 = 81)
         # "samples_per_patch": 20,                # OR: exact random points per patch (1–4096)…
@@ -319,6 +321,7 @@ small_nn = Config(steps={"cc": {"fit": {
 
 | Setting | Choices | Default | What it changes |
 | --- | --- | --- | --- |
+| `type` | `"auto"`: use the chart in the photo; a Classic wins if there are several. <br>`"classic"` (or `"passport"`), `"spyder"`, `"digital-sg"`: use that chart. | `"auto"` | Which chart to calibrate from. A custom `reference` decides this for you. |
 | `device` | `"auto"`: try a GPU, fall back to CPU. <br>`"cpu"`: CPU only. | `"auto"` | Where chart detection runs. Fitting always runs on the CPU. |
 | `samples_per_axis` | positive integer | `9` | Reads each patch on a fixed grid of N × N points. |
 | `samples_per_patch` | 1–4096 | not set | Reads exactly this many random points per patch instead of the grid. Don't combine with `samples_per_axis`. |
@@ -339,7 +342,7 @@ for models and devices.
 | `color.input_encoding` | `"srgb"`, `"linear-srgb"` | `"srgb"` | How the pixels of your input images are encoded. |
 | `color.output_encoding` | `"srgb"`, `"linear-srgb"` | `"srgb"` | The encoding of the corrected output. |
 | `color.output_policy` | `"clip"` to 0–1, `"preserve"` out-of-range values, `"raise"` an error | `"clip"` | What happens to corrected values outside 0–1. |
-| `reference` | a `ReferenceProfile` | ColorChecker Classic 24 | Target values for the 24 patches. See [your own chart reference values](#your-own-chart-reference-values). |
+| `reference` | a `ReferenceProfile` | built-in values for the detected chart | Target values for the chart's patches. See [chart reference values](#chart-reference-values). |
 | `persistence.enabled` | `True`, `False` | `False` | Save the fitted models while calibrating. |
 | `persistence.directory` | a folder | none | Where to save them. |
 | `persistence.format` | `"bundle"`: portable `.ccpb`, safe to load. <br>`"pickle"`: Python pickle; load only files you trust. | `"pickle"` | File format. **Choose `"bundle"`**; `"pickle"` remains the default only for compatibility. |
@@ -355,6 +358,83 @@ explains why:
 | `steps.ffc.quality.safe_mode` | `True` | The white-image checks above always run. |
 | `observations.saturation` | `"report"` | Clipped chart patches are reported in the metrics, not repaired or dropped. `observations.max_clipped_fraction` (default `0.0`) only sets when a patch is flagged. |
 | `steps.*.reporting.show` | `False` | Interactive plots during fitting are not supported. |
+
+## Chart reference values
+
+A calibration compares each measured patch with its **reference value**, the
+patch's true colour. GC and WB also need to know which patches are **grey**.
+
+### Built-in charts
+
+| Chart | `chart` name | Cells | Grey patches used by GC and WB | Source of values |
+| --- | --- | --- | --- | --- |
+| ColorChecker Classic 24 | `"classic"` (or `"passport"`) | 4 × 6 | Bottom row, white to black (`r4c1`–`r4c6`) | Post-November-2014 values |
+| SpyderCHECKR 24 | `"spyder"` | 4 × 6 | Datacolor's grey row A1–A6, the bottom row (`r4c1`–`r4c6`) | darktable "after 2018" V2 table |
+| ColorChecker Digital SG | `"digital-sg"` | 10 × 14 | The white-to-black ramp E5–J5 (`r5c5`–`r5c10`) | BabelColor "After Nov 2014" |
+
+All values are CIE Lab D50 and match ColorCorrect Studio's audited catalog. They
+are published measurements, not manufacturer-certified ones. Digital SG's many
+white, grey and black **border** patches are evenness checks, so GC and WB never
+use them; the colour fit uses all 140 cells.
+
+`ReferenceProfile.builtin("spyder")` returns a built-in reference if you want to
+inspect it.
+
+> **Spyder and Digital SG support is new** and has been verified on synthetic
+> charts photographed through a simulated camera, not yet on real photographs.
+> Each fit records `last_run["chart"]` and logs a notice. For the most conservative
+> result on these charts, turn GC and WB off:
+> `steps={"gc": {"enabled": False}, "wb": {"enabled": False}}`.
+
+### Your own measured values
+
+If you measured your chart with a spectrophotometer, or have a supplier's batch
+values, use them instead. The chart's layout, cell ids and grey patches are filled
+in for you:
+
+```python
+from ColorCorrectionPipeline import Config, ReferenceProfile
+
+reference = ReferenceProfile.for_chart("spyder", measured_lab)     # 24 Lab D50 triplets
+config = Config(reference=reference)
+```
+
+A custom reference decides which chart the calibration looks for, so
+`chart={"type": ...}` isn't needed. Options:
+
+| Option | Choices | Default | Meaning |
+| --- | --- | --- | --- |
+| `chart` | `"classic"`, `"passport"`, `"spyder"`, `"digital-sg"` | `"classic"` | Which chart the values belong to: 24 values, or 140 for Digital SG. |
+| `color_space` | `"lab"`, `"xyz"`, `"srgb"`, `"linear-srgb"` | `"lab"` | What the numbers are. |
+| `white` | `"D50"`, `"D55"`, `"D60"`, `"D65"`, `"D75"`, `"A"`, `"C"`, `"E"`, or an `(x, y)` pair | `"D50"` | The values' white point. sRGB values use `"D65"`. |
+| `scale` | Lab `1`; XYZ `1` or `100`; RGB `1`, `255` or `65535` | `1` | The numeric range. |
+| `order` | `"row-major"` (left to right, then down) or `"column-major"` (top to bottom, then right) | `"row-major"` | How a plain list is ordered. |
+| `neutral_ids` | cell ids such as `"r4c1"`, or patch names such as `"white"` | the chart's grey patches | Override the grey patches GC and WB use. |
+| `name` | text | `"Custom reference"` (file name for CSVs) | A label stored with the calibration. |
+
+**From a spreadsheet or CSV.** `ReferenceProfile.from_csv(path, chart=...)` and
+`ReferenceProfile.from_text(text, chart=...)` accept comma-, tab- or
+semicolon-separated rows, with one optional header row, in any of three forms:
+
+```text
+L,a,b                 cell,L,a,b             row,column,L,a,b
+70.19,-31.85,1.98     A1,70.19,-31.85,1.98   1,1,70.19,-31.85,1.98
+54.38,8.84,-25.71     B1,54.38,8.84,-25.71   1,2,54.38,8.84,-25.71
+...                  ...                    ...
+```
+
+- **Plain triplets** are read in `order`.
+- **`cell` labels** such as `A1` are grid positions: the letter is the column and
+  the number the row, counted from the top-left of the chart as the detector
+  sees it.
+- **`row,column`** pairs are 1-based.
+- Labelled rows may come in any order, but every cell must appear exactly once.
+
+> **SpyderCHECKR labels.** Datacolor prints row A at the *bottom* of the chart, so
+> its "A1" (white) is grid cell `A4`, not `A1`. Use plain triplets in grid order,
+> or `row,column` pairs, when copying Datacolor's printed table.
+
+The same formats work in ColorCorrect Studio's reference editor and Python SDK.
 
 ## Recipes
 
@@ -424,26 +504,6 @@ config = Config(persistence={"enabled": True, "directory": "results", "format": 
 This writes `results/<name>_models.ccpb`. The name is `chart` with
 `calibrate()`, or `name_=` with `ColorCorrection.fit()`. You can also skip this
 and call `cal.save("calibration.ccpb")` afterwards.
-
-### Your own chart reference values
-
-Supply your measured values for the 24 patches in reading order (top-left
-first):
-
-```python
-from ColorCorrectionPipeline import Config, ReferenceProfile
-
-reference = ReferenceProfile.from_values(
-    measured_lab,                      # 24 × 3 Lab values
-    color_space="lab", white="D50", scale=1.0,
-    profile_id="my-chart-2026", revision=1,
-    names=patch_names,                 # 24 labels
-    neutral_ids=["r4c1", "r4c2", "r4c3", "r4c4", "r4c5", "r4c6"],
-)
-config = Config(reference=reference)
-```
-
-`neutral_ids` names the grey patches GC and WB use. `r4c1` means row 4, column 1.
 
 ### Save settings to a file and load them back
 

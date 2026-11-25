@@ -37,7 +37,7 @@ class StageFit:
         )
         if self._chart_index >= len(observations.observations):
             raise ValueError(
-                "%s requires selected Classic24 face %d: %s"
+                "%s requires selected chart face %d: %s"
                 % (
                     stage,
                     self._chart_index,

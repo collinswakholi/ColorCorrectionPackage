@@ -16,10 +16,13 @@ def bind_stage_measurements(rgb=None):
     state.measurement_image = None if rgb is None else np.array(rgb, dtype=np.float64, copy=True)
 
 
+_FACE_PREFIX = {"classic_4x6": "classic", "spyder_4x6": "spyder", "digital_sg_10x14": "digital-sg"}
+
+
 def capture_observations(rgb, image_data, reference, stage, *, explicit=False, force=False):
     """Resample all available faces without changing their within-run identities."""
     from .detection import ChartDetectionError
-    from .detection.charts import _scope, _model_charts, _sample
+    from .detection.charts import _LAYOUTS, _TYPE_NAMES, _scope, _model_charts, _sample
 
     state = _scope.get()
     if state is None:
@@ -86,18 +89,22 @@ def capture_observations(rgb, image_data, reference, stage, *, explicit=False, f
                 samples = sample_quadrilaterals(rgb, geometry["patches"], 81)
         else:
             samples = _sample(bgr8, geometry["patches"], 81) / 255
+        template = _TYPE_NAMES[geometry.get("type", 0)]
+        rows, cols = _LAYOUTS[geometry.get("type", 0)]
         face = ChartObservation.from_samples(
             samples=samples,
             chart_id="capture-" + image_data.pixel_digest[:16],
-            face_id="classic-%02d" % index,
+            face_id="%s-%02d" % (_FACE_PREFIX[template], index),
             reference_digest=reference.digest,
-            cell_ids=tuple("r%dc%d" % (row + 1, col + 1) for row in range(4) for col in range(6)),
+            cell_ids=tuple(
+                "r%dc%d" % (row + 1, col + 1) for row in range(rows) for col in range(cols)
+            ),
             quadrilaterals=geometry["patches"],
             confidence=geometry["score"],
             image_shape=rgb.shape[:2],
             stage=stage,
-            template_id="classic_4x6",
-            layout=(4, 6),
+            template_id=template,
+            layout=(rows, cols),
             provenance={
                 **sampling,
                 "identity_scope": "one source capture and fixed geometry; not physical chart serial identity",

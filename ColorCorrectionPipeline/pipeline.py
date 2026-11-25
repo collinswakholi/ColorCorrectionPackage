@@ -670,6 +670,52 @@ class ColorCorrection:
             self.last_run = candidate.last_run
             raise
 
+    def _resolve_chart_reference(self, config, *, needs_chart):
+        """Pick the chart (and built-in reference) this calibration samples.
+
+        A custom reference pins its own chart type. With a built-in reference,
+        ``chart.type`` selects the chart; ``auto`` uses the detector's result and
+        prefers Classic, so photos with a Classic chart calibrate exactly as before.
+        """
+        from .chart_references import builtin_reference, is_builtin_reference, template_for
+        from .detection.charts import ChartDetectionError, detected_chart_templates
+
+        requested = config.chart_detection.get("type", "auto")
+        profile = self.reference_profile
+        builtin = is_builtin_reference(profile)
+        current = profile.template_id if profile is not None else "classic_4x6"
+        if not builtin:
+            template = current
+        elif requested != "auto":
+            template = template_for(requested)
+        elif needs_chart:
+            try:
+                found = detected_chart_templates()
+            except ChartDetectionError:
+                found = []  # the stage that samples the chart reports the detector's error
+            template = found[0] if found else current
+        else:
+            template = current
+        if profile is None or (builtin and template != current):
+            self.reference_profile = builtin_reference(template)
+            config.reference_profile = self.reference_profile
+        self.last_run["chart"] = {
+            "requested": requested,
+            "template": template,
+            "reference": self.reference_profile.profile_id,
+            "builtin_reference": builtin,
+        }
+        if template != "classic_4x6":
+            self.last_run["chart"][
+                "validation"
+            ] = "new in 3.1: verified on synthetic charts; not yet on real photographs"
+            logger.warning(
+                "Calibrating from a %s chart. Support for this chart is new and has been "
+                "verified on synthetic charts only; check the results, or disable GC and WB "
+                "for a colour-correction-only fit.",
+                template,
+            )
+
     def _run_stages(self, Image, White_Image, name_, config):
         self.image_data, self.Image = self._prepare_input(
             Image, self.color_semantics, config.image_options
@@ -756,11 +802,15 @@ class ColorCorrection:
             "precision-f64-v1" if high else config.chart_detection.get("sampling_policy")
         )
 
-        self.get_reference_values(config.REF_ILLUMINANT)
         # Geometry always comes from the original quantized source, even if the
         # first extraction occurs after FFC; a float32 round trip could truncate an
         # exact code value one unit low. Optional metric switches cannot change it.
         bind_detection_source(np.rint(self.image_data.to_srgb()[:, :, ::-1] * 255).astype(np.uint8))
+        self._resolve_chart_reference(
+            config,
+            needs_chart=any((config.do_gc, config.do_wb, config.do_cc, config.check_saturation)),
+        )
+        self.get_reference_values(config.REF_ILLUMINANT)
         _scope.get().reference_profile = self.reference_profile
         if config.do_wb and len(self.reference_profile.neutral_indices) < 2:
             raise ValueError("WB requires at least two declared neutral cell IDs")
